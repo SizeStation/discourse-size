@@ -18,7 +18,7 @@ require_relative "lib/discourse_size/engine"
 
 after_initialize do
   # Require our model
-  require_dependency File.expand_path("../app/models/user_size_stat.rb", __dir__)
+  require_dependency File.expand_path("app/models/user_size_stat.rb", __dir__)
 
   # Add user_size_stat to User
   add_to_class(:user, :user_size_stat) do

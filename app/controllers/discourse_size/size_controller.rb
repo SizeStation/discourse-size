@@ -32,7 +32,7 @@ module ::DiscourseSize
       stat = current_user.user_size_stat
 
       if stat.points < points
-        return render json: { error: "Not enough points" }, status: 400
+        return render json: { error: "Not enough points" }, status: :bad_request
       end
 
       if target_username.present?
@@ -41,16 +41,16 @@ module ::DiscourseSize
         target_user = current_user
       end
       
-      return render json: { error: "User not found" }, status: 404 unless target_user
+      return render json: { error: "User not found" }, status: :not_found unless target_user
 
       target_stat = target_user.user_size_stat
 
       if target_user.id != current_user.id
         if action == "grow" && !target_stat.consent_grow
-          return render json: { error: "User does not consent to being grown" }, status: 400
+          return render json: { error: "User does not consent to being grown" }, status: :bad_request
         end
         if action == "shrink" && !target_stat.consent_shrink
-          return render json: { error: "User does not consent to being shrunk" }, status: 400
+          return render json: { error: "User does not consent to being shrunk" }, status: :bad_request
         end
       end
 
