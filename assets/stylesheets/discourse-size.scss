@@ -4,6 +4,7 @@
   .user-size-header {
     margin-bottom: 30px;
     border-bottom: 1px solid var(--primary-low);
+
     h2 {
       margin-bottom: 5px;
     }
@@ -80,7 +81,7 @@
 
     .setting-item {
       margin-bottom: 15px;
-      
+
       &.inline {
         display: flex;
         gap: 10px;
@@ -111,7 +112,7 @@
       display: flex;
       gap: 10px;
       margin-top: 20px;
-      
+
       .btn {
         flex: 1;
       }
@@ -179,12 +180,15 @@
 .user-size-stats-card-container,
 .user-size-stats-profile-container {
   margin-top: 10px;
+
   .size-stat-label {
     font-weight: bold;
   }
+
   .size-stat-value {
     color: var(--tertiary);
   }
+
   .size-stat-rank {
     font-size: 0.9em;
     font-style: italic;

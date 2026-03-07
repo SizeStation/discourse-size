@@ -7,7 +7,7 @@ export function formatSize([sizeInCm, system, isChanging]) {
   if (sizeInCm === undefined || sizeInCm === null) {
     return "";
   }
-  
+
   // Default to system metric if not set
   let sys = system === IMPERIAL ? IMPERIAL : METRIC;
   let result = "";
@@ -33,23 +33,25 @@ export function formatSize([sizeInCm, system, isChanging]) {
   } else {
     // Imperial logic
     let sizeInInches = sizeInCm / 2.54;
-    
+
     if (sizeInInches < 12) {
       result = `${sizeInInches.toFixed(2)} in`;
-    } else if (sizeInInches < 36) { // 3 feet
+    } else if (sizeInInches < 36) {
+      // 3 feet
       let feet = Math.floor(sizeInInches / 12);
       let inches = sizeInInches % 12;
       result = `${feet} ft ${inches.toFixed(1)} in`;
-    } else if (sizeInInches < 63360) { // 1 mile
+    } else if (sizeInInches < 63360) {
+      // 1 mile
       result = `${(sizeInInches / 12).toFixed(2)} ft`; // or Yards, let's just stick to feet if under a mile
     } else {
       let miles = sizeInInches / 63360;
       if (miles > 1000000) {
-         // Switch to Lightyears or something funny if massive, but normal imperial works too
-         result = `${(miles / 5878625000000).toFixed(4)} lightyears`; // Roughly
-         if (parseFloat(result) < 0.0001) result = `${miles.toFixed(2)} mi`; // fall back if lightyears is 0.0000
+        // Switch to Lightyears or something funny if massive, but normal imperial works too
+        result = `${(miles / 5878625000000).toFixed(4)} lightyears`; // Roughly
+        if (parseFloat(result) < 0.0001) result = `${miles.toFixed(2)} mi`; // fall back if lightyears is 0.0000
       } else {
-         result = `${miles.toFixed(2)} mi`;
+        result = `${miles.toFixed(2)} mi`;
       }
     }
   }

@@ -1,5 +1,3 @@
-# **Plugin Name** Plugin
+# Discourse Size Plugin
 
-**Plugin Summary**
-
-For more information, please see: **url to meta topic**
+For fun macro/micro size profile play. Made for sizestation forum.

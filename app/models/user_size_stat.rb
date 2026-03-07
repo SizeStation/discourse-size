@@ -2,12 +2,12 @@
 
 class UserSizeStat < ActiveRecord::Base
   belongs_to :user
-  
+
   # Constants for measurement system
   MEASUREMENT_SYSTEMS = {
     system: 0,
     metric: 1,
-    imperial: 2
+    imperial: 2,
   }
 
   def current_size
@@ -15,12 +15,12 @@ class UserSizeStat < ActiveRecord::Base
 
     # Calculate time lapsed in days
     days_lapsed = (Time.zone.now - size_updated_at) / 1.day
-    
+
     # Amount of growth/shrinkage that could have happened
     change_amount = days_lapsed * growth_rate.abs
-    
+
     total_difference = (target_size - base_size).abs
-    
+
     if change_amount >= total_difference
       # We've reached or passed the target
       return target_size
@@ -40,6 +40,6 @@ class UserSizeStat < ActiveRecord::Base
     new_base = current_size
     self.base_size = new_base
     self.size_updated_at = Time.zone.now
-    self.save!
+    save!
   end
 end

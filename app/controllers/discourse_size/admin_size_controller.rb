@@ -23,7 +23,7 @@ module ::DiscourseSize
         updates[:base_size] = target_size.to_f
         updates[:size_updated_at] = Time.zone.now
       end
-      
+
       updates[:growth_rate] = growth_rate.to_f if growth_rate
       updates[:points] = points.to_i if points
 

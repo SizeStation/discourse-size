@@ -7,7 +7,7 @@ import { popupAjaxError } from "discourse/lib/ajax-error";
 
 export default class UserSizeController extends Controller {
   @service dialog;
-  
+
   @tracked compareUsername = "";
   @tracked compareTargets = [];
   @tracked spendAmount = 1;
@@ -49,7 +49,7 @@ export default class UserSizeController extends Controller {
       .then((res) => {
         this.dialog.alert(`Success! New target size is ${res.new_target} cm.`);
         // Note: For a real app, we'd want to reload the model from the server here to get new current_size immediately
-        window.location.reload(); 
+        window.location.reload();
       })
       .catch(popupAjaxError);
   }
@@ -70,9 +70,9 @@ export default class UserSizeController extends Controller {
   @action
   loadComparison() {
     if (!this.compareUsername) return;
-    
+
     let targets = [this.model.username, this.compareUsername];
-    
+
     ajax("/discourse-size/compare", {
       type: "GET",
       data: { targets },
