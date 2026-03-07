@@ -3,7 +3,7 @@
 module ::DiscourseSize
   class AdminSizeController < ::ApplicationController
     requires_plugin PLUGIN_NAME
-    requires_admin
+    before_action :ensure_admin
 
     def override_user
       username = params[:username]

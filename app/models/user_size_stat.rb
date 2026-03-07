@@ -43,3 +43,29 @@ class UserSizeStat < ActiveRecord::Base
     save!
   end
 end
+
+# == Schema Information
+#
+# Table name: user_size_stats
+#
+#  id                  :bigint           not null, primary key
+#  base_size           :float            default(170.0), not null
+#  consent_grow        :boolean          default(FALSE), not null
+#  consent_shrink      :boolean          default(FALSE), not null
+#  growth_rate         :float            default(0.1), not null
+#  measurement_system  :integer          default(0), not null
+#  points              :integer          default(0), not null
+#  ranking_public      :boolean          default(TRUE), not null
+#  size_updated_at     :datetime         not null
+#  target_size         :float            default(170.0), not null
+#  created_at          :datetime         not null
+#  updated_at          :datetime         not null
+#  character_upload_id :integer
+#  user_id             :integer          not null
+#
+# Indexes
+#
+#  index_user_size_stats_on_points       (points)
+#  index_user_size_stats_on_target_size  (target_size)
+#  index_user_size_stats_on_user_id      (user_id) UNIQUE
+#
