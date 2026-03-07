@@ -46,7 +46,16 @@ module ::DiscourseSize
   def self.unit_preference_for(user)
     pref = user.custom_fields[UNIT_PREF_FIELD]
     pref = nil if pref.respond_to?(:empty?) && pref.empty?
-    pref || (SiteSetting.respond_to?(:size_default_unit_preference) ? SiteSetting.size_default_unit_preference : "metric")
+    return pref if pref
+
+    default_pref =
+      if SiteSetting.respond_to?(:size_default_unit_preference)
+        SiteSetting.size_default_unit_preference
+      else
+        "metric"
+      end
+
+    default_pref
   end
 
   def self.formatted_size_for(user)
@@ -100,7 +109,10 @@ module ::DiscourseSize
 
     cost = percent.abs
     current_points = points_for(user)
-    raise Discourse::InvalidAccess.new(I18n.t("discourse_size.not_enough_points")) if current_points < cost
+
+    if current_points < cost
+      raise Discourse::InvalidAccess.new(I18n.t("discourse_size.not_enough_points"))
+    end
 
     current_size = size_cm_for(user)
     factor = 1.0 + (percent / 100.0)
@@ -146,7 +158,7 @@ after_initialize do
     ::DiscourseSize::POINTS_FIELD,
     ::DiscourseSize::UNIT_PREF_FIELD,
   ].each do |field|
-    User.preloaded_custom_fields << field unless User.preloaded_custom_fields.include?(field)
+    User.preload_custom_fields << field unless User.preload_custom_fields.include?(field)
   end
 
   # Expose display size on user serializers (public)
@@ -168,8 +180,15 @@ after_initialize do
   end
 
   add_to_serializer(:current_user, :size_unit_preference) do
-    object.custom_fields[::DiscourseSize::UNIT_PREF_FIELD] ||
-      (SiteSetting.respond_to?(:size_default_unit_preference) ? SiteSetting.size_default_unit_preference : "metric")
+    pref = object.custom_fields[::DiscourseSize::UNIT_PREF_FIELD]
+
+    if pref
+      pref
+    elsif SiteSetting.respond_to?(:size_default_unit_preference)
+      SiteSetting.size_default_unit_preference
+    else
+      "metric"
+    end
   end
 
   # Also expose raw values to admin user serializer
@@ -184,10 +203,19 @@ after_initialize do
   # Award points when users create posts (topics or replies)
   on(:post_created) do |post, _opts, user|
     next unless SiteSetting.size_enabled
-    next unless SiteSetting.respond_to?(:size_points_enabled) ? SiteSetting.size_points_enabled : true
+    if SiteSetting.respond_to?(:size_points_enabled)
+      next unless SiteSetting.size_points_enabled
+    end
     next if user.blank?
     next if post.topic&.private_message?
 
-    ::DiscourseSize.adjust_points!(user, SiteSetting.respond_to?(:size_points_per_post) ? SiteSetting.size_points_per_post.to_i : 1)
+    points_per_post =
+      if SiteSetting.respond_to?(:size_points_per_post)
+        SiteSetting.size_points_per_post.to_i
+      else
+        1
+      end
+
+    ::DiscourseSize.adjust_points!(user, points_per_post)
   end
 end
