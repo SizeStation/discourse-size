@@ -1,10 +1,11 @@
 # frozen_string_literal: true
 
-MyPluginModule::Engine.routes.draw do
-  post "/points/give" => "size#give_points"
-  post "/points/change" => "size#change_size"
-  post "/admin/points" => "size#admin_set_points"
-  post "/admin/size" => "size#admin_set_size"
+DiscourseSize::Engine.routes.draw do
+  put "/preferences" => "size#update_preferences"
+  post "/picture" => "size#upload_picture"
+  post "/spend" => "size#spend_points"
+  get "/compare" => "size#compare"
+  post "/admin/override" => "admin_size#override_user"
 end
 
-Discourse::Application.routes.draw { mount ::MyPluginModule::Engine, at: "discourse-size" }
+Discourse::Application.routes.draw { mount ::DiscourseSize::Engine, at: "discourse-size" }

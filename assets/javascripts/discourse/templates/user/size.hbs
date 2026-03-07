@@ -1,0 +1,145 @@
+<div class="user-size-page">
+  <div class="user-size-header">
+    <h2>Size Statistics & Controls</h2>
+    <p>View and manage character sizing options here.</p>
+  </div>
+
+  <div class="user-size-stats-panel">
+    <div class="stats-row">
+      <div class="stat-box">
+        <h4>Current Size</h4>
+        <span class="value">{{format-size this.model.size_stat_current_size this.model.size_stat_measurement_system this.model.size_stat_is_changing}}</span>
+      </div>
+      <div class="stat-box">
+        <h4>Target Size</h4>
+        <span class="value">{{format-size this.model.size_stat_target_size this.model.size_stat_measurement_system false}}</span>
+      </div>
+      <div class="stat-box">
+        <h4>Growth/Shrink Rate</h4>
+        <span class="value">{{this.model.size_stat_growth_rate}} cm/day</span>
+      </div>
+      <div class="stat-box">
+        <h4>Available Points</h4>
+        <span class="value points">{{this.model.size_stat_points}}</span>
+      </div>
+    </div>
+    
+    {{#if this.model.size_stat_ranking}}
+      <div class="ranking-banner">
+        Current Rank: <strong>{{this.model.size_stat_ranking}}</strong>
+      </div>
+    {{/if}}
+  </div>
+
+  {{#if isCurrentUser}}
+    <div class="user-size-controls-grid">
+      <!-- Settings Panel -->
+      <div class="control-panel">
+        <h3>Preferences</h3>
+        
+        <div class="setting-item">
+          <label>Measurement System</label>
+          <select value={{this.model.size_stat_measurement_system}} onchange={{action (mut this.model.size_stat_measurement_system) value="target.value"}}>
+            <option value="1">Metric</option>
+            <option value="2">Imperial</option>
+          </select>
+        </div>
+
+        <div class="setting-item">
+          <label>
+            <Input @type="checkbox" @checked={{this.model.size_stat_consent_grow}} />
+            Allow others to GROW me
+          </label>
+        </div>
+
+        <div class="setting-item">
+          <label>
+            <Input @type="checkbox" @checked={{this.model.size_stat_consent_shrink}} />
+            Allow others to SHRINK me
+          </label>
+        </div>
+
+        <div class="setting-item">
+          <label>
+            <Input @type="checkbox" @checked={{this.model.size_stat_ranking_public}} />
+            Show my ranking publicly
+          </label>
+        </div>
+
+        <button class="btn btn-primary" type="button" {{action "savePreferences"}}>Save Preferences</button>
+      </div>
+
+      <!-- Action Panel -->
+      <div class="control-panel">
+        <h3>Use Points</h3>
+        <p>Spend points to accelerate growth or shrinkage.</p>
+        
+        <div class="setting-item">
+          <label>Amount of Points</label>
+          <Input @type="number" @value={{this.spendAmount}} min="1" step="1" />
+        </div>
+        
+        <div class="setting-item">
+          <label>Target Username (leave blank for self)</label>
+          <Input @type="text" @value={{this.spendTargetUsername}} />
+        </div>
+
+        <div class="flex-buttons">
+          <button class="btn btn-primary" type="button" {{action "spendPoints" "grow"}}>Grow!</button>
+          <button class="btn btn-danger" type="button" {{action "spendPoints" "shrink"}}>Shrink!</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upload Panel -->
+    <div class="control-panel character-upload">
+      <h3>Character Picture</h3>
+      {{#if this.model.size_stat_character_upload_id}}
+        <p>You have a character picture uploaded.</p>
+      {{/if}}
+      <!-- In reality Discourse uses an Uploader component, using a native file input placeholder -->
+      <div class="upload-placeholder">
+        <p><i>Character file upload form would go here.</i></p>
+      </div>
+    </div>
+  {{else}}
+    <div class="control-panel">
+      <h3>Use Points on {{this.model.username}}</h3>
+      <p>Spend your points to interact with this user's size.</p>
+      <div class="setting-item">
+          <label>Amount of Points</label>
+          <Input @type="number" @value={{this.spendAmount}} min="1" step="1" />
+      </div>
+      <div class="flex-buttons">
+          <button class="btn btn-primary" type="button" {{action "spendPoints" "grow"}}>Grow {{this.model.username}}!</button>
+          <button class="btn btn-danger" type="button" {{action "spendPoints" "shrink"}}>Shrink {{this.model.username}}!</button>
+      </div>
+    </div>
+  {{/if}}
+
+  <!-- Comparison Tool -->
+  <div class="control-panel comparison-panel">
+    <h3>Compare Size</h3>
+    <div class="setting-item inline">
+      <Input @type="text" @value={{this.compareUsername}} placeholder="Username to compare with..." />
+      <button class="btn" type="button" {{action "loadComparison"}}>Compare</button>
+    </div>
+
+    {{#if this.compareTargets.length}}
+      <div class="comparison-visualizer">
+        {{#each this.compareTargets as |target|}}
+          <div class="comparison-user" style="height: {{target.current_size}}px;">
+            <div class="username">{{target.username}}</div>
+            <div class="size-val">{{target.current_size}} cm</div>
+            {{#if target.upload_url}}
+              <img src={{target.upload_url}} alt={{target.username}} />
+            {{else}}
+              <div class="avatar-placeholder"></div>
+            {{/if}}
+          </div>
+        {{/each}}
+      </div>
+    {{/if}}
+  </div>
+
+</div>

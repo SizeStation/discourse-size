@@ -1,0 +1,12 @@
+{{#if this.user.size_stat_current_size}}
+  <div class="user-size-stats-card-container">
+    <span class="size-stat-label">Size:</span>
+    <span class="size-stat-value">
+      {{format-size this.user.size_stat_current_size this.user.size_stat_measurement_system this.user.size_stat_is_changing}}
+    </span>
+    {{#if this.user.size_stat_ranking}}
+      <br>
+      <span class="size-stat-rank">{{this.user.size_stat_ranking}}</span>
+    {{/if}}
+  </div>
+{{/if}}

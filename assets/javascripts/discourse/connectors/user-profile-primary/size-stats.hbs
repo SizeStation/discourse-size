@@ -1,0 +1,11 @@
+{{#if this.model.size_stat_current_size}}
+  <div class="user-size-stats-profile-container">
+    <h3>Size</h3>
+    <div class="size-stat-value">
+      {{format-size this.model.size_stat_current_size this.model.size_stat_measurement_system this.model.size_stat_is_changing}}
+    </div>
+    {{#if this.model.size_stat_ranking}}
+      <div class="size-stat-rank">{{this.model.size_stat_ranking}}</div>
+    {{/if}}
+  </div>
+{{/if}}

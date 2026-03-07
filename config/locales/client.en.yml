@@ -3,19 +3,7 @@ en:
     admin:
       site_settings:
         categories:
-          discourse_size: "Size & Points"
-
+          TODO_plugin_name: "Plugin Name"
   js:
-    discourse_size:
-      size_label: "Size"
-      size_points: "Points"
-      unit_preference_label: "Size units"
-      unit_preference_metric: "Metric (cm, m, km)"
-      unit_preference_imperial: "Imperial (in, ft, mi)"
-      give_points_button: "Give points"
-      give_points_title: "Give points to this user"
-      give_points_success: "Points transferred successfully."
-      give_points_error: "Unable to transfer points."
-      change_size_title: "Change size using points"
-      change_size_success: "Size updated."
-      change_size_error: "Unable to change size."
+    discourse_plugin_name:
+      placeholder: placeholder

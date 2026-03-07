@@ -1,22 +1,32 @@
 plugins:
-  size_enabled:
-    default: true
-    client: false
-
-  size_points_enabled:
-    default: true
-    client: false
-
+  size_plugin_enabled:
+    default: false
+    client: true
   size_points_per_post:
-    type: integer
-    default: 1
-    min: 0
-    client: false
-
-  size_default_unit_preference:
-    type: enum
-    default: "metric"
-    choices:
-      - "metric"
-      - "imperial"
+    default: 10
+    client: true
+  size_points_per_reply:
+    default: 15
+    client: true
+  size_points_invite_inviter:
+    default: 100
+    client: true
+  size_points_invite_invitee:
+    default: 50
+    client: true
+  size_growth_percent_per_point:
+    default: 0.01
+    type: float
+    client: true
+  size_default_rate:
+    default: 0.1
+    type: float
+    client: true
+  size_smallest_ranking_threshold:
+    default: 5.0
+    type: float
+    client: true
+  size_largest_ranking_threshold:
+    default: 300.0
+    type: float
     client: true

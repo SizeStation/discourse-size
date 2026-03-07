@@ -1,10 +1,1 @@
 en:
-  site_settings:
-    size_enabled: "Enable the discourse-size plugin."
-    size_points_enabled: "Enable earning and spending size points."
-    size_points_per_post: "Number of size points granted per non-PM post or reply."
-    size_default_unit_preference: "Default size unit preference for new users (metric or imperial)."
-  discourse_size:
-    not_enough_points: "You do not have enough points for that action."
-    invalid_percent: "You must specify a non-zero percentage."
-    invalid_amount: "You must specify a positive number of points."

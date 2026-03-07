@@ -1,212 +1,102 @@
 # frozen_string_literal: true
 
 # name: discourse-size
-# about: A plugin that tracks user size and points
+# about: A Discourse plugin adding character size stats and point-based growth mechanics.
 # meta_topic_id: TODO
-# version: 0.1.0
-# authors: Midblep
-# url: https://github.com/SizeStation/discourse-size
+# version: 0.0.1
+# authors: Discourse & System
+# url: TODO
 # required_version: 2.7.0
 
-enabled_site_setting :size_enabled
-
-module ::MyPluginModule
-  PLUGIN_NAME = "size"
-end
+enabled_site_setting :size_plugin_enabled
 
 module ::DiscourseSize
-  SIZE_CM_FIELD = "ds_size_cm"
-  POINTS_FIELD = "ds_points"
-  UNIT_PREF_FIELD = "ds_unit_preference"
-
-  def self.size_cm_for(user)
-    value = user.custom_fields[SIZE_CM_FIELD]
-    (value || 0).to_i
-  end
-
-  def self.set_size_cm!(user, new_size_cm)
-    user.custom_fields[SIZE_CM_FIELD] = new_size_cm.to_i
-    user.save_custom_fields(true)
-  end
-
-  def self.points_for(user)
-    value = user.custom_fields[POINTS_FIELD]
-    (value || 0).to_i
-  end
-
-  def self.set_points!(user, value)
-    user.custom_fields[POINTS_FIELD] = [value.to_i, 0].max
-    user.save_custom_fields(true)
-  end
-
-  def self.adjust_points!(user, delta)
-    set_points!(user, points_for(user) + delta.to_i)
-  end
-
-  def self.unit_preference_for(user)
-    pref = user.custom_fields[UNIT_PREF_FIELD]
-    pref = nil if pref.respond_to?(:empty?) && pref.empty?
-    return pref if pref
-
-    default_pref =
-      if SiteSetting.respond_to?(:size_default_unit_preference)
-        SiteSetting.size_default_unit_preference
-      else
-        "metric"
-      end
-
-    default_pref
-  end
-
-  def self.formatted_size_for(user)
-    cm = size_cm_for(user)
-    return nil if cm <= 0
-
-    if unit_preference_for(user) == "imperial"
-      format_size_imperial(cm)
-    else
-      format_size_metric(cm)
-    end
-  end
-
-  def self.format_size_metric(cm)
-    return nil if cm <= 0
-
-    if cm < 100
-      "#{cm.round(1)} cm"
-    elsif cm < 100_000
-      meters = cm / 100.0
-      "#{meters.round(2)} m"
-    else
-      km = cm / 100_000.0
-      "#{km.round(3)} km"
-    end
-  end
-
-  def self.format_size_imperial(cm)
-    return nil if cm <= 0
-
-    inches_total = cm / 2.54
-    if inches_total < 12
-      "#{inches_total.round(1)} in"
-    elsif inches_total < 63_360
-      feet = (inches_total / 12).floor
-      inches = (inches_total - feet * 12).round(1)
-      if inches.zero?
-        "#{feet} ft"
-      else
-        "#{feet} ft #{inches} in"
-      end
-    else
-      miles = inches_total / 63_360.0
-      "#{miles.round(3)} mi"
-    end
-  end
-
-  def self.change_size_with_points!(user, percent)
-    percent = percent.to_i
-    raise Discourse::InvalidParameters.new(:percent) if percent.zero?
-
-    cost = percent.abs
-    current_points = points_for(user)
-
-    if current_points < cost
-      raise Discourse::InvalidAccess.new(I18n.t("discourse_size.not_enough_points"))
-    end
-
-    current_size = size_cm_for(user)
-    factor = 1.0 + (percent / 100.0)
-    new_size = (current_size * factor).round
-    new_size = 0 if new_size.negative?
-
-    set_size_cm!(user, new_size)
-    adjust_points!(user, -cost)
-
-    new_size
-  end
-
-  def self.transfer_points!(from_user:, to_user:, amount:, allow_overdraft_for_staff: false)
-    amount = amount.to_i
-    raise Discourse::InvalidParameters.new(:amount) if amount <= 0
-    raise Discourse::InvalidParameters.new(:target) if from_user.id == to_user.id
-
-    from_points = points_for(from_user)
-
-    if from_points < amount && !(allow_overdraft_for_staff && from_user.staff?)
-      raise Discourse::InvalidAccess.new(I18n.t("discourse_size.not_enough_points"))
-    end
-
-    set_points!(from_user, from_points - amount)
-    adjust_points!(to_user, amount)
-  end
+  PLUGIN_NAME = "discourse-size"
 end
 
-require_relative "lib/my_plugin_module/engine"
+require_relative "lib/discourse_size/engine"
 
 after_initialize do
-  # Register custom fields
-  User.register_custom_field_type(::DiscourseSize::SIZE_CM_FIELD, :integer)
-  User.register_custom_field_type(::DiscourseSize::POINTS_FIELD, :integer)
-  User.register_custom_field_type(::DiscourseSize::UNIT_PREF_FIELD, :string)
+  # Require our model
+  require_dependency File.expand_path("../app/models/user_size_stat.rb", __FILE__)
 
-  # Users can edit only unit preference via profile settings, not size or points.
-  register_editable_user_custom_field ::DiscourseSize::UNIT_PREF_FIELD
-
-  # Expose display size on user serializers (public)
-  add_to_serializer(:user, :size_display) do
-    ::DiscourseSize.formatted_size_for(object)
+  # Add user_size_stat to User
+  add_to_class(:user, :user_size_stat) do
+    @user_size_stat ||= UserSizeStat.find_or_create_by(user_id: self.id)
   end
 
-  add_to_serializer(:user_card, :size_display) do
-    ::DiscourseSize.formatted_size_for(object)
-  end
+  # Add fields to User Serializer
+  add_to_serializer(:user, :size_stat_current_size) { object.user_size_stat.current_size }
+  add_to_serializer(:user, :size_stat_target_size) { object.user_size_stat.target_size }
+  add_to_serializer(:user, :size_stat_is_changing) { object.user_size_stat.base_size != object.user_size_stat.target_size }
+  add_to_serializer(:user, :size_stat_points) { object.user_size_stat.points }
+  add_to_serializer(:user, :size_stat_measurement_system) { object.user_size_stat.measurement_system }
+  add_to_serializer(:user, :size_stat_consent_grow) { object.user_size_stat.consent_grow }
+  add_to_serializer(:user, :size_stat_consent_shrink) { object.user_size_stat.consent_shrink }
+  add_to_serializer(:user, :size_stat_character_upload_id) { object.user_size_stat.character_upload_id }
+  add_to_serializer(:user, :size_stat_growth_rate) { object.user_size_stat.growth_rate }
+  add_to_serializer(:user, :size_stat_ranking_public) { object.user_size_stat.ranking_public }
 
-  # Expose raw fields for current user only
-  add_to_serializer(:current_user, :size_points) do
-    ::DiscourseSize.points_for(object)
-  end
+  # Include it for other important serializers
+  %i[user_profile user_card].each do |serializer|
+    add_to_serializer(serializer, :size_stat_current_size) { object.user_size_stat.current_size }
+    add_to_serializer(serializer, :size_stat_is_changing) { object.user_size_stat.base_size != object.user_size_stat.target_size }
+    add_to_serializer(serializer, :size_stat_ranking_public) { object.user_size_stat.ranking_public }
+    add_to_serializer(serializer, :size_stat_character_upload_id) { object.user_size_stat.character_upload_id }
+    
+    add_to_serializer(serializer, :size_stat_ranking) do
+      stat = object.user_size_stat
+      return nil unless stat.ranking_public
 
-  add_to_serializer(:current_user, :size_cm) do
-    ::DiscourseSize.size_cm_for(object)
-  end
-
-  add_to_serializer(:current_user, :size_unit_preference) do
-    pref = object.custom_fields[::DiscourseSize::UNIT_PREF_FIELD]
-
-    if pref
-      pref
-    elsif SiteSetting.respond_to?(:size_default_unit_preference)
-      SiteSetting.size_default_unit_preference
-    else
-      "metric"
-    end
-  end
-
-  # Also expose raw values to admin user serializer
-  add_to_serializer(:admin_detailed_user, :size_cm) do
-    ::DiscourseSize.size_cm_for(object)
-  end
-
-  add_to_serializer(:admin_detailed_user, :size_points) do
-    ::DiscourseSize.points_for(object)
-  end
-
-  # Award points when users create posts (topics or replies)
-  on(:post_created) do |post, _opts, user|
-    next unless SiteSetting.size_enabled
-    if SiteSetting.respond_to?(:size_points_enabled)
-      next unless SiteSetting.size_points_enabled
-    end
-    next if user.blank?
-    next if post.topic&.private_message?
-
-    points_per_post =
-      if SiteSetting.respond_to?(:size_points_per_post)
-        SiteSetting.size_points_per_post.to_i
+      current = stat.current_size
+      
+      if current <= SiteSetting.size_smallest_ranking_threshold
+        rank = UserSizeStat.joins(:user).where('users.active = true AND users.suspended_at IS NULL').where('target_size < ?', stat.target_size).count + 1
+        if rank == 1
+          "Forum's smallest user"
+        else
+          "##{rank} smallest"
+        end
+      elsif current >= SiteSetting.size_largest_ranking_threshold
+        rank = UserSizeStat.joins(:user).where('users.active = true AND users.suspended_at IS NULL').where('target_size > ?', stat.target_size).count + 1
+        if rank == 1
+          "Forum's largest user"
+        else
+          "##{rank} largest"
+        end
       else
-        1
+        nil
       end
+    end
+  end
 
-    ::DiscourseSize.adjust_points!(user, points_per_post)
+  on(:post_created) do |post, opts, user|
+    next unless SiteSetting.size_plugin_enabled
+    next if post.actor.system_user?
+    
+    author = post.user || user || post.actor
+    next unless author
+
+    stat = author.user_size_stat
+    points_to_award = post.is_first_post? ? SiteSetting.size_points_per_post : SiteSetting.size_points_per_reply
+    
+    stat.update!(points: stat.points + points_to_award)
+  end
+
+  on(:invite_redeemed) do |invite_redeemed|
+    next unless SiteSetting.size_plugin_enabled
+    
+    inviter = invite_redeemed.invite.invited_by
+    invitee = invite_redeemed.user
+
+    if inviter
+      inviter_stat = inviter.user_size_stat
+      inviter_stat.update!(points: inviter_stat.points + SiteSetting.size_points_invite_inviter)
+    end
+
+    if invitee
+      invitee_stat = invitee.user_size_stat
+      invitee_stat.update!(points: invitee_stat.points + SiteSetting.size_points_invite_invitee)
+    end
   end
 end
