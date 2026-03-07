@@ -1,0 +1,22 @@
+plugins:
+  size_enabled:
+    default: true
+    client: false
+
+  size_points_enabled:
+    default: true
+    client: false
+
+  size_points_per_post:
+    type: integer
+    default: 1
+    min: 0
+    client: false
+
+  size_default_unit_preference:
+    type: enum
+    default: "metric"
+    choices:
+      - "metric"
+      - "imperial"
+    client: true

@@ -1,0 +1,7 @@
+{{! Display the user's size on the user card, if present }}
+{{#if user.size_display}}
+  <span class="discourse-size-field">
+    {{i18n "discourse_size.size_label"}}: {{user.size_display}}
+  </span>
+{{/if}}
+
