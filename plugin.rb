@@ -152,15 +152,6 @@ after_initialize do
   # Users can edit only unit preference via profile settings, not size or points.
   register_editable_user_custom_field ::DiscourseSize::UNIT_PREF_FIELD
 
-  # Preload fields commonly used in serializers
-  [
-    ::DiscourseSize::SIZE_CM_FIELD,
-    ::DiscourseSize::POINTS_FIELD,
-    ::DiscourseSize::UNIT_PREF_FIELD,
-  ].each do |field|
-    User.preload_custom_fields << field unless User.preload_custom_fields.include?(field)
-  end
-
   # Expose display size on user serializers (public)
   add_to_serializer(:user, :size_display) do
     ::DiscourseSize.formatted_size_for(object)
