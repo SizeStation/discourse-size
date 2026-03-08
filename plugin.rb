@@ -63,6 +63,12 @@ after_initialize do
   add_to_serializer(:user, :size_stat_ranking_public) do
     object.user_size_stat.ranking_public
   end
+  add_to_serializer(:user, :size_stat_base_size) do
+    object.user_size_stat.base_size
+  end
+  add_to_serializer(:user, :size_stat_updated_at) do
+    object.user_size_stat.size_updated_at
+  end
 
   # Include it for other important serializers
   %i[user_card].each do |serializer|
@@ -80,6 +86,15 @@ after_initialize do
     end
     add_to_serializer(serializer, :size_stat_character_upload_id) do
       object.user_size_stat.character_upload_id
+    end
+    add_to_serializer(serializer, :size_stat_base_size) do
+      object.user_size_stat.base_size
+    end
+    add_to_serializer(serializer, :size_stat_updated_at) do
+      object.user_size_stat.size_updated_at
+    end
+    add_to_serializer(serializer, :size_stat_growth_rate) do
+      object.user_size_stat.growth_rate
     end
 
     add_to_serializer(serializer, :size_stat_ranking) do

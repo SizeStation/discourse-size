@@ -22,6 +22,9 @@ module ::DiscourseSize
         # When an admin forces a target size, we usually want to snap them to it immediately, so we reset base_size too.
         updates[:base_size] = target_size.to_f
         updates[:size_updated_at] = Time.zone.now
+      elsif growth_rate
+        # Changing rate without changing size: solidify current size so rate starts fresh from now
+        stat.dynamically_update_size!
       end
 
       updates[:growth_rate] = growth_rate.to_f if growth_rate

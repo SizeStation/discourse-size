@@ -2,6 +2,7 @@ import Controller from "@ember/controller";
 import { action } from "@ember/object";
 import { inject as service } from "@ember/service";
 import { tracked } from "@glimmer/tracking";
+import { later, cancel } from "@ember/runloop";
 import { ajax } from "discourse/lib/ajax";
 import { popupAjaxError } from "discourse/lib/ajax-error";
 
@@ -18,6 +19,54 @@ export default class UserSizeController extends Controller {
   @tracked adminOverridePoints = this.model.size_stat_points;
   @tracked adminOverrideTargetSize = this.model.size_stat_target_size;
   @tracked adminOverrideGrowthRate = this.model.size_stat_growth_rate;
+
+  @tracked liveSize = 0;
+  _ticker = null;
+
+  constructor() {
+    super(...arguments);
+    this.startTicker();
+  }
+
+  willDestroy() {
+    super.willDestroy(...arguments);
+    if (this._ticker) {
+      cancel(this._ticker);
+    }
+  }
+
+  startTicker() {
+    this._tick();
+  }
+
+  @action
+  _tick() {
+    if (this.model && this.model.size_stat_base_size !== undefined) {
+      let base = parseFloat(this.model.size_stat_base_size);
+      let target = parseFloat(this.model.size_stat_target_size);
+      
+      if (base === target) {
+        this.liveSize = target;
+      } else {
+        let rate = parseFloat(this.model.size_stat_growth_rate) || 0;
+        let updatedAt = new Date(this.model.size_stat_updated_at);
+        let now = new Date();
+        
+        let daysLapsed = (now - updatedAt) / (1000 * 60 * 60 * 24);
+        let changeAmount = daysLapsed * (base * (Math.abs(rate) / 100.0));
+        let totalDiff = Math.abs(target - base);
+        
+        if (changeAmount >= totalDiff) {
+          this.liveSize = target;
+        } else {
+          this.liveSize = target > base ? base + changeAmount : base - changeAmount;
+        }
+      }
+    }
+    
+    // run every 50ms for smooth UI updates
+    this._ticker = later(this, this._tick, 50);
+  }
 
   get isCurrentUser() {
     return this.currentUser && this.model.id === this.currentUser.id;
@@ -98,9 +147,12 @@ export default class UserSizeController extends Controller {
 
   @action
   loadComparison() {
-    if (!this.compareUsername) return;
+    if (!this.compareUsername || this.compareUsername.length === 0) return;
 
-    let compareNames = this.compareUsername.split(",").map((s) => s.trim());
+    let compareNames = typeof this.compareUsername === "string" 
+      ? this.compareUsername.split(",").map((s) => s.trim()) 
+      : this.compareUsername;
+
     let targets = [this.model.username, ...compareNames];
 
     ajax("/discourse-size/compare", {
