@@ -20,14 +20,18 @@ module ::DiscourseSize
       stat = current_user.user_size_stat
       received_id = params[:upload_id]
 
-      if received_id.is_a?(String) && received_id.match?(/^[a-zA-Z0-9]+(.[a-zA-Z]+)?$/) && !received_id.match?(/^\d+$/)
-        # It's a base62 encoded sha1 or similar hash from the frontend
-        upload = Upload.find_by(sha1: received_id) || Upload.where("url LIKE ? OR short_url LIKE ?", "%#{received_id}%", "%#{received_id}%").first
-        received_id = upload&.id
-      end
+      begin
+        if received_id.is_a?(String) && received_id.match?(/^[a-zA-Z0-9]+(\.[a-zA-Z]+)?$/) && !received_id.match?(/^\d+$/)
+          # It's a base62 encoded sha1 or similar hash from the frontend
+          upload = Upload.find_by(sha1: received_id) || Upload.where("url LIKE ? OR short_url LIKE ?", "%#{received_id}%", "%#{received_id}%").first
+          received_id = upload&.id
+        end
 
-      stat.update!(character_upload_id: received_id)
-      render json: success_json
+        stat.update!(character_upload_id: received_id)
+        render json: success_json
+      rescue => e
+        render json: { error: "DEBUG_FROM_RUBY: #{e.message}\n#{e.backtrace.first(3).join("\n")}" }, status: 422
+      end
     end
 
     def update_default_size
