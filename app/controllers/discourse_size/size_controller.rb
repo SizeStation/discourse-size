@@ -35,12 +35,13 @@ module ::DiscourseSize
         return render json: { error: "Not enough points" }, status: :bad_request
       end
 
-      if target_username.present?
-        target_user = User.find_by_username(target_username)
-      else
-        target_user = current_user
-      end
-      
+      target_user =
+        if target_username.present?
+          User.find_by_username(target_username)
+        else
+          current_user
+        end
+
       return render json: { error: "User not found" }, status: :not_found unless target_user
 
       target_stat = target_user.user_size_stat
@@ -60,11 +61,12 @@ module ::DiscourseSize
       percent_per_point = SiteSetting.size_growth_percent_per_point
       total_percent_change = points * percent_per_point
 
-      if action == "grow"
-        change_multiplier = 1.0 + (total_percent_change / 100.0)
-      else
-        change_multiplier = 1.0 - (total_percent_change / 100.0)
-      end
+      change_multiplier =
+        if action == "grow"
+          1.0 + (total_percent_change / 100.0)
+        else
+          1.0 - (total_percent_change / 100.0)
+        end
 
       # Ensure shrink doesn't go below something crazy like 0.0001 (1 micron)
       new_target = [target_stat.target_size * change_multiplier, 0.000001].max

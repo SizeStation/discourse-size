@@ -116,12 +116,13 @@ after_initialize do
     next unless author
 
     stat = author.user_size_stat
-    
-    if post.is_first_post?
-      points_to_award = SiteSetting.size_points_per_post
-    else
-      points_to_award = SiteSetting.size_points_per_reply
-    end
+
+    points_to_award =
+      if post.is_first_post?
+        SiteSetting.size_points_per_post
+      else
+        SiteSetting.size_points_per_reply
+      end
 
     stat.update!(points: stat.points + points_to_award)
   end

@@ -8,4 +8,7 @@ DiscourseSize::Engine.routes.draw do
   post "/admin/override" => "admin_size#override_user"
 end
 
-Discourse::Application.routes.draw { mount ::DiscourseSize::Engine, at: "discourse-size" }
+Discourse::Application.routes.append do
+  mount ::DiscourseSize::Engine, at: "discourse-size"
+  get "/u/:username/size" => "users#show", constraints: { username: RouteFormat.username }
+end
