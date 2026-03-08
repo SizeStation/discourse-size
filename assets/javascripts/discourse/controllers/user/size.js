@@ -7,14 +7,43 @@ import { popupAjaxError } from "discourse/lib/ajax-error";
 
 export default class UserSizeController extends Controller {
   @service dialog;
+  @service siteSettings;
+  @service currentUser;
 
   @tracked compareUsername = "";
   @tracked compareTargets = [];
   @tracked spendAmount = 1;
-  @tracked spendTargetUsername = "";
+  @tracked editDefaultSize = 170.0;
+
+  @tracked adminOverridePoints = this.model.size_stat_points;
+  @tracked adminOverrideTargetSize = this.model.size_stat_target_size;
+  @tracked adminOverrideGrowthRate = this.model.size_stat_growth_rate;
 
   get isCurrentUser() {
     return this.currentUser && this.model.id === this.currentUser.id;
+  }
+
+  get myPoints() {
+    // If we are looking at our own profile, use model points, otherwise use currentUser (if serialized)
+    return this.isCurrentUser ? this.model.size_stat_points : (this.currentUser?.size_stat_points || 0);
+  }
+
+  get remainingPoints() {
+    return this.myPoints - this.spendAmount;
+  }
+
+  get growPreviewAmount() {
+    let percent = this.spendAmount * this.siteSettings.size_growth_percent_per_point;
+    let target = this.model.size_stat_target_size;
+    let newTarget = target * (1.0 + (percent / 100.0));
+    return newTarget - target;
+  }
+
+  get shrinkPreviewAmount() {
+    let percent = this.spendAmount * this.siteSettings.size_growth_percent_per_point;
+    let target = this.model.size_stat_target_size;
+    let newTarget = Math.max(target * (1.0 - (percent / 100.0)), 0.000001);
+    return target - newTarget;
   }
 
   @action
@@ -43,7 +72,7 @@ export default class UserSizeController extends Controller {
       data: {
         action_type: actionType,
         points: this.spendAmount,
-        target_username: this.spendTargetUsername || this.model.username,
+        target_username: this.model.username,
       },
     })
       .then((res) => {
@@ -71,7 +100,8 @@ export default class UserSizeController extends Controller {
   loadComparison() {
     if (!this.compareUsername) return;
 
-    let targets = [this.model.username, this.compareUsername];
+    let compareNames = this.compareUsername.split(",").map((s) => s.trim());
+    let targets = [this.model.username, ...compareNames];
 
     ajax("/discourse-size/compare", {
       type: "GET",
@@ -81,5 +111,51 @@ export default class UserSizeController extends Controller {
         this.compareTargets = res.targets;
       })
       .catch(popupAjaxError);
+  }
+
+  @action
+  applyAdminOverride() {
+    ajax("/discourse-size/admin/override", {
+      type: "POST",
+      data: {
+        target_username: this.model.username,
+        points: this.adminOverridePoints,
+        target_size: this.adminOverrideTargetSize,
+        growth_rate: this.adminOverrideGrowthRate,
+      },
+    })
+      .then(() => {
+        this.dialog.alert("Admin overrides applied successfully!");
+        window.location.reload();
+      })
+      .catch(popupAjaxError);
+  }
+
+  @action
+  applyDefaultSize() {
+    ajax("/discourse-size/default_size", {
+      type: "PUT",
+      data: { default_size: this.editDefaultSize },
+    })
+      .then(() => {
+        this.dialog.alert("Default size updated successfully!");
+        window.location.reload();
+      })
+      .catch(popupAjaxError);
+  }
+
+  @action
+  resetSize() {
+    this.dialog.yesNoConfirm({
+      message: "Are you sure you want to reset your size back to your default? You will NOT regain any spent points.",
+      didConfirm: () => {
+        ajax("/discourse-size/reset_size", { type: "POST" })
+          .then(() => {
+            this.dialog.alert("Size has been reset!");
+            window.location.reload();
+          })
+          .catch(popupAjaxError);
+      }
+    });
   }
 }

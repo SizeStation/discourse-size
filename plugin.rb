@@ -32,6 +32,9 @@ after_initialize do
   add_to_serializer(:user, :size_stat_target_size) do
     object.user_size_stat.target_size
   end
+  add_to_serializer(:user, :size_stat_default_size) do
+    object.user_size_stat.default_size
+  end
   add_to_serializer(:user, :size_stat_is_changing) do
     object.user_size_stat.base_size != object.user_size_stat.target_size
   end
@@ -50,6 +53,10 @@ after_initialize do
   add_to_serializer(:user, :size_stat_character_upload_id) do
     object.user_size_stat.character_upload_id
   end
+  add_to_serializer(:user, :size_stat_character_upload_url) do
+    id = object.user_size_stat.character_upload_id
+    id ? Upload.find_by(id: id)&.url : nil
+  end
   add_to_serializer(:user, :size_stat_growth_rate) do
     object.user_size_stat.growth_rate
   end
@@ -61,6 +68,9 @@ after_initialize do
   %i[user_card].each do |serializer|
     add_to_serializer(serializer, :size_stat_current_size) do
       object.user_size_stat.current_size
+    end
+    add_to_serializer(serializer, :size_stat_default_size) do
+      object.user_size_stat.default_size
     end
     add_to_serializer(serializer, :size_stat_is_changing) do
       object.user_size_stat.base_size != object.user_size_stat.target_size

@@ -1,18 +1,22 @@
-import { helper } from "@ember/component/helper";
+import Helper from "@ember/component/helper";
+import { inject as service } from "@ember/service";
 
 const METRIC = 1;
 const IMPERIAL = 2;
 
-export function formatSize([sizeInCm, system, isChanging]) {
-  if (sizeInCm === undefined || sizeInCm === null) {
-    return "";
-  }
+export default class FormatSize extends Helper {
+  @service currentUser;
 
-  // Default to system metric if not set
-  let sys = system === IMPERIAL ? IMPERIAL : METRIC;
-  let result = "";
+  compute([sizeInCm, _ignoredSystem, isChanging]) {
+    if (sizeInCm === undefined || sizeInCm === null) {
+      return "";
+    }
 
-  if (sys === METRIC) {
+    // Default to system metric if not set
+    let sys = this.currentUser?.size_stat_measurement_system === IMPERIAL ? IMPERIAL : METRIC;
+    let result = "";
+
+    if (sys === METRIC) {
     if (sizeInCm < 0.0001) {
       result = `${(sizeInCm * 10000000).toFixed(2)} nm`;
     } else if (sizeInCm < 0.1) {
@@ -56,11 +60,10 @@ export function formatSize([sizeInCm, system, isChanging]) {
     }
   }
 
-  if (isChanging) {
-    result += " (Changing...)";
+    if (isChanging) {
+      result += " (Changing...)";
+    }
+
+    return result;
   }
-
-  return result;
 }
-
-export default helper(formatSize);

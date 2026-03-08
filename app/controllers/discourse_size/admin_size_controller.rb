@@ -6,7 +6,7 @@ module ::DiscourseSize
     before_action :ensure_admin
 
     def override_user
-      username = params[:username]
+      username = params[:username] || params[:target_username]
       target_size = params[:target_size]
       growth_rate = params[:growth_rate]
       points = params[:points]

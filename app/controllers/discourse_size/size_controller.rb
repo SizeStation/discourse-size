@@ -22,6 +22,28 @@ module ::DiscourseSize
       render json: success_json
     end
 
+    def update_default_size
+      new_size = params[:default_size].to_f
+      min = SiteSetting.size_default_min
+      max = SiteSetting.size_default_max
+
+      if new_size < min || new_size > max
+        return render json: { error: "Size must be between #{min} and #{max}" }, status: :bad_request
+      end
+
+      stat = current_user.user_size_stat
+      stat.update_default_size!(new_size)
+
+      render json: { success: true, base_size: stat.base_size, target_size: stat.target_size, default_size: stat.default_size }
+    end
+
+    def reset_size
+      stat = current_user.user_size_stat
+      stat.reset_size!
+      
+      render json: { success: true, new_size: stat.current_size }
+    end
+
     def spend_points
       action = params[:action_type] # "grow" or "shrink"
       points = params[:points].to_i
@@ -79,15 +101,17 @@ module ::DiscourseSize
 
     def compare
       targets = params[:targets] || []
+      return render json: { targets: [] } if targets.empty?
+
       users = User.where(username: targets).includes(:user_size_stat)
       stats =
         users.map do |u|
           stat = u.user_size_stat
           {
             username: u.username,
-            current_size: stat.current_size,
+            current_size: stat ? stat.current_size : 170.0,
             upload_url:
-              stat.character_upload_id ? Upload.find_by(id: stat.character_upload_id)&.url : u.avatar_template,
+              (stat && stat.character_upload_id) ? Upload.find_by(id: stat.character_upload_id)&.url : u.avatar_template,
           }
         end
       render json: { targets: stats }

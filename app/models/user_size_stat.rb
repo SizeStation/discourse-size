@@ -18,8 +18,8 @@ class UserSizeStat < ActiveRecord::Base
     # Calculate time lapsed in days
     days_lapsed = (Time.zone.now - size_updated_at) / 1.day
 
-    # Amount of growth/shrinkage that could have happened
-    change_amount = days_lapsed * growth_rate.abs
+    # Amount of growth/shrinkage that could have happened (percentage of base_size per day)
+    change_amount = days_lapsed * (base_size * (growth_rate.abs / 100.0))
 
     total_difference = (target_size - base_size).abs
 
@@ -41,6 +41,27 @@ class UserSizeStat < ActiveRecord::Base
     # before applying new points/growth.
     new_base = current_size
     self.base_size = new_base
+    self.size_updated_at = Time.zone.now
+    save!
+  end
+
+  def update_default_size!(new_default)
+    new_default = new_default.to_f
+    return if new_default == default_size
+
+    delta = new_default - default_size
+    dynamically_update_size!
+    
+    self.default_size = new_default
+    self.base_size = [self.base_size + delta, 0.000001].max
+    self.target_size = [self.target_size + delta, 0.000001].max
+    save!
+  end
+
+  def reset_size!
+    self.default_size = [self.default_size, 0.000001].max
+    self.base_size = self.default_size
+    self.target_size = self.default_size
     self.size_updated_at = Time.zone.now
     save!
   end

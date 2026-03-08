@@ -2,6 +2,8 @@
 
 DiscourseSize::Engine.routes.draw do
   put "/preferences" => "size#update_preferences"
+  put "/default_size" => "size#update_default_size"
+  post "/reset_size" => "size#reset_size"
   post "/picture" => "size#upload_picture"
   post "/spend" => "size#spend_points"
   get "/compare" => "size#compare"

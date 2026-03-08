@@ -69,19 +69,33 @@
         <button class="btn btn-primary" type="button" {{action "savePreferences"}}>Save Preferences</button>
       </div>
 
+      <div class="control-panel">
+        <h3>Default Baseline Size</h3>
+        <p>Set what size you would be without any points modifying you. Raising or lowering this directly impacts your target size.</p>
+        <div class="setting-item">
+          <label>Default Size (cm)</label>
+          <Input @type="number" @value={{this.editDefaultSize}} step="0.01" />
+        </div>
+        
+        <div class="flex-buttons">
+          <button class="btn btn-primary" type="button" {{action "applyDefaultSize"}}>Update Default</button>
+          <button class="btn btn-danger" type="button" {{action "resetSize"}}>Emergency Reset</button>
+        </div>
+      </div>
+
       <!-- Action Panel -->
       <div class="control-panel">
         <h3>Use Points</h3>
-        <p>Spend points to accelerate growth or shrinkage.</p>
+        <p>Spend points to accelerate your own growth or shrinkage.</p>
         
         <div class="setting-item">
           <label>Amount of Points</label>
           <Input @type="number" @value={{this.spendAmount}} min="1" step="1" />
         </div>
         
-        <div class="setting-item">
-          <label>Target Username (leave blank for self)</label>
-          <Input @type="text" @value={{this.spendTargetUsername}} />
+        <div class="setting-preview">
+          <p>This will change your size by approximately <strong>~{{format-size this.growPreviewAmount this.model.size_stat_measurement_system false}}</strong></p>
+          <p>You will have <strong>{{this.remainingPoints}}</strong> points left.</p>
         </div>
 
         <div class="flex-buttons">
@@ -94,13 +108,14 @@
     <!-- Upload Panel -->
     <div class="control-panel character-upload">
       <h3>Character Picture</h3>
-      {{#if this.model.size_stat_character_upload_id}}
-        <p>You have a character picture uploaded.</p>
-      {{/if}}
-      <!-- In reality Discourse uses an Uploader component, using a native file input placeholder -->
-      <div class="upload-placeholder">
-        <p><i>Character file upload form would go here.</i></p>
-      </div>
+      <p>Upload a picture representing your character's size.</p>
+      
+      <UppyImageUploader
+        @id="character-picture-uploader"
+        @imageUrl={{this.model.size_stat_character_upload_url}}
+        @onUploadDone={{action "uploadDone"}}
+        @type="avatar"
+      />
     </div>
   {{else}}
     <div class="control-panel">
@@ -110,6 +125,12 @@
           <label>Amount of Points</label>
           <Input @type="number" @value={{this.spendAmount}} min="1" step="1" />
       </div>
+
+      <div class="setting-preview">
+        <p>This will change their size by approximately <strong>~{{format-size this.growPreviewAmount this.currentUser.size_stat_measurement_system false}}</strong></p>
+        <p>You will have <strong>{{this.remainingPoints}}</strong> points left.</p>
+      </div>
+
       <div class="flex-buttons">
           <button class="btn btn-primary" type="button" {{action "spendPoints" "grow"}}>Grow {{this.model.username}}!</button>
           <button class="btn btn-danger" type="button" {{action "spendPoints" "shrink"}}>Shrink {{this.model.username}}!</button>
@@ -117,11 +138,32 @@
     </div>
   {{/if}}
 
+  <!-- Admin Override Panel -->
+  {{#if this.currentUser.admin}}
+    <div class="control-panel admin-panel">
+      <h3>Admin Override</h3>
+      <p>Force set stats for {{this.model.username}}.</p>
+      <div class="setting-item">
+        <label>Points</label>
+        <Input @type="number" @value={{this.adminOverridePoints}} />
+      </div>
+      <div class="setting-item">
+        <label>Target Size (cm)</label>
+        <Input @type="number" @value={{this.adminOverrideTargetSize}} step="0.01" />
+      </div>
+      <div class="setting-item">
+        <label>Growth Rate (%/day)</label>
+        <Input @type="number" @value={{this.adminOverrideGrowthRate}} step="0.01" />
+      </div>
+      <button class="btn btn-danger" type="button" {{action "applyAdminOverride"}}>Force Apply</button>
+    </div>
+  {{/if}}
+
   <!-- Comparison Tool -->
   <div class="control-panel comparison-panel">
     <h3>Compare Size</h3>
     <div class="setting-item inline">
-      <Input @type="text" @value={{this.compareUsername}} placeholder="Username to compare with..." />
+      <EmailGroupUserChooser @value={{this.compareUsername}} @onChange={{action (mut this.compareUsername)}} @options={{hash maximum=3}} />
       <button class="btn" type="button" {{action "loadComparison"}}>Compare</button>
     </div>
 
