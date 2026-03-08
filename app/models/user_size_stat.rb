@@ -3,6 +3,8 @@
 class UserSizeStat < ActiveRecord::Base
   belongs_to :user
 
+  before_validation :set_defaults, on: :create
+
   # Constants for measurement system
   MEASUREMENT_SYSTEMS = {
     system: 0,
@@ -41,6 +43,12 @@ class UserSizeStat < ActiveRecord::Base
     self.base_size = new_base
     self.size_updated_at = Time.zone.now
     save!
+  end
+
+  private
+
+  def set_defaults
+    self.size_updated_at ||= Time.zone.now
   end
 end
 
