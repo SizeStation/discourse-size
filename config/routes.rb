@@ -11,6 +11,6 @@ DiscourseSize::Engine.routes.draw do
 end
 
 Discourse::Application.routes.append do
-  mount ::DiscourseSize::Engine, at: "discourse-size"
+  mount ::DiscourseSize::Engine, at: "discourse-size", as: "discourse_size_api"
   get "/u/:username/size" => "users#show", constraints: { username: RouteFormat.username }
 end

@@ -81,6 +81,7 @@ end
 #  base_size           :float            default(170.0), not null
 #  consent_grow        :boolean          default(FALSE), not null
 #  consent_shrink      :boolean          default(FALSE), not null
+#  default_size        :float            default(170.0), not null
 #  growth_rate         :float            default(0.1), not null
 #  measurement_system  :integer          default(0), not null
 #  points              :integer          default(0), not null
