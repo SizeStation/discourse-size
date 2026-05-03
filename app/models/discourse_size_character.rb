@@ -53,3 +53,30 @@ class DiscourseSizeCharacter < ActiveRecord::Base
   end
 
 end
+
+# == Schema Information
+#
+# Table name: discourse_size_characters
+#
+#  id                   :bigint           not null, primary key
+#  allow_growth         :boolean          default(TRUE), not null
+#  allow_shrink         :boolean          default(TRUE), not null
+#  base_size            :float            not null
+#  current_offset       :float            default(0.0), not null
+#  growth_rate_override :float
+#  info_post            :string
+#  is_main              :boolean          default(FALSE), not null
+#  measurement_system   :string           default("imperial"), not null
+#  name                 :string           not null
+#  offset_updated_at    :datetime         not null
+#  picture              :string
+#  target_offset        :float            default(0.0), not null
+#  created_at           :datetime         not null
+#  updated_at           :datetime         not null
+#  user_id              :integer          not null
+#
+# Indexes
+#
+#  index_discourse_size_characters_on_user_id              (user_id)
+#  index_discourse_size_characters_on_user_id_and_is_main  (user_id,is_main) UNIQUE WHERE (is_main = true)
+#

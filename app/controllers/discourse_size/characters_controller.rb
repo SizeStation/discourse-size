@@ -24,7 +24,7 @@ module DiscourseSize
       if character.save
         render json: { character: character_serializer(character) }
       else
-        render json: failed_json.merge(errors: character.errors.full_messages), status: 422
+        render json: failed_json.merge(errors: character.errors.full_messages), status: :unprocessable_content
       end
     end
 
@@ -36,7 +36,7 @@ module DiscourseSize
       if character.update(character_params)
         render json: { character: character_serializer(character) }
       else
-        render json: failed_json.merge(errors: character.errors.full_messages), status: 422
+        render json: failed_json.merge(errors: character.errors.full_messages), status: :unprocessable_content
       end
     end
 
@@ -67,7 +67,7 @@ module DiscourseSize
       
       points = DiscourseSize::PointsManager.get_points(current_user)
       if points < points_cost
-        return render json: failed_json.merge(error: "Not enough points"), status: 422
+        return render json: failed_json.merge(error: "Not enough points"), status: :unprocessable_content
       end
 
       DiscourseSize::PointsManager.remove_points(current_user, points_cost)
@@ -92,7 +92,7 @@ module DiscourseSize
       
       points = DiscourseSize::PointsManager.get_points(current_user)
       if points < points_cost
-        return render json: failed_json.merge(error: "Not enough points"), status: 422
+        return render json: failed_json.merge(error: "Not enough points"), status: :unprocessable_content
       end
 
       DiscourseSize::PointsManager.remove_points(current_user, points_cost)

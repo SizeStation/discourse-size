@@ -24,7 +24,7 @@ module DiscourseSize
       if character.update(updates)
         render json: success_json
       else
-        render json: failed_json.merge(errors: character.errors.full_messages), status: 422
+        render json: failed_json.merge(errors: character.errors.full_messages), status: :unprocessable_content
       end
     end
 

@@ -1,5 +1,4 @@
 // discourse-size.scss
-
 .user-characters-header {
   display: flex;
   justify-content: space-between;
@@ -41,6 +40,7 @@
     .btn-flat {
       padding: 0;
       color: var(--tertiary);
+
       &:hover {
         color: var(--tertiary-hover);
         background: transparent;
@@ -61,7 +61,7 @@
   border: 1px solid var(--primary-low);
   border-radius: 16px;
   padding: 0;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 20px rgb(0, 0, 0, 0.08);
   transition:
     box-shadow 0.3s ease,
     border-color 0.3s ease;
@@ -71,12 +71,13 @@
   flex-direction: column;
 
   &:hover {
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 8px 30px rgb(0, 0, 0, 0.08);
     border-color: var(--primary-low);
   }
 
   &.is-main {
     border: 1.5px solid var(--tertiary-medium);
+
     &::before {
       content: "";
       position: absolute;
@@ -135,6 +136,7 @@
         .badges {
           display: flex;
           gap: 5px;
+
           .badge {
             font-size: 0.4em;
             padding: 2px 5px;
@@ -163,6 +165,7 @@
 
         .advanced-view-link {
           color: var(--primary-medium);
+
           &:hover {
             color: var(--primary);
           }
@@ -208,7 +211,7 @@
     height: 120px;
     border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 10px rgb(0, 0, 0, 0.1);
     border: 2px solid var(--secondary);
 
     .character-picture {
@@ -261,9 +264,11 @@
     .main-badge {
       background: var(--tertiary);
     }
+
     .biggest-badge {
       background: var(--danger-medium);
     }
+
     .tiniest-badge {
       background: var(--success-medium);
     }
@@ -350,11 +355,13 @@
       font-weight: 600;
       color: var(--tertiary);
       transition: color 0.2s;
+
       &:hover {
         color: var(--tertiary-hover);
       }
     }
   }
+
   .character-actions {
     padding: 20px;
     background: var(--secondary);
@@ -529,7 +536,7 @@
   .leaderboard-list {
     background: var(--secondary);
     border-radius: 16px;
-    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 4px 25px rgb(0, 0, 0, 0.06);
     border: 1px solid var(--primary-low);
     overflow: hidden;
 
@@ -539,6 +546,7 @@
 
       thead {
         background: var(--primary-very-low);
+
         tr th {
           padding: 15px 20px;
           text-align: left;
@@ -553,6 +561,7 @@
       tbody {
         tr {
           transition: background 0.2s;
+
           &:hover {
             background: var(--primary-very-low);
           }
@@ -579,7 +588,7 @@
         border-radius: 50%;
         object-fit: cover;
         border: 2px solid var(--secondary);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgb(0, 0, 0, 0.1);
       }
     }
 
@@ -597,7 +606,7 @@
   border-radius: 16px;
   border: 1px solid var(--primary-low);
   overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 20px rgb(0, 0, 0, 0.08);
 
   .details-header {
     background: var(--primary-very-low);
@@ -613,6 +622,7 @@
       display: flex;
       align-items: center;
       gap: 5px;
+
       &:hover {
         color: var(--primary);
       }
@@ -631,7 +641,7 @@
     gap: 30px;
     padding: 30px;
 
-    @media (max-width: 800px) {
+    @media (width <= 800px) {
       grid-template-columns: 1fr;
     }
   }
@@ -685,6 +695,7 @@
       .value {
         font-weight: 700;
         font-size: 1.1em;
+
         &.big {
           font-size: 1.5em;
           color: var(--tertiary);
@@ -696,6 +707,7 @@
         padding: 15px;
         border-radius: 8px;
         border: 1px solid var(--tertiary-medium);
+
         .progress-info {
           font-size: 0.8em;
           color: var(--tertiary-hover);
@@ -792,6 +804,7 @@
         font-weight: 500;
         cursor: pointer;
       }
+
       input {
         width: auto;
       }
@@ -815,6 +828,7 @@
     }
   }
 }
+
 .user-main-nav-outlet.characters {
   a {
     display: flex;
@@ -838,6 +852,7 @@
     }
   }
 }
+
 .discourse-size-edit-character-modal {
   .picture-upload-wrapper {
     display: flex;
