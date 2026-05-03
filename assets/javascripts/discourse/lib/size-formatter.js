@@ -564,10 +564,10 @@ export function formatSize(sizeCm, system = "metric") {
     if (absSize < 1e-7) return `${sign}${pm.toFixed(2)} pm`;
     if (absSize < 1e-5) return `${sign}${nm.toFixed(2)} nm`;
     if (absSize < 0.01) return `${sign}${cells.toFixed(2)} cells`;
-    
+
     const inches = absSize / 2.54;
     if (inches < 12) return `${sign}${inches.toFixed(2)}"`;
-    
+
     const feet = inches / 12;
     if (feet < 5280) {
       const ft = Math.floor(feet);
@@ -575,7 +575,7 @@ export function formatSize(sizeCm, system = "metric") {
       if (inc === 12) return `${sign}${ft + 1}'0"`;
       return `${sign}${ft}'${inc}"`;
     }
-    
+
     const miles = feet / 5280;
     if (absSize < 9.461e17) return `${sign}${miles.toFixed(2)} mi`;
     if (absSize < 8.8e28) return `${sign}${lightyears.toFixed(2)} ly`;

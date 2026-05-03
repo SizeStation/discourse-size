@@ -5,7 +5,7 @@ export default class SizeLeaderboardRoute extends DiscourseRoute {
   model(params) {
     // Default to biggest
     return ajax(`/size/leaderboard?sort=biggest`).then((result) => {
-      return { characters: result.characters, sort: 'biggest' };
+      return { characters: result.characters, sort: "biggest" };
     });
   }
 

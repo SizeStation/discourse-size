@@ -62,7 +62,6 @@ export default class DiscourseSizeEditCharacter extends Component {
     fileInput.click();
   }
 
-
   get modalTitle() {
     return this.args.model?.isNew ? "Create Character" : "Edit Character";
   }
@@ -70,7 +69,7 @@ export default class DiscourseSizeEditCharacter extends Component {
   @action
   async save() {
     this.isSaving = true;
-    
+
     const data = {
       name: this.name,
       picture: this.picture,
@@ -78,7 +77,7 @@ export default class DiscourseSizeEditCharacter extends Component {
       base_size: this.baseSize,
       measurement_system: this.measurementSystem,
       allow_growth: this.allowGrowth,
-      allow_shrink: this.allowShrink
+      allow_shrink: this.allowShrink,
     };
 
     try {
@@ -86,10 +85,13 @@ export default class DiscourseSizeEditCharacter extends Component {
       if (this.args.model?.isNew) {
         result = await ajax("/size/characters", { type: "POST", data });
       } else {
-        result = await ajax(`/size/characters/${this.args.model?.character?.id}`, {
-          type: "PUT",
-          data,
-        });
+        result = await ajax(
+          `/size/characters/${this.args.model?.character?.id}`,
+          {
+            type: "PUT",
+            data,
+          }
+        );
       }
       this.args.model?.onSave?.(result.character);
       this.args.closeModal?.();
@@ -105,7 +107,7 @@ export default class DiscourseSizeEditCharacter extends Component {
   get refundAmount() {
     const char = this.args.model?.character;
     if (!char) return 0;
-    
+
     const targetOffset = char.target_offset || 0;
     return Math.floor(Math.abs(targetOffset) / 2);
   }

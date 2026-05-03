@@ -23,8 +23,8 @@ export default class UserCharactersIndexController extends Controller {
         points: this.user.discourse_size_points,
         onSave: (newPoints) => {
           this.set("user.discourse_size_points", parseInt(newPoints, 10));
-        }
-      }
+        },
+      },
     });
   }
 

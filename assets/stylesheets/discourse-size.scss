@@ -1063,8 +1063,10 @@
       }
     }
 
-    .settings-info, .examples-list {
+    .settings-info,
+    .examples-list {
       margin: 15px 0;
+
       ul {
         margin-top: 5px;
       }
@@ -1083,9 +1085,11 @@
 .math-info-btn {
   padding: 2px;
   color: var(--primary-medium);
+
   .d-icon {
     font-size: 0.9em;
   }
+
   &:hover {
     color: var(--tertiary);
     background: transparent;

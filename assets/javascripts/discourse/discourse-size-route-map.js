@@ -1,3 +1,3 @@
-export default function() {
-  this.route('size-leaderboard', { path: '/size/leaderboard' });
+export default function () {
+  this.route("size-leaderboard", { path: "/size/leaderboard" });
 }

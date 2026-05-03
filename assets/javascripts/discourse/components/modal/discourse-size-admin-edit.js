@@ -20,7 +20,7 @@ export default class DiscourseSizeAdminEdit extends Component {
   @action
   async save() {
     this.isSaving = true;
-    
+
     const data = {
       base_size: this.baseSize,
       current_size: this.currentSize,
@@ -33,11 +33,17 @@ export default class DiscourseSizeAdminEdit extends Component {
     }
 
     try {
-      await ajax(`/size/admin/characters/${this.args.model?.character?.id}`, { type: "PUT", data });
+      await ajax(`/size/admin/characters/${this.args.model?.character?.id}`, {
+        type: "PUT",
+        data,
+      });
       this.args.model?.onSave?.();
       this.args.closeModal?.();
     } catch (e) {
-      alert(e.jqXHR?.responseJSON?.errors?.join(", ") || "Error saving character as admin");
+      alert(
+        e.jqXHR?.responseJSON?.errors?.join(", ") ||
+          "Error saving character as admin"
+      );
     } finally {
       this.isSaving = false;
     }

@@ -39,7 +39,9 @@ export default class UserCharactersShowController extends Controller {
   @action
   refreshCharacter() {
     ajax(`/size/characters?user_id=${this.user.id}`).then((result) => {
-      const updated = result.characters.find(c => c.id.toString() === this.character.id.toString());
+      const updated = result.characters.find(
+        (c) => c.id.toString() === this.character.id.toString()
+      );
       if (updated) {
         this.set("character", updated);
       }

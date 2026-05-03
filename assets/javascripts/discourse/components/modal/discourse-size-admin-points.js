@@ -15,11 +15,11 @@ export default class DiscourseSizeAdminPoints extends Component {
   @action
   async save() {
     this.isSaving = true;
-    
+
     try {
       await ajax(`/size/admin/users/${this.args.model?.user?.id}/points`, {
         type: "PUT",
-        data: { points: this.points }
+        data: { points: this.points },
       });
       this.args.model?.onSave?.(this.points);
       this.args.closeModal?.();

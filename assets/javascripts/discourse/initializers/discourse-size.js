@@ -4,7 +4,6 @@ import { formatSize, getComparison } from "../lib/size-formatter";
 export default {
   name: "discourse-size",
   initialize() {
-    withPluginApi("0.8", (api) => {
-    });
+    withPluginApi("0.8", (api) => {});
   },
 };

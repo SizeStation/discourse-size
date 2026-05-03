@@ -23,23 +23,23 @@ export default class DiscourseSizeGrowthGraph extends Component {
     if (!char) return [];
     const history = [];
     let cumulativeSize = parseFloat(char.base_size);
-    
+
     // 1. Creation Point
     history.push({
       date: new Date(char.created_at),
       size: cumulativeSize,
       label: "Created",
-      isProjection: false
+      isProjection: false,
     });
 
     // 2. Action Points
-    this.oldestFirstActions.forEach(action => {
+    this.oldestFirstActions.forEach((action) => {
       cumulativeSize += parseFloat(action.size_change);
       history.push({
         date: new Date(action.created_at),
         size: cumulativeSize,
         action,
-        isProjection: false
+        isProjection: false,
       });
     });
 
@@ -55,20 +55,25 @@ export default class DiscourseSizeGrowthGraph extends Component {
     const paddingX = 80;
     const paddingY = 60;
 
-    const minSize = Math.min(...history.map(h => h.size));
-    const maxSize = Math.max(...history.map(h => h.size));
+    const minSize = Math.min(...history.map((h) => h.size));
+    const maxSize = Math.max(...history.map((h) => h.size));
     const sizeRange = maxSize - minSize || 1;
 
     // Use equal spacing for X to prevent clustering as requested
     const points = history.map((h, i) => {
       const x = paddingX + (i / (history.length - 1)) * (width - 2 * paddingX);
-      const y = height - paddingY - (sizeRange > 0 ? ((h.size - minSize) / sizeRange) * (height - 2 * paddingY) : (height / 2 - paddingY));
-      
-      return { 
-        x, 
-        y, 
-        size: h.size, 
-        date: h.date, 
+      const y =
+        height -
+        paddingY -
+        (sizeRange > 0
+          ? ((h.size - minSize) / sizeRange) * (height - 2 * paddingY)
+          : height / 2 - paddingY);
+
+      return {
+        x,
+        y,
+        size: h.size,
+        date: h.date,
         action: h.action,
         label: h.label,
         isProjection: h.isProjection,
@@ -78,31 +83,49 @@ export default class DiscourseSizeGrowthGraph extends Component {
         tooltipNameY: y - 45,
         tooltipSizeX: x + 10,
         tooltipSizeY: y - 25,
-        formattedSize: formatSize(h.size, this.args.model?.character?.measurement_system)
+        formattedSize: formatSize(
+          h.size,
+          this.args.model?.character?.measurement_system
+        ),
       };
     });
 
     let mainPath = `M ${points[0].x} ${points[0].y}`;
     let projectionPath = "";
-    
+
     for (let i = 1; i < points.length; i++) {
       if (points[i].isProjection) {
-        if (!projectionPath) projectionPath = `M ${points[i-1].x} ${points[i-1].y}`;
+        if (!projectionPath)
+          projectionPath = `M ${points[i - 1].x} ${points[i - 1].y}`;
         projectionPath += ` L ${points[i].x} ${points[i].y}`;
       } else {
         mainPath += ` L ${points[i].x} ${points[i].y}`;
       }
     }
 
-    return { points, mainPath, projectionPath, width, height, minSize, maxSize };
+    return {
+      points,
+      mainPath,
+      projectionPath,
+      width,
+      height,
+      minSize,
+      maxSize,
+    };
   }
 
   get formattedMinSize() {
-    return formatSize(this.graphData?.minSize || 0, this.args.model?.character?.measurement_system);
+    return formatSize(
+      this.graphData?.minSize || 0,
+      this.args.model?.character?.measurement_system
+    );
   }
 
   get formattedMaxSize() {
-    return formatSize(this.graphData?.maxSize || 0, this.args.model?.character?.measurement_system);
+    return formatSize(
+      this.graphData?.maxSize || 0,
+      this.args.model?.character?.measurement_system
+    );
   }
 
   @action
