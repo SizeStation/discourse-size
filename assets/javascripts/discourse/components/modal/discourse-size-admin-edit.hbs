@@ -1,0 +1,37 @@
+<DModal
+  @title="Admin Edit Character"
+  @closeModal={{@closeModal}}
+  class="discourse-size-edit-character-modal"
+>
+  <:body>
+    <div class="control-group">
+      <label>Base Size (cm)</label>
+      <span class="instructions">The starting size of the character.</span>
+      <Input @type="number" @value={{this.baseSize}} step="0.1" />
+    </div>
+
+    <div class="control-group">
+      <label>Override Current Size (cm)</label>
+      <span class="instructions">Directly teleport the character to this size.</span>
+      <Input @type="number" @value={{this.currentSize}} step="0.1" />
+    </div>
+
+    <div class="control-group">
+      <label>Growth Rate Override (cm/day)</label>
+      <span class="instructions">Max speed this character can grow. Leave blank for site default.</span>
+      <Input @type="number" @value={{this.growthRateOverride}} step="0.1" />
+    </div>
+  </:body>
+  <:footer>
+    <DButton
+      @action={{this.save}}
+      @label="save"
+      @disabled={{this.isSaving}}
+      class="btn-primary"
+    />
+    <DButton
+      @action={{@closeModal}}
+      @label="cancel"
+    />
+  </:footer>
+</DModal>

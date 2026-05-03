@@ -1,0 +1,12 @@
+en:
+  site_settings:
+    discourse_size_enabled: "Enable the Discourse Size plugin."
+    discourse_size_default_max_growth_rate: "Maximum growth rate per day (cm) by default."
+    discourse_size_min_base_size: "Minimum starting size (cm)."
+    discourse_size_max_base_size: "Maximum starting size (cm)."
+    discourse_size_points_per_invite: "Points awarded for inviting someone."
+    discourse_size_points_per_invited: "Points awarded to an invitee when they join."
+    discourse_size_points_per_reply: "Points awarded for posting a reply."
+    discourse_size_points_per_topic: "Points awarded for creating a new topic."
+    discourse_size_points_per_daily_login: "Points awarded for logging in once a day."
+    discourse_size_points_per_read: "Points awarded for reading posts."

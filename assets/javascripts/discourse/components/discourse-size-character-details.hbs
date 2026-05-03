@@ -1,0 +1,111 @@
+<div class="discourse-size-character-details">
+  <div class="details-header">
+    <LinkTo @route="user.characters.index" class="back-link">
+      {{d-icon "arrow-left"}} Back to characters
+    </LinkTo>
+    <h2>{{@character.name}}</h2>
+  </div>
+
+  <div class="details-grid">
+    <div class="details-main-info">
+      <div class="details-picture-section">
+        {{#if @character.picture}}
+          <img src={{@character.picture}} alt={{@character.name}} class="details-picture" />
+        {{else}}
+          <div class="details-picture-placeholder">No Image</div>
+        {{/if}}
+      </div>
+
+      <div class="details-stats-section">
+        <div class="stat-item">
+          <label>Current Size</label>
+          <div class="value big">{{this.formattedSize}}</div>
+          <div class="comparison-text">{{this.comparisonText}}</div>
+        </div>
+
+        {{#if @character.is_growing}}
+          <div class="stat-item animation-info">
+            <label>Target Size</label>
+            <div class="value">{{format-size @character.target_size @character.measurement_system}}</div>
+            <div class="progress-info">
+              Growing at {{format-size @character.growth_rate "metric"}}/day
+            </div>
+          </div>
+        {{/if}}
+
+        <div class="stat-item">
+          <label>Growth Speed Limit</label>
+          <div class="value">{{@character.growth_rate_override}} cm/day</div>
+        </div>
+      </div>
+
+      {{#if @character.info_post}}
+        <div class="details-link-section">
+          <DButton
+            @href={{@character.info_post}}
+            @label="discourse_size.view_info_post"
+            @icon="external-link-alt"
+            class="btn-default btn-large"
+          />
+        </div>
+      {{/if}}
+    </div>
+
+    <div class="details-actions-section">
+      <div class="action-card grow-card">
+        <h3>Change Size</h3>
+        <DiscourseSizeCharacterActions
+          @character={{@character}}
+          @userPoints={{@userPoints}}
+          @onAction={{@onAction}}
+        />
+      </div>
+
+      {{#if @isCurrentUser}}
+        <div class="action-card management-card">
+          <h3>Management</h3>
+          <div class="owner-buttons">
+            {{#unless @character.is_main}}
+              <DButton @action={{this.setMain}} @label="discourse_size.set_main" />
+            {{/unless}}
+            <DButton
+              @action={{fn @onUpdate @character}}
+              @icon="pencil-alt"
+              @label="discourse_size.edit"
+              class="btn-primary"
+            />
+            <DButton
+              @action={{fn @onDelete @character}}
+              @icon="trash-alt"
+              @label="discourse_size.delete"
+              class="btn-danger"
+            />
+          </div>
+        </div>
+      {{/if}}
+    </div>
+  </div>
+
+  {{#if @character.actions.length}}
+    <div class="details-activity-section">
+      <h3>Recent Activity</h3>
+      <div class="activity-list">
+        {{#each @character.actions as |action|}}
+          <div class="activity-item">
+            <span class="activity-date">{{format-date action.created_at}}</span>
+            <span class="activity-text">
+              <strong>{{action.user.username}}</strong>
+              {{#if (eq action.action_type "grow")}}
+                grew them by {{format-size action.size_change @character.measurement_system}}
+              {{else if (eq action.action_type "shrink")}}
+                shrunk them by {{format-size action.size_change @character.measurement_system}}
+              {{else}}
+                {{action.action_type}}
+              {{/if}}
+            </span>
+          </div>
+        {{/each}}
+      </div>
+    </div>
+  {{/if}}
+</div>

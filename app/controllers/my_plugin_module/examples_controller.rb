@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module ::DiscourseSize
+module ::MyPluginModule
   class ExamplesController < ::ApplicationController
     requires_plugin PLUGIN_NAME
 

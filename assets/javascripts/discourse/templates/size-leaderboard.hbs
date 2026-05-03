@@ -1,0 +1,67 @@
+<div class="container size-leaderboard">
+  <div class="leaderboard-header">
+    <h2>Size Leaderboard</h2>
+    <div class="sort-controls">
+      <DButton
+        @action={{fn this.setSort "biggest"}}
+        @label="discourse_size.leaderboard.biggest"
+        class={{if (eq this.sort "biggest") "btn-primary" "btn-default"}}
+      />
+      <DButton
+        @action={{fn this.setSort "smallest"}}
+        @label="discourse_size.leaderboard.smallest"
+        class={{if (eq this.sort "smallest") "btn-primary" "btn-default"}}
+      />
+    </div>
+  </div>
+
+  <div class="leaderboard-list">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Rank</th>
+          <th>Character</th>
+          <th>Owner</th>
+          <th>Size</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#each this.characters as |character index|}}
+          <tr>
+            <td>#{{add index 1}}</td>
+            <td>
+              <div class="lb-character-info">
+                {{#if character.picture}}
+                  <img
+                    src={{character.picture}}
+                    alt={{character.name}}
+                    class="lb-picture"
+                  />
+                {{/if}}
+                <a
+                  href="/u/{{character.user.username}}/characters"
+                >{{character.name}}</a>
+              </div>
+            </td>
+            <td>
+              <a
+                href="/u/{{character.user.username}}"
+              >{{character.user.username}}</a>
+            </td>
+            <td>
+              {{format-size
+                character.current_size
+                character.measurement_system
+              }}
+            </td>
+          </tr>
+        {{else}}
+          <tr>
+            <td colspan="4" class="no-results">No characters found for this
+              sorting.</td>
+          </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  </div>
+</div>

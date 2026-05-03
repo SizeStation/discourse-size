@@ -3,7 +3,22 @@ en:
     admin:
       site_settings:
         categories:
-          TODO_plugin_name: "Plugin Name"
+          discourse_size: "Discourse Size"
   js:
-    discourse_plugin_name:
-      placeholder: placeholder
+    discourse_size:
+      help: "Help"
+      create_character: "Create Character"
+      grow: "Grow"
+      shrink: "Shrink"
+      upload_picture: "Upload Picture"
+      set_main: "Set Main"
+      reset_size: "Reset Size"
+      admin_edit: "Admin Edit"
+      edit: "Edit"
+      delete: "Delete"
+      save: "Save"
+      cancel: "Cancel"
+      leaderboard:
+        biggest: "Biggest"
+        tiniest: "Tiniest"
+        smallest: "Smallest"

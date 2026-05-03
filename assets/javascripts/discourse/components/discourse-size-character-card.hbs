@@ -1,0 +1,158 @@
+<div class="discourse-size-character-card {{if @character.is_main 'is-main'}}">
+  <div class="character-header-layout">
+    <div class="character-picture-wrapper">
+      {{#if @character.picture}}
+        <img
+          src={{@character.picture}}
+          alt={{@character.name}}
+          class="character-picture"
+        />
+      {{else}}
+        <div class="character-picture-placeholder">No Image</div>
+      {{/if}}
+    </div>
+
+    <div class="character-info">
+      <div class="character-header">
+        <h4>
+          {{@character.name}}
+          {{#if @character.is_main}}
+            <span class="badge main-badge">Main Character</span>
+          {{/if}}
+          {{#if @character.is_biggest}}
+            <span class="badge biggest-badge">Biggest</span>
+          {{/if}}
+          {{#if @character.is_tiniest}}
+            <span class="badge tiniest-badge">Tiniest</span>
+          {{/if}}
+        </h4>
+
+        <div class="owner-actions">
+          {{#if this.currentUser.admin}}
+            <DButton
+              @action={{this.adminEdit}}
+              @label="discourse_size.admin_edit"
+            />
+          {{/if}}
+
+          {{#if this.canEdit}}
+            {{#if @isCurrentUser}}
+              {{#unless @character.is_main}}
+                <DButton
+                  @action={{this.setMain}}
+                  @label="discourse_size.set_main"
+                />
+              {{/unless}}
+            {{/if}}
+            <DButton
+              @action={{fn @onUpdate @character}}
+              @label="discourse_size.edit"
+            />
+            <DButton
+              @action={{fn @onDelete @character}}
+              @label="discourse_size.delete"
+              class="btn-danger"
+            />
+          {{/if}}
+        </div>
+      </div>
+
+      <div class="character-size-row">
+        <p class="character-size">
+          <strong>Size:</strong>
+          <span class="current-size-display">{{this.formattedSize}}</span>
+          <span class="speed-limit">({{this.formattedGrowthRate}})</span>
+        </p>
+
+        {{#if this.isAnimating}}
+          <div class="growth-stats">
+            <div class="progress-bar-mini">
+              <div class="progress-fill" style={{html-safe (concat "width: " this.progressPercent "%")}}></div>
+            </div>
+            <span class="target-size-display">
+              Target:
+              <strong>{{this.formattedTargetSize}}</strong>
+              ({{this.progressPercent}}%)
+            </span>
+            <span class="time-remaining">
+              {{d-icon "clock"}}
+              {{this.timeRemaining}}
+            </span>
+          </div>
+        {{/if}}
+      </div>
+
+      <p class="character-comparison">
+        {{this.comparisonText}}
+      </p>
+
+      {{#if @character.info_post}}
+        <a href={{@character.info_post}} target="_blank" class="info-link">More
+          Info</a>
+      {{/if}}
+    </div>
+  </div>
+
+  <div class="character-actions">
+    {{#if this.canGrow}}
+      <div class="growth-panel">
+        <div class="points-header">
+          <span class="label">Points to spend</span>
+          <span class="balance">My balance: <strong>{{@userPoints}}</strong></span>
+        </div>
+        <div class="input-row">
+          <input
+            type="number"
+            min="1"
+            value={{this.amountInput}}
+            {{on "input" this.setAmount}}
+            class="amount-input"
+          />
+          <div class="buttons">
+            <DButton
+              @action={{this.grow}}
+              @label="discourse_size.grow"
+              @icon="plus"
+              class="btn-primary"
+            />
+            <DButton
+              @action={{this.shrink}}
+              @label="discourse_size.shrink"
+              @icon="minus"
+              class="btn-danger"
+            />
+          </div>
+        </div>
+        <div class="impact-info">
+          Change: <strong>{{this.formattedSizeChange}}</strong> 
+          &bull; 
+          My balance afterwards: <strong>{{this.pointsLeft}}</strong>
+        </div>
+      </div>
+    {{/if}}
+  </div>
+
+  {{#if @character.actions.length}}
+    <div class="character-activity">
+      <h5>Recent Activity</h5>
+      <ul>
+        {{#each @character.actions as |action|}}
+          <li>
+            <span class="activity-date">{{format-date
+                action.created_at
+                format="medium"
+              }}</span>
+            &mdash;
+            <a href="/u/{{action.user.username}}">{{action.user.username}}</a>
+            made
+            {{@character.name}}
+            {{if (eq action.action_type "grow") "grow" "shrink"}}
+            by
+            {{action.size_change}}
+            cm
+          </li>
+        {{/each}}
+      </ul>
+    </div>
+  {{/if}}
+</div>

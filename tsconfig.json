@@ -8,10 +8,10 @@
   ],
   "compilerOptions": {
     "paths": {
-      "discourse/plugins/discourse-size/*": [
+      "discourse/plugins/discourse-plugin-skeleton/*": [
         "./assets/javascripts/*"
       ],
-      "discourse/plugins/discourse-size/admin/*": [
+      "discourse/plugins/discourse-plugin-skeleton/admin/*": [
         "./admin/assets/javascripts/admin/*"
       ],
       "admin/*": ["./node_modules/discourse/declarations/admin/*"],

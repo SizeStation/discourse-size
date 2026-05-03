@@ -1,0 +1,92 @@
+<DModal
+  @title={{this.modalTitle}}
+  @closeModal={{@closeModal}}
+  class="discourse-size-edit-character-modal"
+>
+  <:body>
+    <div onkeydown={{this.onKeyDown}}>
+      <div class="control-group">
+        <label>Name</label>
+        <span class="instructions">What is this character called?</span>
+        <Input @type="text" @value={{this.name}} />
+      </div>
+
+      <div class="control-group">
+        <label>Picture</label>
+        <div class="picture-upload-wrapper">
+          {{#if this.picture}}
+            <img src={{this.picture}} alt="Preview" class="upload-preview" />
+          {{/if}}
+          <div class="upload-controls">
+            <DButton
+              @action={{this.uploadImage}}
+              @label="discourse_size.upload_picture"
+              @icon="upload"
+              class="btn-default"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>Info URL</label>
+        <span class="instructions">A link to a forum post or external page with more information about this character.</span>
+        <Input @type="text" @value={{this.infoPost}} placeholder="https://..." class="info-post-input" />
+      </div>
+
+      <div class="control-group">
+        <label>Base Size (cm)</label>
+        <span class="instructions">The initial size of the character.</span>
+        <Input @type="number" @value={{this.baseSize}} step="0.1" />
+      </div>
+
+      <div class="control-group">
+        <label>Measurement System</label>
+        <span class="instructions">How sizes should be displayed for this character.</span>
+        <select onchange={{action (mut this.measurementSystem) value="target.value"}}>
+          <option value="imperial" selected={{eq this.measurementSystem "imperial"}}>Imperial (ft/in/mi)</option>
+          <option value="metric" selected={{eq this.measurementSystem "metric"}}>Metric (cm/m/km)</option>
+        </select>
+      </div>
+
+      <div class="control-group checkbox-group">
+        <label>
+          <Input @type="checkbox" @checked={{this.allowGrowth}} />
+          Allow others to grow this character
+        </label>
+      </div>
+
+      <div class="control-group checkbox-group">
+        <label>
+          <Input @type="checkbox" @checked={{this.allowShrink}} />
+          Allow others to shrink this character
+        </label>
+      </div>
+
+      {{#unless @model.isNew}}
+        <div class="control-group reset-section">
+          <label>Character Reset</label>
+          <span class="instructions">
+            Resetting will return <strong>50% of the points</strong> spent on this character's growth.
+            This action is not reversible.
+          </span>
+          <button type="button" class="btn btn-danger" {{on "click" this.resetSize}}>
+            {{this.resetButtonLabel}}
+          </button>
+        </div>
+      {{/unless}}
+    </div>
+  </:body>
+  <:footer>
+    <DButton
+      @action={{this.save}}
+      @label="discourse_size.save"
+      @disabled={{this.isSaving}}
+      class="btn-primary"
+    />
+    <DButton
+      @action={{@closeModal}}
+      @label="discourse_size.cancel"
+    />
+  </:footer>
+</DModal>

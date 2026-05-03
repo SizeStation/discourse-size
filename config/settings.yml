@@ -1,40 +1,37 @@
 plugins:
-  size_plugin_enabled:
-    default: false
+  discourse_size_enabled:
+    default: true
     client: true
-  size_points_per_post:
-    default: 10
+  discourse_size_default_max_growth_rate:
+    default: 10.0
     client: true
-  size_points_per_reply:
-    default: 15
+    type: float
+  discourse_size_min_base_size:
+    default: 1.0
     client: true
-  size_points_invite_inviter:
-    default: 100
+    type: float
+  discourse_size_max_base_size:
+    default: 500.0
     client: true
-  size_points_invite_invitee:
+    type: float
+  discourse_size_points_per_invite:
     default: 50
-    client: true
-  size_growth_percent_per_point:
-    default: 0.01
-    type: float
-    client: true
-  size_default_rate:
-    default: 0.1
-    type: float
-    client: true
-  size_default_min:
+    type: integer
+  discourse_size_points_per_invited:
     default: 100
-    type: float
-    client: true
-  size_default_max:
-    default: 1000.0
-    type: float
-    client: true
-  size_smallest_ranking_threshold:
-    default: 5.0
-    type: float
-    client: true
-  size_largest_ranking_threshold:
-    default: 300.0
-    type: float
+    type: integer
+  discourse_size_points_per_reply:
+    default: 5
+    type: integer
+  discourse_size_points_per_topic:
+    default: 15
+    type: integer
+  discourse_size_points_per_daily_login:
+    default: 20
+    type: integer
+  discourse_size_points_per_read:
+    default: 1
+    type: integer
+  discourse_size_help_url:
+    default: ""
     client: true

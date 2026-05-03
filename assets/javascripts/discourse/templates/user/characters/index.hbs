@@ -1,0 +1,52 @@
+{{#if this.isCurrentUser}}
+  <div class="user-characters-header">
+    <h3>My Characters</h3>
+    <span class="user-points">
+      You have
+      <strong>{{this.user.discourse_size_points}}</strong>
+      points
+    </span>
+    <div class="header-buttons">
+      {{#if this.siteSettings.discourse_size_help_url}}
+        <DButton
+          @href={{this.siteSettings.discourse_size_help_url}}
+          @label="discourse_size.help"
+          class="btn-default"
+        />
+      {{/if}}
+      <DButton
+        @action={{this.createNewCharacter}}
+        @icon="plus"
+        @label="discourse_size.create_character"
+        class="btn-primary"
+      />
+    </div>
+  </div>
+{{else}}
+  <div class="user-characters-header">
+    <h3>{{this.user.username}}'s Characters</h3>
+    {{#if this.siteSettings.discourse_size_help_url}}
+      <DButton
+        @href={{this.siteSettings.discourse_size_help_url}}
+        @icon="question-circle"
+        @label="discourse_size.help"
+        class="btn-default"
+      />
+    {{/if}}
+  </div>
+{{/if}}
+
+<div class="user-characters-list">
+  {{#each this.characters as |character|}}
+    <DiscourseSizeCharacterCard
+      @character={{character}}
+      @isCurrentUser={{this.isCurrentUser}}
+      @userPoints={{this.currentUser.discourse_size_points}}
+      @onDelete={{this.deleteCharacter}}
+      @onUpdate={{this.updateCharacter}}
+      @onAction={{this.refreshCharacters}}
+    />
+  {{else}}
+    <p>No characters found.</p>
+  {{/each}}
+</div>

@@ -1,5 +1,3 @@
-export default function () {
-  this.route("user", { path: "/u/:username" }, function () {
-    this.route("size", { path: "/size" });
-  });
+export default function() {
+  this.route('size-leaderboard', { path: '/size/leaderboard' });
 }
