@@ -6,7 +6,12 @@ en:
           discourse_size: "Discourse Size"
   js:
     discourse_size:
+      how_does_this_work: "How does this work?"
       help: "Help"
+      growth_history: "Growth History"
+      no_growth_history: "No growth history found for this character."
+      show_growth_graph: "Show Growth Graph"
+      recent_activity: "Recent Activity"
       create_character: "Create Character"
       grow: "Grow"
       shrink: "Shrink"

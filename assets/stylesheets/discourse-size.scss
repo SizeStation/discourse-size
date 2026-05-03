@@ -333,7 +333,7 @@
         gap: 6px;
         color: var(--tertiary);
         font-weight: 600;
-        
+
         .d-icon {
           font-size: 0.9em;
         }
@@ -420,7 +420,7 @@
             align-items: center;
             gap: 6px;
             margin: 0;
-            
+
             .d-icon {
               font-size: 0.9em;
             }
@@ -433,7 +433,7 @@
         color: var(--primary-medium);
         text-align: center;
         padding-top: 4px;
-        
+
         strong {
           color: var(--primary);
         }
@@ -457,6 +457,13 @@
     padding: 15px 20px;
     background: var(--primary-very-low);
     border-top: 1px solid var(--primary-low);
+
+    .activity-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
 
     h5 {
       margin: 0 0 10px 0;
@@ -911,5 +918,176 @@
         font-weight: 600;
       }
     }
+  }
+}
+
+.discourse-size-growth-graph-modal {
+  .d-modal__container {
+    width: 900px;
+    max-width: 95%;
+  }
+
+  .growth-graph-container {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+
+    .svg-wrapper {
+      background: var(--primary-very-low);
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid var(--primary-low);
+      overflow: hidden;
+    }
+
+    .growth-svg {
+      width: 100%;
+      height: auto;
+
+      .axis-label {
+        font-size: 10px;
+        fill: var(--primary-medium);
+        font-weight: 600;
+      }
+
+      .graph-point {
+        cursor: pointer;
+        transition: r 0.2s;
+
+        &:hover {
+          r: 9;
+        }
+      }
+
+      .graph-tooltip {
+        pointer-events: none;
+
+        rect {
+          filter: drop-shadow(0 4px 6px rgb(0, 0, 0, 0.1));
+        }
+
+        .tooltip-name {
+          font-size: 14px;
+          font-weight: 700;
+          fill: var(--primary);
+        }
+
+        .tooltip-size {
+          font-size: 12px;
+          fill: var(--tertiary);
+          font-weight: 600;
+        }
+      }
+    }
+  }
+
+  .modal-activity-list {
+    h5 {
+      margin-bottom: 15px;
+      border-bottom: 1px solid var(--primary-low);
+      padding-bottom: 8px;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+
+      li {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px;
+        background: var(--primary-very-low);
+        border-radius: 8px;
+        border: 1px solid var(--primary-low);
+
+        .activity-user {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+
+          .username {
+            font-weight: 700;
+          }
+        }
+
+        .activity-details {
+          display: flex;
+          gap: 20px;
+          font-size: 0.9em;
+          align-items: center;
+
+          .type {
+            text-transform: uppercase;
+            font-weight: 800;
+            font-size: 0.8em;
+            letter-spacing: 0.5px;
+          }
+
+          .amount {
+            color: var(--tertiary);
+            font-weight: 700;
+          }
+
+          .date {
+            color: var(--primary-medium);
+            white-space: nowrap;
+          }
+        }
+      }
+    }
+  }
+}
+
+.discourse-size-math-info-modal {
+  .math-info-content {
+    .formula-box {
+      background: var(--primary-very-low);
+      padding: 15px;
+      border-radius: 8px;
+      border-left: 4px solid var(--tertiary);
+      margin: 15px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+
+      code {
+        background: transparent;
+        color: var(--primary-high);
+        font-size: 1.1em;
+      }
+    }
+
+    .settings-info, .examples-list {
+      margin: 15px 0;
+      ul {
+        margin-top: 5px;
+      }
+    }
+
+    .logic-explanation {
+      font-style: italic;
+      color: var(--primary-medium);
+      margin-top: 20px;
+      padding-top: 10px;
+      border-top: 1px solid var(--primary-low);
+    }
+  }
+}
+
+.math-info-btn {
+  padding: 2px;
+  color: var(--primary-medium);
+  .d-icon {
+    font-size: 0.9em;
+  }
+  &:hover {
+    color: var(--tertiary);
+    background: transparent;
   }
 }

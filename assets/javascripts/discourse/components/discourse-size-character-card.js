@@ -4,6 +4,7 @@ import { inject as service } from "@ember/service";
 import { tracked } from "@glimmer/tracking";
 import { ajax } from "discourse/lib/ajax";
 import { formatSize, getComparison } from "../lib/size-formatter";
+import DiscourseSizeGrowthGraph from "./modal/discourse-size-growth-graph";
 import DiscourseSizeAdminEdit from "./modal/discourse-size-admin-edit";
 
 export default class DiscourseSizeCharacterCard extends Component {
@@ -80,7 +81,51 @@ export default class DiscourseSizeCharacterCard extends Component {
   }
   
   get formattedSizeChange() {
-    return formatSize(this.sizeChangeCm, this.args.character.measurement_system);
+    const val = parseFloat(this.amountInput) || 0;
+    return formatSize(Math.abs(val), this.args.character.measurement_system);
+  }
+
+  get projectedGrowSize() {
+    if (!this.args) return "";
+    const points = parseFloat(this.amountInput) || 0;
+    const base = parseFloat(this.args.character?.base_size || 0);
+    const offset = parseFloat(this.args.character?.target_offset || 0);
+    const currentTarget = base + offset;
+    
+    const rate = (this.siteSettings.discourse_size_percentage_per_point || 0.1) / 100.0;
+    const damping = this.siteSettings.discourse_size_point_damping || 0.8;
+    const logFactor = Math.log10((points / 10.0) + 1.0);
+    const effectivePoints = points / (1.0 + logFactor * damping);
+    
+    const target = currentTarget * Math.pow(1.0 + rate, effectivePoints);
+    return formatSize(target, this.args.character?.measurement_system);
+  }
+
+  get projectedShrinkSize() {
+    if (!this.args?.character) return "";
+    
+    const points = parseFloat(this.amountInput) || 0;
+    const base = parseFloat(this.args.character.base_size) || 170.0;
+    const offset = parseFloat(this.args.character.target_offset) || 0.0;
+    const currentTargetTotal = base + offset;
+    
+    const rate = (this.siteSettings.discourse_size_percentage_per_point || 0.1) / 100.0;
+    const damping = this.siteSettings.discourse_size_point_damping || 0.8;
+    const logFactor = Math.log10((points / 10.0) + 1.0);
+    const effectivePoints = points / (1.0 + logFactor * damping);
+    
+    const resultSizeCm = currentTargetTotal * Math.pow(1.0 - rate, effectivePoints);
+    
+    return formatSize(resultSizeCm, this.args.character.measurement_system);
+  }
+
+  get pointsCost() {
+    return Math.ceil(parseFloat(this.amountInput) || 0);
+  }
+
+  get pointsLeft() {
+    const currentPoints = parseInt(this.args.userPoints, 10) || 0;
+    return currentPoints - this.pointsCost;
   }
 
   get targetSizeCm() {
@@ -90,13 +135,15 @@ export default class DiscourseSizeCharacterCard extends Component {
   get formattedTargetSize() {
     return formatSize(this.targetSizeCm, this.args.character.measurement_system);
   }
-  
+
   get isAnimating() {
     return this.args.character.target_offset !== this.args.character.current_offset;
   }
 
   get formattedGrowthRate() {
-    const rateCm = this.args.character.growth_rate_override || this.siteSettings.discourse_size_default_max_growth_rate;
+    const rateCm =
+      this.args.character.growth_rate_override ||
+      this.siteSettings.discourse_size_default_max_growth_rate;
     return `${formatSize(rateCm, this.args.character.measurement_system)} / day`;
   }
 
@@ -106,11 +153,13 @@ export default class DiscourseSizeCharacterCard extends Component {
     const remainingCm = Math.abs(c.target_offset - currentOffset);
     if (remainingCm < 0.01) return null;
 
-    const rateCmPerDay = c.growth_rate_override || this.siteSettings.discourse_size_default_max_growth_rate;
+    const rateCmPerDay =
+      c.growth_rate_override ||
+      this.siteSettings.discourse_size_default_max_growth_rate;
     if (rateCmPerDay <= 0) return null;
 
     const seconds = (remainingCm / rateCmPerDay) * 86400;
-    
+
     if (seconds < 60) return `${Math.ceil(seconds)}s`;
     if (seconds < 3600) return `${Math.ceil(seconds / 60)}m`;
     if (seconds < 86400) return `${Math.ceil(seconds / 3600)}h`;
@@ -120,20 +169,17 @@ export default class DiscourseSizeCharacterCard extends Component {
   get progressPercent() {
     const c = this.args.character;
     if (c.target_offset === c.current_offset) return 100;
-    
+
     const totalDist = Math.abs(c.target_offset - c.current_offset);
-    const doneDist = Math.abs(this.calculatedSizeCm - c.base_size - c.current_offset);
-    
+    const doneDist = Math.abs(
+      this.calculatedSizeCm - c.base_size - c.current_offset
+    );
+
     return Math.min(100, Math.max(0, Math.round((doneDist / totalDist) * 100)));
   }
 
   get canEdit() {
     return this.args.isCurrentUser || this.currentUser?.admin;
-  }
-
-  get pointsLeft() {
-    const currentPoints = parseInt(this.args.userPoints, 10) || 0;
-    return currentPoints - this.pointsCost;
   }
 
   get canGrow() {
@@ -147,6 +193,15 @@ export default class DiscourseSizeCharacterCard extends Component {
   @action
   setAmount(event) {
     this.amountInput = event.target.value;
+  }
+
+  @action
+  showGrowthGraph() {
+    this.modal.show(DiscourseSizeGrowthGraph, {
+      model: {
+        character: this.args.character,
+      },
+    });
   }
 
   @action

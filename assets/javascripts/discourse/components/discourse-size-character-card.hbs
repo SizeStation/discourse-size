@@ -111,22 +111,19 @@
           <div class="buttons">
             <DButton
               @action={{this.grow}}
-              @label="discourse_size.grow"
               @icon="plus"
               class="btn-primary"
-            />
+            >
+              Grow to {{this.projectedGrowSize}}
+            </DButton>
             <DButton
               @action={{this.shrink}}
-              @label="discourse_size.shrink"
               @icon="minus"
               class="btn-danger"
-            />
+            >
+              Shrink to {{this.projectedShrinkSize}}
+            </DButton>
           </div>
-        </div>
-        <div class="impact-info">
-          Change: <strong>{{this.formattedSizeChange}}</strong> 
-          &bull; 
-          My balance afterwards: <strong>{{this.pointsLeft}}</strong>
         </div>
       </div>
     {{/if}}
@@ -134,7 +131,15 @@
 
   {{#if @character.actions.length}}
     <div class="character-activity">
-      <h5>Recent Activity</h5>
+      <div class="activity-header">
+        <h5>{{i18n "discourse_size.recent_activity"}}</h5>
+        <DButton
+          @action={{this.showGrowthGraph}}
+          @icon="chart-line"
+          @title="discourse_size.show_growth_graph"
+          class="btn-flat show-graph-btn"
+        />
+      </div>
       <ul>
         {{#each @character.actions as |action|}}
           <li>
@@ -146,10 +151,15 @@
             <a href="/u/{{action.user.username}}">{{action.user.username}}</a>
             made
             {{@character.name}}
-            {{if (eq action.action_type "grow") "grow" "shrink"}}
-            by
-            {{action.size_change}}
-            cm
+            {{#if (eq action.action_type "grow")}}
+              grew them by {{format-size (abs action.size_change) @character.measurement_system}}
+            {{else if (eq action.action_type "shrink")}}
+              shrunk them by {{format-size (abs action.size_change) @character.measurement_system}}
+            {{else if (eq action.action_type "reset")}}
+              reset their size
+            {{else}}
+              {{action.action_type}}
+            {{/if}}
           </li>
         {{/each}}
       </ul>

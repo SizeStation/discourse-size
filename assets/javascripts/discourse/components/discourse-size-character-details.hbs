@@ -28,14 +28,14 @@
             <label>Target Size</label>
             <div class="value">{{format-size @character.target_size @character.measurement_system}}</div>
             <div class="progress-info">
-              Growing at {{format-size @character.growth_rate "metric"}}/day
+              Growing at {{format-size @character.growth_rate @character.measurement_system}}/day
             </div>
           </div>
         {{/if}}
 
         <div class="stat-item">
           <label>Growth Speed Limit</label>
-          <div class="value">{{@character.growth_rate_override}} cm/day</div>
+          <div class="value">{{format-size @character.growth_rate_override @character.measurement_system}}/day</div>
         </div>
       </div>
 
@@ -96,9 +96,11 @@
             <span class="activity-text">
               <strong>{{action.user.username}}</strong>
               {{#if (eq action.action_type "grow")}}
-                grew them by {{format-size action.size_change @character.measurement_system}}
+                grew them by {{format-size (abs action.size_change) @character.measurement_system}}
               {{else if (eq action.action_type "shrink")}}
-                shrunk them by {{format-size action.size_change @character.measurement_system}}
+                shrunk them by {{format-size (abs action.size_change) @character.measurement_system}}
+              {{else if (eq action.action_type "reset")}}
+                reset their size
               {{else}}
                 {{action.action_type}}
               {{/if}}

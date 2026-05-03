@@ -5,13 +5,13 @@ import { tracked } from "@glimmer/tracking";
 import { ajax } from "discourse/lib/ajax";
 
 export default class DiscourseSizeEditCharacter extends Component {
-  @tracked name = this.args.model.character.name || "";
-  @tracked picture = this.args.model.character.picture || "";
-  @tracked infoPost = this.args.model.character.info_post || "";
-  @tracked baseSize = this.args.model.character.base_size || 170.0;
-  @tracked measurementSystem = this.args.model.character.measurement_system || "imperial";
-  @tracked allowGrowth = this.args.model.character.allow_growth !== false;
-  @tracked allowShrink = this.args.model.character.allow_shrink !== false;
+  @tracked name = "";
+  @tracked picture = "";
+  @tracked infoPost = "";
+  @tracked baseSize = 170.0;
+  @tracked measurementSystem = "imperial";
+  @tracked allowGrowth = true;
+  @tracked allowShrink = true;
   @tracked isSaving = false;
   @tracked infoPostId = null;
 
@@ -19,6 +19,14 @@ export default class DiscourseSizeEditCharacter extends Component {
 
   constructor() {
     super(...arguments);
+    const char = this.args.model?.character || {};
+    this.name = char.name || "";
+    this.picture = char.picture || "";
+    this.infoPost = char.info_post || "";
+    this.baseSize = char.base_size || 170.0;
+    this.measurementSystem = char.measurement_system || "imperial";
+    this.allowGrowth = char.allow_growth !== false;
+    this.allowShrink = char.allow_shrink !== false;
   }
 
   get resetButtonLabel() {
@@ -56,7 +64,7 @@ export default class DiscourseSizeEditCharacter extends Component {
 
 
   get modalTitle() {
-    return this.args.model.isNew ? "Create Character" : "Edit Character";
+    return this.args.model?.isNew ? "Create Character" : "Edit Character";
   }
 
   @action
@@ -75,16 +83,16 @@ export default class DiscourseSizeEditCharacter extends Component {
 
     try {
       let result;
-      if (this.args.model.isNew) {
+      if (this.args.model?.isNew) {
         result = await ajax("/size/characters", { type: "POST", data });
       } else {
-        result = await ajax(`/size/characters/${this.args.model.character.id}`, {
+        result = await ajax(`/size/characters/${this.args.model?.character?.id}`, {
           type: "PUT",
           data,
         });
       }
-      this.args.model.onSave(result.character);
-      this.args.closeModal();
+      this.args.model?.onSave?.(result.character);
+      this.args.closeModal?.();
     } catch (e) {
       alert(
         e.jqXHR?.responseJSON?.errors?.join(", ") || "Error saving character"
@@ -95,7 +103,7 @@ export default class DiscourseSizeEditCharacter extends Component {
   }
 
   get refundAmount() {
-    const char = this.args.model.character;
+    const char = this.args.model?.character;
     if (!char) return 0;
     
     const targetOffset = char.target_offset || 0;
@@ -112,11 +120,11 @@ export default class DiscourseSizeEditCharacter extends Component {
     ) {
       try {
         const result = await ajax(
-          `/size/characters/${this.args.model.character.id}/reset`,
+          `/size/characters/${this.args.model?.character?.id}/reset`,
           { type: "POST" }
         );
-        this.args.model.onSave(result.character);
-        this.args.closeModal();
+        this.args.model?.onSave?.(result.character);
+        this.args.closeModal?.();
       } catch (e) {
         alert("Error resetting size");
       }

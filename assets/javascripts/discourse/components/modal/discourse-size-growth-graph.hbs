@@ -1,0 +1,91 @@
+<DModal
+  @title={{i18n "discourse_size.growth_history"}}
+  @closeModal={{@closeModal}}
+  class="discourse-size-growth-graph-modal"
+>
+  <:body>
+    <div class="growth-graph-container">
+      {{#if this.graphData}}
+        <div class="svg-wrapper">
+          <svg viewBox="0 0 {{this.graphData.width}} {{this.graphData.height}}" class="growth-svg">
+            <!-- Grid lines -->
+            <line x1="60" y1="60" x2="60" y2="340" stroke="var(--primary-low)" stroke-dasharray="4" />
+            <line x1="60" y1="340" x2="740" y2="340" stroke="var(--primary-low)" stroke-dasharray="4" />
+            
+            <!-- Labels -->
+            <text x="55" y="65" text-anchor="end" class="axis-label">{{this.formattedMaxSize}}</text>
+            <text x="55" y="345" text-anchor="end" class="axis-label">{{this.formattedMinSize}}</text>
+
+            <!-- Paths -->
+            <path d="{{this.graphData.mainPath}}" fill="none" stroke="var(--tertiary)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" />
+            {{#if this.graphData.projectionPath}}
+              <path d="{{this.graphData.projectionPath}}" fill="none" stroke="var(--tertiary)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="8,5" opacity="0.6" />
+            {{/if}}
+            
+            <!-- Points -->
+            {{#each this.graphData.points as |point|}}
+              <circle 
+                cx={{point.x}} 
+                cy={{point.y}} 
+                r="6" 
+                fill="var(--tertiary)" 
+                class="graph-point"
+                {{on "mouseenter" (fn this.setHoveredPoint point)}}
+                {{on "mouseleave" (fn this.setHoveredPoint null)}}
+              />
+            {{/each}}
+
+            <!-- Tooltip -->
+            {{#if this.hoveredPoint}}
+              <g class="graph-tooltip">
+                <rect 
+                  x={{this.hoveredPoint.tooltipX}} 
+                  y={{this.hoveredPoint.tooltipY}} 
+                  width="180" 
+                  height="60" 
+                  rx="8" 
+                  fill="var(--secondary)" 
+                  stroke="var(--tertiary)" 
+                  stroke-width="2"
+                />
+                <text x={{this.hoveredPoint.tooltipNameX}} y={{this.hoveredPoint.tooltipNameY}} class="tooltip-name">
+                  {{#if this.hoveredPoint.action}}
+                    {{this.hoveredPoint.action.user.username}}
+                  {{else}}
+                    {{this.hoveredPoint.label}}
+                  {{/if}}
+                </text>
+                <text x={{this.hoveredPoint.tooltipSizeX}} y={{this.hoveredPoint.tooltipSizeY}} class="tooltip-size">
+                  {{this.hoveredPoint.formattedSize}}
+                </text>
+              </g>
+            {{/if}}
+          </svg>
+        </div>
+      {{else}}
+        <div class="no-history">
+          <p>{{i18n "discourse_size.no_growth_history"}}</p>
+        </div>
+      {{/if}}
+
+      <div class="modal-activity-list">
+        <h5>{{i18n "discourse_size.recent_activity"}}</h5>
+        <ul>
+          {{#each this.newestFirstActions as |action|}}
+            <li>
+              <div class="activity-user">
+                {{avatar action.user imageSize="small"}}
+                <span class="username">{{action.user.username}}</span>
+              </div>
+              <div class="activity-details">
+                <span class="type">{{action.action_type}}</span>
+                <span class="amount">{{format-size (abs action.size_change) @model.character.measurement_system}}</span>
+                <span class="date">{{format-date action.created_at leaveAgo="true"}}</span>
+              </div>
+            </li>
+          {{/each}}
+        </ul>
+      </div>
+    </div>
+  </:body>
+</DModal>

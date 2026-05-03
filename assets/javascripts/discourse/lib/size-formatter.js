@@ -34,13 +34,34 @@ export const COMPARISONS = [
   { size_cm: 2e-7, desc: "{name} is the size of a mimivirus" },
   { size_cm: 2.5e-7, desc: "{name} is the size of an Ebola virus" },
   { size_cm: 3e-7, desc: "{name} is the size of a small bacterium" },
-  { size_cm: 4e-7, desc: "{name} is the size of a visible light wavelength (violet)" },
-  { size_cm: 4.5e-7, desc: "{name} is the size of a visible light wavelength (blue)" },
-  { size_cm: 5e-7, desc: "{name} is the size of an ultraviolet light wavelength" },
-  { size_cm: 5.5e-7, desc: "{name} is the size of a visible light wavelength (green)" },
-  { size_cm: 6e-7, desc: "{name} is the size of a visible light wavelength (yellow)" },
-  { size_cm: 6.5e-7, desc: "{name} is the size of a visible light wavelength (orange)" },
-  { size_cm: 7e-7, desc: "{name} is the size of a visible light wavelength (red)" },
+  {
+    size_cm: 4e-7,
+    desc: "{name} is the size of a visible light wavelength (violet)",
+  },
+  {
+    size_cm: 4.5e-7,
+    desc: "{name} is the size of a visible light wavelength (blue)",
+  },
+  {
+    size_cm: 5e-7,
+    desc: "{name} is the size of an ultraviolet light wavelength",
+  },
+  {
+    size_cm: 5.5e-7,
+    desc: "{name} is the size of a visible light wavelength (green)",
+  },
+  {
+    size_cm: 6e-7,
+    desc: "{name} is the size of a visible light wavelength (yellow)",
+  },
+  {
+    size_cm: 6.5e-7,
+    desc: "{name} is the size of a visible light wavelength (orange)",
+  },
+  {
+    size_cm: 7e-7,
+    desc: "{name} is the size of a visible light wavelength (red)",
+  },
   { size_cm: 8e-7, desc: "{name} is the size of a mycoplasma bacterium" },
   { size_cm: 1e-6, desc: "{name} is the size of a typical bacterium" },
   { size_cm: 1.5e-6, desc: "{name} is the size of an anthrax spore" },
@@ -227,11 +248,17 @@ export const COMPARISONS = [
   { size_cm: 2800, desc: "{name} is the size of a warehouse" },
   { size_cm: 3000, desc: "{name} is the size of a blue whale" },
   { size_cm: 3250, desc: "{name} is the size of a small stadium" },
-  { size_cm: 3500, desc: "{name} is the size of the Christ the Redeemer statue" },
+  {
+    size_cm: 3500,
+    desc: "{name} is the size of the Christ the Redeemer statue",
+  },
   { size_cm: 3800, desc: "{name} is the size of a large hangar" },
   { size_cm: 4000, desc: "{name} is the size of a Boeing 737" },
   { size_cm: 4300, desc: "{name} is the size of the Arc de Triomphe" },
-  { size_cm: 4600, desc: "{name} is the size of the Statue of Liberty (statue only)" },
+  {
+    size_cm: 4600,
+    desc: "{name} is the size of the Statue of Liberty (statue only)",
+  },
   { size_cm: 4800, desc: "{name} is the size of a large shopping mall" },
   { size_cm: 5000, desc: "{name} is the size of an Olympic swimming pool" },
   { size_cm: 5250, desc: "{name} is the size of a tower block" },
@@ -243,7 +270,10 @@ export const COMPARISONS = [
   { size_cm: 7500, desc: "{name} is the size of the Taj Mahal" },
   { size_cm: 8000, desc: "{name} is the size of a space shuttle" },
   { size_cm: 8500, desc: "{name} is the size of an oil tanker" },
-  { size_cm: 9300, desc: "{name} is the size of the Statue of Liberty (with pedestal)" },
+  {
+    size_cm: 9300,
+    desc: "{name} is the size of the Statue of Liberty (with pedestal)",
+  },
   { size_cm: 9800, desc: "{name} is the size of the Big Ben clock tower" },
   { size_cm: 10000, desc: "{name} is the size of a football field" },
   { size_cm: 11000, desc: "{name} is the size of a cruise ship length" },
@@ -264,13 +294,19 @@ export const COMPARISONS = [
   { size_cm: 40000, desc: "{name} is the size of the Empire State Building" },
   { size_cm: 42500, desc: "{name} is the size of the Willis Tower" },
   { size_cm: 45000, desc: "{name} is the size of the Petronas Towers" },
-  { size_cm: 47500, desc: "{name} is the size of the Shanghai World Financial Center" },
+  {
+    size_cm: 47500,
+    desc: "{name} is the size of the Shanghai World Financial Center",
+  },
   { size_cm: 50000, desc: "{name} is the size of a small airport runway" },
   { size_cm: 55000, desc: "{name} is the size of the One World Trade Center" },
   { size_cm: 60000, desc: "{name} is the size of the CN Tower" },
   { size_cm: 65000, desc: "{name} is the size of the Shanghai Tower" },
   { size_cm: 70000, desc: "{name} is the size of a large bridge span" },
-  { size_cm: 75000, desc: "{name} is the size of the Golden Gate Bridge length" },
+  {
+    size_cm: 75000,
+    desc: "{name} is the size of the Golden Gate Bridge length",
+  },
   { size_cm: 80000, desc: "{name} is the size of the Burj Khalifa" },
   { size_cm: 90000, desc: "{name} is the size of a massive hydro dam" },
   { size_cm: 100000, desc: "{name} is the size of a large mountain" },
@@ -365,7 +401,10 @@ export const COMPARISONS = [
   { size_cm: 5e15, desc: "{name} is the size of the heliosphere" },
   { size_cm: 1e16, desc: "{name} is the size of the inner Oort Cloud" },
   { size_cm: 1.5e16, desc: "{name} is the size of the Oort Cloud" },
-  { size_cm: 5e16, desc: "{name} is the distance to the nearest Oort cloud object" },
+  {
+    size_cm: 5e16,
+    desc: "{name} is the distance to the nearest Oort cloud object",
+  },
   { size_cm: 1e17, desc: "{name} is at a light month distance" },
   { size_cm: 5e17, desc: "{name} is at a half light year distance" },
   { size_cm: 9.46e17, desc: "{name} is the size of a light year" },
@@ -389,7 +428,10 @@ export const COMPARISONS = [
   { size_cm: 1e23, desc: "{name} is the size of the Milky Way galaxy" },
   { size_cm: 2.5e23, desc: "{name} is the size of a large spiral galaxy" },
   { size_cm: 5e23, desc: "{name} is the distance to the Magellanic Clouds" },
-  { size_cm: 8e23, desc: "{name} is the distance to the Sagittarius Dwarf Galaxy" },
+  {
+    size_cm: 8e23,
+    desc: "{name} is the distance to the Sagittarius Dwarf Galaxy",
+  },
   { size_cm: 1e24, desc: "{name} is the size of a typical galaxy cluster" },
   { size_cm: 1.5e24, desc: "{name} is the distance to the Triangulum Galaxy" },
   { size_cm: 2.4e24, desc: "{name} is the distance to Andromeda" },
@@ -410,18 +452,25 @@ export const COMPARISONS = [
   { size_cm: 3e28, desc: "{name} is at a ten billion light year distance" },
   { size_cm: 5e28, desc: "{name} is at a fifteen billion light year distance" },
   { size_cm: 8.8e28, desc: "{name} is the size of the observable universe" },
-  { size_cm: 1e30, desc: "{name} is the size of the entire universe including the unobservable part" },
+  {
+    size_cm: 1e30,
+    desc: "{name} is the size of the entire universe including the unobservable part",
+  },
   { size_cm: 1e35, desc: "{name} is the size of the cosmic horizon" },
-  { size_cm: 1e45, desc: "{name} is the size of the Bulk (theoretical hyperspace)" },
+  {
+    size_cm: 1e45,
+    desc: "{name} is the size of the Bulk (theoretical hyperspace)",
+  },
   { size_cm: 1e60, desc: "{name} is the size of the Multiverse" },
   { size_cm: 1e80, desc: "{name} is the size of the Megaverse" },
   { size_cm: 1e95, desc: "{name} is the size of the Gigaverse" },
   { size_cm: 1e110, desc: "{name} is the size of the Omniverse" },
-  { size_cm: 1e120, desc: "{name} is bigger than existence itself" }
+  { size_cm: 1e120, desc: "{name} is bigger than existence itself" },
 ];
 
 function getOrdinal(n) {
-  let s = ["th", "st", "nd", "rd"], v = n % 100;
+  let s = ["th", "st", "nd", "rd"],
+    v = n % 100;
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
@@ -429,7 +478,7 @@ export function getComparison(character) {
   if (!character) return "";
   const sizeCm = character.current_size;
   const name = character.name || "this character";
-  
+
   // Add ranking info if available
   let rankText = "";
   if (character.biggest_rank === 1) {
@@ -451,19 +500,26 @@ export function getComparison(character) {
       best = comp;
     }
   }
-  
+
   let ratio = sizeCm / best.size_cm;
   let comparisonText = "";
 
-  if ((ratio >= 0.95 && ratio <= 1.05) || best.size_cm <= 1e-25 || best.size_cm >= 1e30) {
+  if (
+    (ratio >= 0.95 && ratio <= 1.05) ||
+    best.size_cm <= 1e-25 ||
+    best.size_cm >= 1e30
+  ) {
     comparisonText = best.desc.replace("{name}", name);
   } else {
     let objectDesc = best.desc.replace("{name} is the size of ", "");
     objectDesc = objectDesc.replace("{name} is the distance to ", "");
     objectDesc = objectDesc.replace("{name} is at ", "");
     objectDesc = objectDesc.replace(/^a |^an |^the /, "");
-    
-    let formattedRatio = ratio >= 100 ? Math.round(ratio).toLocaleString() : parseFloat(ratio.toPrecision(2));
+
+    let formattedRatio =
+      ratio >= 100
+        ? Math.round(ratio).toLocaleString()
+        : parseFloat(ratio.toPrecision(2));
     comparisonText = `${name} is ${formattedRatio} times the size of ${objectDesc}`;
   }
 
@@ -474,27 +530,55 @@ export function getComparison(character) {
   return result;
 }
 
-export function formatSize(sizeCm, system = 'imperial') {
-  if (system === 'metric') {
-    if (sizeCm < 1e-7) return `${(sizeCm * 1e7).toFixed(2)} nm`;
-    if (sizeCm < 0.1) return `${(sizeCm * 10).toFixed(2)} mm`;
-    if (sizeCm < 100) return `${sizeCm.toFixed(2)} cm`;
-    if (sizeCm < 100000) return `${(sizeCm / 100).toFixed(2)} m`;
-    if (sizeCm < 9.46e17) return `${(sizeCm / 100000).toFixed(2)} km`;
-    return `${(sizeCm / 9.46e17).toExponential(2)} light years`;
+export function formatSize(sizeCm, system = "metric") {
+  const parsedSize = parseFloat(sizeCm);
+  if (isNaN(parsedSize) || parsedSize === 0) return "0 cm";
+  const absSize = Math.abs(parsedSize);
+
+  // Shared constants
+  const pm = absSize * 1e10;
+  const nm = absSize * 1e7;
+  const atoms = nm / 0.1; // 1 atom ≈ 0.1nm
+  const cells = absSize / 0.001; // 1 cell ≈ 10µm = 0.001cm
+  const lightyears = absSize / 9.461e17;
+  const universes = absSize / 8.8e28;
+
+  const sign = sizeCm < 0 ? "-" : "";
+
+  // Absolute floor: Atoms
+  if (absSize < 1e-8) {
+    if (atoms < 0.001) return `${sign}0.001 atoms`;
+    return `${sign}${atoms.toFixed(3)} atoms`;
+  }
+
+  if (system === "metric") {
+    if (absSize < 1e-7) return `${sign}${pm.toFixed(2)} pm`;
+    if (absSize < 1e-5) return `${sign}${nm.toFixed(2)} nm`;
+    if (absSize < 0.01) return `${sign}${cells.toFixed(2)} cells`;
+    if (absSize < 100) return `${sign}${absSize.toFixed(2)} cm`;
+    if (absSize < 100000) return `${sign}${(absSize / 100).toFixed(2)} m`;
+    if (absSize < 9.461e17) return `${sign}${(absSize / 100000).toFixed(2)} km`;
+    if (absSize < 8.8e28) return `${sign}${lightyears.toFixed(2)} ly`;
+    return `${sign}${universes.toFixed(2)} uni`;
   } else {
-    let sizeInches = sizeCm / 2.54;
-    if (sizeInches < 1e-6) return `${(sizeInches * 1e6).toFixed(2)} micro-inches`;
-    if (sizeInches < 12) return `${sizeInches.toFixed(2)} inches`;
-    let sizeFeet = sizeInches / 12;
-    if (sizeFeet < 5280) {
-      let ft = Math.floor(sizeFeet);
-      let inc = Math.round((sizeFeet - ft) * 12);
-      if (inc === 12) { ft++; inc = 0; }
-      return `${ft}'${inc}"`;
+    if (absSize < 1e-7) return `${sign}${pm.toFixed(2)} pm`;
+    if (absSize < 1e-5) return `${sign}${nm.toFixed(2)} nm`;
+    if (absSize < 0.01) return `${sign}${cells.toFixed(2)} cells`;
+    
+    const inches = absSize / 2.54;
+    if (inches < 12) return `${sign}${inches.toFixed(2)}"`;
+    
+    const feet = inches / 12;
+    if (feet < 5280) {
+      const ft = Math.floor(feet);
+      const inc = Math.round((feet - ft) * 12);
+      if (inc === 12) return `${sign}${ft + 1}'0"`;
+      return `${sign}${ft}'${inc}"`;
     }
-    let sizeMiles = sizeFeet / 5280;
-    if (sizeMiles < 5.879e12) return `${sizeMiles.toFixed(2)} miles`;
-    return `${(sizeMiles / 5.879e12).toExponential(2)} light years`;
+    
+    const miles = feet / 5280;
+    if (absSize < 9.461e17) return `${sign}${miles.toFixed(2)} mi`;
+    if (absSize < 8.8e28) return `${sign}${lightyears.toFixed(2)} ly`;
+    return `${sign}${universes.toFixed(2)} uni`;
   }
 }
