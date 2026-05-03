@@ -8,9 +8,9 @@ en:
     discourse_size:
       how_does_this_work: "How does this work?"
       help: "Help"
-      growth_history: "Growth History"
-      no_growth_history: "No growth history found for this character."
-      show_growth_graph: "Show Growth Graph"
+      size_history: "Size History"
+      no_size_history: "No size history found for this character."
+      show_size_history: "Show Size History"
       recent_activity: "Recent Activity"
       create_character: "Create Character"
       grow: "Grow"

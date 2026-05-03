@@ -3,7 +3,7 @@ import { action } from "@ember/object";
 import { inject as service } from "@ember/service";
 import { tracked } from "@glimmer/tracking";
 import { ajax } from "discourse/lib/ajax";
-import { formatSize, getComparison } from "../lib/size-formatter";
+import { formatSize, getComparison, getGrowthComparison } from "../lib/size-formatter";
 import DiscourseSizeGrowthGraph from "./modal/discourse-size-growth-graph";
 import DiscourseSizeAdminEdit from "./modal/discourse-size-admin-edit";
 
@@ -78,6 +78,10 @@ export default class DiscourseSizeCharacterCard extends Component {
       current_size: this.calculatedSizeCm,
     });
     return getComparison(tempChar);
+  }
+
+  get growthComparisonText() {
+    return getGrowthComparison(this.args.character);
   }
 
   get pointsCost() {

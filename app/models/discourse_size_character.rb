@@ -4,10 +4,17 @@ class DiscourseSizeCharacter < ActiveRecord::Base
   belongs_to :user
 
   validates :name, presence: true
-  validates :base_size, presence: true
+  validates :base_size,
+            presence: true,
+            numericality: {
+              greater_than_or_equal_to: -> { SiteSetting.discourse_size_min_base_size },
+              less_than_or_equal_to: -> { SiteSetting.discourse_size_max_base_size },
+            }
   validates :user_id, presence: true
 
-  has_many :discourse_size_actions, foreign_key: 'character_id', dependent: :destroy
+  has_many :discourse_size_actions,
+           foreign_key: "character_id",
+           dependent: :destroy
 
   def update_size_target(amount)
     sync_offset!

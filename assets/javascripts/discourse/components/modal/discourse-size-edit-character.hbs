@@ -37,7 +37,19 @@
       <div class="control-group">
         <label>Base Size (cm)</label>
         <span class="instructions">The initial size of the character.</span>
-        <Input @type="number" @value={{this.baseSize}} step="0.1" />
+        <input
+          type="number"
+          value={{this.baseSize}}
+          step="0.1"
+          min={{this.siteSettings.discourse_size_min_base_size}}
+          max={{this.siteSettings.discourse_size_max_base_size}}
+          class="base-size-input"
+          {{on "input" this.onBaseSizeInput}}
+          {{on "blur" this.onBaseSizeBlur}}
+        />
+        {{#if this.sizeError}}
+          <div class="inline-error">{{this.sizeError}}</div>
+        {{/if}}
       </div>
 
       <div class="control-group">
@@ -81,7 +93,7 @@
     <DButton
       @action={{this.save}}
       @label="discourse_size.save"
-      @disabled={{this.isSaving}}
+      @disabled={{or this.isSaving this.isInvalid}}
       class="btn-primary"
     />
     <DButton

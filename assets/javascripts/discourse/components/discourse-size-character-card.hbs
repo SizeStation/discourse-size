@@ -19,12 +19,6 @@
           {{#if @character.is_main}}
             <span class="badge main-badge">Main Character</span>
           {{/if}}
-          {{#if @character.is_biggest}}
-            <span class="badge biggest-badge">Biggest</span>
-          {{/if}}
-          {{#if @character.is_tiniest}}
-            <span class="badge tiniest-badge">Tiniest</span>
-          {{/if}}
         </h4>
 
         <div class="owner-actions">
@@ -67,7 +61,10 @@
         {{#if this.isAnimating}}
           <div class="growth-stats">
             <div class="progress-bar-mini">
-              <div class="progress-fill" style={{html-safe (concat "width: " this.progressPercent "%")}}></div>
+              <div
+                class="progress-fill"
+                style={{html-safe (concat "width: " this.progressPercent "%")}}
+              ></div>
             </div>
             <span class="target-size-display">
               Target:
@@ -81,16 +78,20 @@
           </div>
         {{/if}}
       </div>
+    </div>
+  </div>
 
-      <p class="character-comparison">
-        {{this.comparisonText}}
-      </p>
-
+  <div class="character-description">
+    <p class="character-comparison">
+      {{this.comparisonText}}
+      {{#if this.growthComparisonText}}
+        <span class="growth-comparison"> {{this.growthComparisonText}}</span>
+      {{/if}}
       {{#if @character.info_post}}
         <a href={{@character.info_post}} target="_blank" class="info-link">More
-          Info</a>
+          info about this character.</a>
       {{/if}}
-    </div>
+    </p>
   </div>
 
   <div class="character-actions">
@@ -98,7 +99,8 @@
       <div class="growth-panel">
         <div class="points-header">
           <span class="label">Points to spend</span>
-          <span class="balance">My balance: <strong>{{@userPoints}}</strong></span>
+          <span class="balance">My balance:
+            <strong>{{@userPoints}}</strong></span>
         </div>
         <div class="input-row">
           <input
@@ -109,19 +111,13 @@
             class="amount-input"
           />
           <div class="buttons">
-            <DButton
-              @action={{this.grow}}
-              @icon="plus"
-              class="btn-primary"
-            >
-              Grow to {{this.projectedGrowSize}}
+            <DButton @action={{this.grow}} @icon="plus" class="btn-primary">
+              Grow to
+              {{this.projectedGrowSize}}
             </DButton>
-            <DButton
-              @action={{this.shrink}}
-              @icon="minus"
-              class="btn-danger"
-            >
-              Shrink to {{this.projectedShrinkSize}}
+            <DButton @action={{this.shrink}} @icon="minus" class="btn-danger">
+              Shrink to
+              {{this.projectedShrinkSize}}
             </DButton>
           </div>
         </div>
@@ -136,7 +132,7 @@
         <DButton
           @action={{this.showGrowthGraph}}
           @icon="chart-line"
-          @title="discourse_size.show_growth_graph"
+          @title="discourse_size.show_size_history"
           class="btn-flat show-graph-btn"
         />
       </div>
@@ -152,9 +148,17 @@
             made
             {{@character.name}}
             {{#if (eq action.action_type "grow")}}
-              grew them by {{format-size (abs action.size_change) @character.measurement_system}}
+              grew them by
+              {{format-size
+                (abs action.size_change)
+                @character.measurement_system
+              }}
             {{else if (eq action.action_type "shrink")}}
-              shrunk them by {{format-size (abs action.size_change) @character.measurement_system}}
+              shrunk them by
+              {{format-size
+                (abs action.size_change)
+                @character.measurement_system
+              }}
             {{else if (eq action.action_type "reset")}}
               reset their size
             {{else}}

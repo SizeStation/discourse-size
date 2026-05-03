@@ -14,8 +14,10 @@ export default class DiscourseSizeEditCharacter extends Component {
   @tracked allowShrink = true;
   @tracked isSaving = false;
   @tracked infoPostId = null;
+  @tracked sizeError = null;
 
   @service currentUser;
+  @service siteSettings;
 
   constructor() {
     super(...arguments);
@@ -29,8 +31,59 @@ export default class DiscourseSizeEditCharacter extends Component {
     this.allowShrink = char.allow_shrink !== false;
   }
 
+  get min() {
+    return this.siteSettings.discourse_size_min_base_size;
+  }
+
+  get max() {
+    return this.siteSettings.discourse_size_max_base_size;
+  }
+
+  get isInvalid() {
+    return this.sizeError !== null && !this.sizeError.startsWith("Clamped");
+  }
+
   get resetButtonLabel() {
     return `Reset size to baseline of ${this.baseSize}cm`;
+  }
+
+  get modalTitle() {
+    return this.args.model?.isNew ? "Create Character" : "Edit Character";
+  }
+
+  _checkSize(val) {
+    if (isNaN(val)) {
+      this.sizeError = "Please enter a valid number.";
+    } else if (val < this.min) {
+      this.sizeError = `Minimum allowed size is ${this.min}cm.`;
+    } else if (val > this.max) {
+      this.sizeError = `Maximum allowed size is ${this.max}cm.`;
+    } else {
+      this.sizeError = null;
+    }
+  }
+
+  @action
+  onBaseSizeInput(event) {
+    const val = parseFloat(event.target.value);
+    this.baseSize = isNaN(val) ? event.target.value : val;
+    this._checkSize(val);
+  }
+
+  @action
+  onBaseSizeBlur(event) {
+    let val = parseFloat(event.target.value);
+
+    if (isNaN(val) || val < this.min) {
+      this.baseSize = this.min;
+      this.sizeError = `Clamped to minimum: ${this.min}cm.`;
+    } else if (val > this.max) {
+      this.baseSize = this.max;
+      this.sizeError = `Clamped to maximum: ${this.max}cm.`;
+    } else {
+      this.baseSize = val;
+      this.sizeError = null;
+    }
   }
 
   @action
@@ -44,7 +97,7 @@ export default class DiscourseSizeEditCharacter extends Component {
 
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("type", "avatar"); // Using avatar type for simple uploads
+      formData.append("type", "avatar");
 
       try {
         const result = await ajax("/uploads.json", {
@@ -62,12 +115,17 @@ export default class DiscourseSizeEditCharacter extends Component {
     fileInput.click();
   }
 
-  get modalTitle() {
-    return this.args.model?.isNew ? "Create Character" : "Edit Character";
-  }
-
   @action
   async save() {
+    // Final clamp before submitting
+    const val = parseFloat(this.baseSize);
+    if (isNaN(val) || val < this.min) {
+      this.baseSize = this.min;
+    } else if (val > this.max) {
+      this.baseSize = this.max;
+    }
+    this.sizeError = null;
+
     this.isSaving = true;
 
     const data = {
@@ -136,7 +194,6 @@ export default class DiscourseSizeEditCharacter extends Component {
   @action
   onKeyDown(e) {
     if (e.key === "Enter") {
-      // Prevent default form submission on enter
       e.preventDefault();
       return false;
     }
