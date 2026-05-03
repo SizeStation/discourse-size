@@ -15,7 +15,7 @@
     <div class="character-info">
       <div class="character-header">
         <h4>
-          {{@character.name}}
+          <strong>{{@character.name}}</strong>
           {{#if @character.is_main}}
             <span class="badge main-badge">Main Character</span>
           {{/if}}
@@ -26,26 +26,15 @@
             <DButton
               @action={{this.adminEdit}}
               @label="discourse_size.admin_edit"
+              class="btn-default"
             />
           {{/if}}
 
           {{#if this.canEdit}}
-            {{#if @isCurrentUser}}
-              {{#unless @character.is_main}}
-                <DButton
-                  @action={{this.setMain}}
-                  @label="discourse_size.set_main"
-                />
-              {{/unless}}
-            {{/if}}
             <DButton
               @action={{fn @onUpdate @character}}
               @label="discourse_size.edit"
-            />
-            <DButton
-              @action={{fn @onDelete @character}}
-              @label="discourse_size.delete"
-              class="btn-danger"
+              class="btn-default"
             />
           {{/if}}
         </div>
@@ -53,7 +42,7 @@
 
       <div class="character-size-row">
         <p class="character-size">
-          <strong>Size:</strong>
+          <span>Size:</span>
           <span class="current-size-display">{{this.formattedSize}}</span>
           <span class="speed-limit">({{this.formattedGrowthRate}})</span>
         </p>
@@ -98,9 +87,10 @@
     {{#if this.canGrow}}
       <div class="growth-panel">
         <div class="points-header">
-          <span class="label">Points to spend</span>
-          <span class="balance">My balance:
-            <strong>{{@userPoints}}</strong></span>
+          <span class="label">Spend size coins to grow or shrink this character</span>
+          <span class="balance">Your balance:
+            <strong>{{@userPoints}}</strong>
+            coins</span>
         </div>
         <div class="input-row">
           <input

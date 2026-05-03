@@ -69,6 +69,15 @@ export default class UserCharactersIndexController extends Controller {
             this.set("characters", newChars);
           }
         },
+        onDelete: () => {
+          this.set(
+            "characters",
+            this.characters.filter((c) => c.id !== character.id)
+          );
+        },
+        onSetMain: () => {
+          this.refreshCharacters();
+        },
       },
     });
   }

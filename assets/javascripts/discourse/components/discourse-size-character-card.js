@@ -17,7 +17,7 @@ export default class DiscourseSizeCharacterCard extends Component {
   @service siteSettings;
 
   @tracked _currentTime = new Date();
-  @tracked amountInput = 10;
+  @tracked amountInput = 1;
 
   _timer = null;
 
@@ -192,14 +192,16 @@ export default class DiscourseSizeCharacterCard extends Component {
 
   get progressPercent() {
     const c = this.args.character;
-    if (c.target_offset === c.current_offset) return 100;
+    const baseCm = parseFloat(c.base_size);
+    const targetCm = baseCm + parseFloat(c.target_offset);
+    const currentCm = this.calculatedSizeCm;
 
-    const totalDist = Math.abs(c.target_offset - c.current_offset);
-    const doneDist = Math.abs(
-      this.calculatedSizeCm - c.base_size - c.current_offset
-    );
+    // If already at target, show 100%
+    if (Math.abs(targetCm - baseCm) < 0.001) return 100;
 
-    return Math.min(100, Math.max(0, Math.round((doneDist / totalDist) * 100)));
+    // Progress from base → current → target
+    const progress = (currentCm - baseCm) / (targetCm - baseCm);
+    return Math.min(100, Math.max(0, Math.round(progress * 100)));
   }
 
   get canEdit() {

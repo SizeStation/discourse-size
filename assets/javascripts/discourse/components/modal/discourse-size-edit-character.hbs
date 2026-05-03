@@ -30,8 +30,14 @@
 
       <div class="control-group">
         <label>Info URL</label>
-        <span class="instructions">A link to a forum post or external page with more information about this character.</span>
-        <Input @type="text" @value={{this.infoPost}} placeholder="https://..." class="info-post-input" />
+        <span class="instructions">A link to a forum post or external page with
+          more information about this character.</span>
+        <Input
+          @type="text"
+          @value={{this.infoPost}}
+          placeholder="https://..."
+          class="info-post-input"
+        />
       </div>
 
       <div class="control-group">
@@ -54,10 +60,19 @@
 
       <div class="control-group">
         <label>Measurement System</label>
-        <span class="instructions">How sizes should be displayed for this character.</span>
-        <select onchange={{action (mut this.measurementSystem) value="target.value"}}>
-          <option value="imperial" selected={{eq this.measurementSystem "imperial"}}>Imperial (ft/in/mi)</option>
-          <option value="metric" selected={{eq this.measurementSystem "metric"}}>Metric (cm/m/km)</option>
+        <span class="instructions">How sizes should be displayed for this
+          character.</span>
+        <select
+          onchange={{action (mut this.measurementSystem) value="target.value"}}
+        >
+          <option
+            value="imperial"
+            selected={{eq this.measurementSystem "imperial"}}
+          >Imperial (ft/in/mi)</option>
+          <option
+            value="metric"
+            selected={{eq this.measurementSystem "metric"}}
+          >Metric (cm/m/km)</option>
         </select>
       </div>
 
@@ -76,13 +91,41 @@
       </div>
 
       {{#unless @model.isNew}}
+        <div class="control-group main-character-section">
+          <label>Main Character</label>
+          <span class="instructions">
+            Your main character appears on your
+            <strong>profile card and user page</strong>
+            for others to see at a glance.
+          </span>
+          {{#if this.isMain}}
+            <div class="main-character-status is-main">
+              {{d-icon "star"}}
+              This is your current main character
+            </div>
+          {{else}}
+            <DButton
+              @action={{this.setMain}}
+              @label="discourse_size.set_main"
+              class="btn-default set-main-btn"
+            />
+          {{/if}}
+        </div>
+      {{/unless}}
+
+      {{#unless @model.isNew}}
         <div class="control-group reset-section">
           <label>Character Reset</label>
           <span class="instructions">
-            Resetting will return <strong>50% of the points</strong> spent on this character's growth.
-            This action is not reversible.
+            Resetting will return
+            <strong>50% of the size coins</strong>
+            spent on this character's growth. This action is not reversible.
           </span>
-          <button type="button" class="btn btn-danger" {{on "click" this.resetSize}}>
+          <button
+            type="button"
+            class="btn btn-danger"
+            {{on "click" this.resetSize}}
+          >
             {{this.resetButtonLabel}}
           </button>
         </div>
@@ -96,9 +139,13 @@
       @disabled={{or this.isSaving this.isInvalid}}
       class="btn-primary"
     />
-    <DButton
-      @action={{@closeModal}}
-      @label="discourse_size.cancel"
-    />
+    <DButton @action={{@closeModal}} @label="discourse_size.cancel" />
+    {{#unless @model.isNew}}
+      <DButton
+        @action={{this.deleteCharacter}}
+        @label="discourse_size.delete"
+        class="btn-danger modal-delete-btn"
+      />
+    {{/unless}}
   </:footer>
 </DModal>

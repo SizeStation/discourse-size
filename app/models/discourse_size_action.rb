@@ -16,6 +16,7 @@ end
 #
 #  id           :bigint           not null, primary key
 #  action_type  :string           not null
+#  points_spent :float            default(0.0), not null
 #  size_change  :float            not null
 #  created_at   :datetime         not null
 #  updated_at   :datetime         not null

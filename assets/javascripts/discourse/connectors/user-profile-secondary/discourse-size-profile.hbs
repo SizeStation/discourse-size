@@ -1,0 +1,22 @@
+{{#if @outletArgs.model.discourse_size_main_character}}
+  {{#let @outletArgs.model.discourse_size_main_character as |char|}}
+    <div class="discourse-size-profile-widget">
+      <div class="ds-profile-name">
+        {{d-icon "paw"}}
+        <a href="/u/{{@outletArgs.model.username}}/characters">{{char.name}}</a>
+      </div>
+      <div class="ds-profile-size">
+        {{format-size char.current_size char.measurement_system}}
+      </div>
+      {{#if char.is_growing}}
+        <div class="ds-profile-status growing">
+          {{d-icon "arrow-up"}}Currently growing
+        </div>
+      {{else if char.is_shrinking}}
+        <div class="ds-profile-status shrinking">
+          {{d-icon "arrow-down"}}Currently shrinking
+        </div>
+      {{/if}}
+    </div>
+  {{/let}}
+{{/if}}

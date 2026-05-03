@@ -32,6 +32,12 @@ export default class UserCharactersShowController extends Controller {
         onSave: (updatedChar) => {
           this.set("character", updatedChar);
         },
+        onDelete: () => {
+          this.router.transitionTo("user.characters.index");
+        },
+        onSetMain: () => {
+          this.refreshCharacter();
+        },
       },
     });
   }

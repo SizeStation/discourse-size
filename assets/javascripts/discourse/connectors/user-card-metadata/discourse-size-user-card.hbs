@@ -1,10 +1,22 @@
 {{#if @outletArgs.user.discourse_size_main_character}}
-  <div class="discourse-size-user-card">
-    <span class="user-stat">
-      <span class="value">
-        {{@outletArgs.user.discourse_size_main_character.name}}
-        ({{format-size @outletArgs.user.discourse_size_main_character.current_size @outletArgs.user.discourse_size_main_character.measurement_system}})
+  {{#let @outletArgs.user.discourse_size_main_character as |char|}}
+    <div class="discourse-size-user-card">
+      <span class="ds-card-name">
+        {{d-icon "paw"}}
+        <a href="/u/{{@outletArgs.user.username}}/characters">{{char.name}}</a>
+        &mdash;
+        <span class="ds-card-size">{{format-size
+            char.current_size
+            char.measurement_system
+          }}</span>
       </span>
-    </span>
-  </div>
+      {{#if char.is_growing}}
+        <span class="ds-card-status growing">{{d-icon "arrow-up"}}Growing</span>
+      {{else if char.is_shrinking}}
+        <span class="ds-card-status shrinking">{{d-icon
+            "arrow-down"
+          }}Shrinking</span>
+      {{/if}}
+    </div>
+  {{/let}}
 {{/if}}

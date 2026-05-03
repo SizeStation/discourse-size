@@ -105,19 +105,50 @@ after_initialize do
     character = DiscourseSizeCharacter.find_by(user_id: object.id, is_main: true)
     if character
       character.sync_offset!
+      rate =
+        character.growth_rate_override ||
+          SiteSetting.discourse_size_default_max_growth_rate
       {
         id: character.id,
         name: character.name,
         picture: character.picture,
         info_post: character.info_post,
         current_size: character.current_size,
+        target_size: character.base_size + character.target_offset,
+        base_size: character.base_size,
         measurement_system: character.measurement_system,
+        is_growing:
+          character.target_offset > character.current_offset,
+        is_shrinking:
+          character.target_offset < character.current_offset,
+        growth_rate_cm_per_day: rate,
       }
     end
   end
 
   add_to_serializer(:user, :discourse_size_points) do
     DiscourseSize::PointsManager.get_points(object)
+  end
+
+  add_to_serializer(:user, :discourse_size_main_character) do
+    character = DiscourseSizeCharacter.find_by(user_id: object.id, is_main: true)
+    if character
+      character.sync_offset!
+      rate =
+        character.growth_rate_override ||
+          SiteSetting.discourse_size_default_max_growth_rate
+      {
+        id: character.id,
+        name: character.name,
+        picture: character.picture,
+        current_size: character.current_size,
+        target_size: character.base_size + character.target_offset,
+        measurement_system: character.measurement_system,
+        is_growing: character.target_offset > character.current_offset,
+        is_shrinking: character.target_offset < character.current_offset,
+        growth_rate_cm_per_day: rate,
+      }
+    end
   end
 
   add_to_serializer(:current_user, :discourse_size_points) do

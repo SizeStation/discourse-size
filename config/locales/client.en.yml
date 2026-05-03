@@ -20,7 +20,7 @@ en:
       set_main: "Set Main"
       reset_size: "Reset Size"
       admin_edit: "Override"
-      admin_points: "Points"
+      admin_points: "Size Coins"
       edit: "Edit"
       delete: "Delete"
       save: "Save"

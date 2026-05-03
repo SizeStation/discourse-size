@@ -11,6 +11,111 @@
   }
 }
 
+// ─── User card connector ───────────────────────────────────────────────────────
+.discourse-size-user-card {
+  line-height: 1.5;
+  gap: 10px;
+  display: flex;
+
+  .ds-card-name {
+    font-size: 0.88em;
+
+    .d-icon {
+      color: var(--tertiary);
+      margin-right: 2px;
+      vertical-align: middle;
+    }
+
+    a {
+      font-weight: 600;
+      color: var(--primary);
+      text-decoration: none;
+
+      &:hover {
+        color: var(--tertiary);
+      }
+    }
+  }
+
+  .ds-card-size {
+    color: var(--tertiary);
+    font-weight: 600;
+  }
+
+  .ds-card-status {
+    display: block;
+    font-size: 0.82em;
+    font-weight: 600;
+    margin-top: 1px;
+
+    .d-icon {
+      margin-right: 2px;
+      vertical-align: middle;
+    }
+
+    &.growing {
+      color: var(--success);
+    }
+
+    &.shrinking {
+      color: var(--danger);
+    }
+  }
+}
+
+// ─── User profile page widget ──────────────────────────────────────────────────
+.discourse-size-profile-widget {
+  line-height: 1.5;
+  display: flex;
+  gap: 10px;
+
+  .ds-profile-name {
+    font-size: 0.9em;
+    font-weight: 600;
+
+    .d-icon {
+      color: var(--tertiary);
+      margin-right: 3px;
+      vertical-align: middle;
+    }
+
+    a {
+      color: var(--primary);
+      text-decoration: none;
+
+      &:hover {
+        color: var(--tertiary);
+      }
+    }
+  }
+
+  .ds-profile-size {
+    font-size: 0.88em;
+    color: var(--tertiary);
+    font-weight: 600;
+    margin-top: 1px;
+  }
+
+  .ds-profile-status {
+    font-size: 0.82em;
+    font-weight: 600;
+    margin-top: 1px;
+
+    .d-icon {
+      margin-right: 2px;
+      vertical-align: middle;
+    }
+
+    &.growing {
+      color: var(--success);
+    }
+
+    &.shrinking {
+      color: var(--danger);
+    }
+  }
+}
+
 .user-characters-header {
   display: flex;
   justify-content: space-between;
@@ -33,7 +138,7 @@
   .user-points {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 5px;
     background: var(--tertiary-low);
     padding: 8px 15px;
     border-radius: 20px;
@@ -68,6 +173,7 @@
   background: var(--secondary);
   border: 1px solid var(--primary-low);
   border-radius: 16px;
+  gap: 10px;
   padding: 0;
   box-shadow: 0 4px 20px rgb(0, 0, 0, 0.08);
   transition:
@@ -105,7 +211,7 @@
     display: grid;
     grid-template-columns: 120px 1fr;
     gap: 20px;
-    padding: 20px;
+    padding: 20px 20px 0 20px;
     background: linear-gradient(
       to bottom,
       var(--primary-very-low) 0%,
@@ -285,7 +391,7 @@
       margin: 12px 0;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 5px;
     }
 
     .character-size {
@@ -371,14 +477,13 @@
   }
 
   .character-description {
-    padding: 0 20px 20px 20px;
+    padding: 0 20px 0 20px;
     background: var(--secondary);
   }
 
   .character-actions {
-    padding: 20px;
+    padding: 0 20px 20px 20px;
     background: var(--secondary);
-    border-top: 1px solid var(--primary-low);
 
     .growth-panel {
       display: flex;
@@ -880,6 +985,37 @@
     margin-top: 5px;
     font-weight: bold;
     display: block;
+  }
+
+  .modal-delete-btn {
+    margin-left: auto;
+  }
+
+  .main-character-section {
+    .main-character-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.9em;
+      margin-top: 8px;
+
+      &.is-main {
+        background: color-mix(in srgb, var(--tertiary) 12%, transparent);
+        border: 1px solid var(--tertiary);
+        color: var(--tertiary);
+      }
+
+      .d-icon {
+        width: 1em;
+      }
+    }
+
+    .set-main-btn {
+      margin-top: 8px;
+    }
   }
 
   .picture-upload-wrapper {

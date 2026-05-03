@@ -15,6 +15,7 @@ export default class DiscourseSizeEditCharacter extends Component {
   @tracked isSaving = false;
   @tracked infoPostId = null;
   @tracked sizeError = null;
+  @tracked isMain = false;
 
   @service currentUser;
   @service siteSettings;
@@ -29,6 +30,7 @@ export default class DiscourseSizeEditCharacter extends Component {
     this.measurementSystem = char.measurement_system || "imperial";
     this.allowGrowth = char.allow_growth !== false;
     this.allowShrink = char.allow_shrink !== false;
+    this.isMain = char.is_main || false;
   }
 
   get min() {
@@ -196,6 +198,44 @@ export default class DiscourseSizeEditCharacter extends Component {
     if (e.key === "Enter") {
       e.preventDefault();
       return false;
+    }
+  }
+
+  get canSetMain() {
+    return (
+      !this.args.model?.isNew && this.args.model?.character?.id && !this.isMain
+    );
+  }
+
+  @action
+  async setMain() {
+    try {
+      await ajax(
+        `/size/characters/${this.args.model?.character?.id}/set_main`,
+        { type: "POST" }
+      );
+      this.isMain = true;
+      this.args.model?.onSetMain?.();
+    } catch (e) {
+      alert("Error setting main character");
+    }
+  }
+
+  @action
+  async deleteCharacter() {
+    const confirmed = confirm(
+      "Are you sure you want to delete this character? This cannot be undone, and you will NOT get any points back."
+    );
+    if (!confirmed) return;
+
+    try {
+      await ajax(`/size/characters/${this.args.model?.character?.id}`, {
+        type: "DELETE",
+      });
+      this.args.model?.onDelete?.();
+      this.args.closeModal?.();
+    } catch (e) {
+      alert("Error deleting character");
     }
   }
 }

@@ -1,18 +1,24 @@
-<DModal 
-  @title="Admin Edit Points" 
+<DModal
+  @title="Edit Size Coins"
   @closeModal={{@closeModal}}
   class="discourse-size-edit-character-modal"
 >
   <:body>
     <div class="control-group">
-      <label>Current Points</label>
-      <span class="instructions">Set the exact amount of points this user has.</span>
+      <label>Current Size Coins</label>
+      <span class="instructions">Set the exact amount of size coins this user
+        has.</span>
       <Input @type="number" @value={{this.points}} class="points-input" />
     </div>
   </:body>
 
   <:footer>
-    <DButton @action={{this.save}} @label="discourse_size.save" class="btn-primary" @disabled={{this.isSaving}} />
+    <DButton
+      @action={{this.save}}
+      @label="discourse_size.save"
+      class="btn-primary"
+      @disabled={{this.isSaving}}
+    />
     <DButton @action={{@closeModal}} @label="cancel" class="btn-flat" />
   </:footer>
 </DModal>
