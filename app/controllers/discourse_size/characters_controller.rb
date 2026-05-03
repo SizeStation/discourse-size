@@ -87,8 +87,8 @@ module DiscourseSize
       DiscourseSizeAction.create!(
         character_id: character.id,
         user_id: current_user.id,
-        action_type: 'grow',
-        size_change: amount_cm
+        action_type: "grow",
+        size_change: amount_cm,
       )
 
       render json: { character: character_serializer(character), points: DiscourseSize::PointsManager.get_points(current_user) }
@@ -120,8 +120,8 @@ module DiscourseSize
       DiscourseSizeAction.create!(
         character_id: character.id,
         user_id: current_user.id,
-        action_type: 'shrink',
-        size_change: -amount_cm
+        action_type: "shrink",
+        size_change: amount_cm,
       )
 
       render json: { character: character_serializer(character), points: DiscourseSize::PointsManager.get_points(current_user) }
@@ -143,8 +143,8 @@ module DiscourseSize
       DiscourseSizeAction.create!(
         character_id: character.id,
         user_id: current_user.id,
-        action_type: 'reset',
-        size_change: 0
+        action_type: "reset",
+        size_change: 0,
       )
 
       render json: { character: character_serializer(character), points: DiscourseSize::PointsManager.get_points(current_user) }

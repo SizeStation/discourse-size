@@ -2,6 +2,8 @@
 
 module DiscourseSize
   class AdminController < ::ApplicationController
+    requires_plugin DiscourseSize::PLUGIN_NAME
+
     before_action :ensure_admin
 
     def update_character
@@ -9,7 +11,7 @@ module DiscourseSize
       
       character.update!(
         base_size: params[:base_size],
-        growth_rate_override: params[:growth_rate_override]
+        growth_rate_override: params[:growth_rate_override],
       )
       
       # If admin explicitly changed growth rate, we sync the offset to ensure it's not "jumpy"

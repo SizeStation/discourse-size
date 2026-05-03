@@ -6,6 +6,7 @@ module DiscourseSize
 
     def index
       direction = params[:sort] == 'smallest' ? 'ASC' : 'DESC'
+      direction = params[:sort] == "smallest" ? "ASC" : "DESC"
       limit = params[:limit] || 50
       
       # For sorting, we can use the calculated current_size, but in SQL we don't have it directly.
@@ -24,6 +25,7 @@ module DiscourseSize
 
     def character_serializer(c)
       c.sync_offset!
+
       {
         id: c.id,
         user_id: c.user_id,
@@ -34,8 +36,8 @@ module DiscourseSize
         user: {
           id: c.user.id,
           username: c.user.username,
-          avatar_template: c.user.avatar_template
-        }
+          avatar_template: c.user.avatar_template,
+        },
       }
     end
   end
