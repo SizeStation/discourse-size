@@ -19,12 +19,12 @@ class DiscourseSizeCharacter < ActiveRecord::Base
   def update_size_target(amount)
     sync_offset!
     new_target = self.target_offset + amount
-    
+
     # Floor total size at a nanoscopic value (1e-18 cm) to prevent true zero/negative
     if (self.base_size + new_target) < 1e-18
       new_target = 1e-18 - self.base_size
     end
-    
+
     self.target_offset = new_target
     save!
   end
@@ -56,7 +56,7 @@ class DiscourseSizeCharacter < ActiveRecord::Base
 
     new_offset
   end
-  
+
   def sync_offset!
     new_offset = current_calculated_offset
     if new_offset != current_offset

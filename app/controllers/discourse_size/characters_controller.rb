@@ -8,10 +8,10 @@ module DiscourseSize
     def index
       user_id = params[:user_id]
       characters = DiscourseSizeCharacter.where(user_id: user_id).order(is_main: :desc, created_at: :asc)
-      
+
       # sync offsets before rendering
       characters.each(&:sync_offset!)
-      
+
       render json: { characters: characters.map { |c| character_serializer(c) } }
     end
 
@@ -20,7 +20,7 @@ module DiscourseSize
         user_id: current_user.id,
         offset_updated_at: Time.now
       ))
-      
+
       if character.save
         render json: { character: character_serializer(character) }
       else
@@ -43,7 +43,7 @@ module DiscourseSize
     def destroy
       character = DiscourseSizeCharacter.find(params[:id])
       raise Discourse::InvalidAccess unless character.user_id == current_user.id || current_user.admin?
-      
+
       character.destroy
       render json: success_json
     end
@@ -51,19 +51,19 @@ module DiscourseSize
     def set_main
       character = DiscourseSizeCharacter.find(params[:id])
       raise Discourse::InvalidAccess unless character.user_id == current_user.id
-      
+
       DiscourseSizeCharacter.where(user_id: current_user.id).update_all(is_main: false)
       character.update!(is_main: true)
-      
+
       render json: success_json
     end
 
     def grow
       character = DiscourseSizeCharacter.find(params[:id])
       points_cost = params[:amount].to_f
-      
+
       raise Discourse::InvalidAccess unless character.allow_growth || character.user_id == current_user.id || current_user.admin?
-      
+
       points = DiscourseSize::PointsManager.get_points(current_user)
       if points < points_cost
         return render json: failed_json.merge(error: "Not enough points"), status: :unprocessable_content
@@ -71,24 +71,25 @@ module DiscourseSize
 
       # Compounding growth with milder logarithmic dampening
       rate = SiteSetting.discourse_size_percentage_per_point / 100.0
-      
+
       # Dampen the points slightly so they don't spiral, but keep it feeling powerful
       # Formula: points / (1.0 + log10(points/10 + 1) * 0.25)
       log_factor = Math.log10((points_cost / 10.0) + 1.0)
       effective_points = points_cost / (1.0 + log_factor * 0.25)
-      
+
       current_target_total = character.base_size + character.target_offset
       new_target_total = current_target_total * ((1.0 + rate)**effective_points)
       amount_cm = new_target_total - current_target_total
 
       DiscourseSize::PointsManager.remove_points(current_user, points_cost)
       character.update_size_target(amount_cm)
-      
+
       DiscourseSizeAction.create!(
         character_id: character.id,
         user_id: current_user.id,
         action_type: "grow",
         size_change: amount_cm,
+        points_spent: points_cost,
       )
 
       render json: { character: character_serializer(character), points: DiscourseSize::PointsManager.get_points(current_user) }
@@ -97,9 +98,9 @@ module DiscourseSize
     def shrink
       character = DiscourseSizeCharacter.find(params[:id])
       points_cost = params[:amount].to_f.abs
-      
+
       raise Discourse::InvalidAccess unless character.allow_shrink || character.user_id == current_user.id || current_user.admin?
-      
+
       points = DiscourseSize::PointsManager.get_points(current_user)
       if points < points_cost
         return render json: failed_json.merge(error: "Not enough points"), status: :unprocessable_content
@@ -109,19 +110,20 @@ module DiscourseSize
       rate = SiteSetting.discourse_size_percentage_per_point / 100.0
       log_factor = Math.log10((points_cost / 10.0) + 1.0)
       effective_points = points_cost / (1.0 + log_factor * 0.25)
-      
+
       current_target_total = character.base_size + character.target_offset
       new_target_total = current_target_total * ((1.0 - rate)**effective_points)
       amount_cm = new_target_total - current_target_total
 
       DiscourseSize::PointsManager.remove_points(current_user, points_cost)
       character.update_size_target(amount_cm)
-      
+
       DiscourseSizeAction.create!(
         character_id: character.id,
         user_id: current_user.id,
         action_type: "shrink",
         size_change: amount_cm,
+        points_spent: points_cost,
       )
 
       render json: { character: character_serializer(character), points: DiscourseSize::PointsManager.get_points(current_user) }
@@ -130,16 +132,16 @@ module DiscourseSize
     def reset_size
       character = DiscourseSizeCharacter.find(params[:id])
       raise Discourse::InvalidAccess unless character.user_id == current_user.id || current_user.admin?
-      
+
       # "regain 50% of their spent points for doing so"
       # We calculate spent points by summing actions by this user on this character? Or total offset?
       # Wait, if they just reset, what do they regain? Total spent points by this user?
       # Let's say we give them 50% of the absolute target_offset.
       points_to_refund = (character.target_offset.abs / 2).floor
-      
+
       character.update!(target_offset: 0, current_offset: 0, offset_updated_at: Time.now)
       DiscourseSize::PointsManager.add_points(current_user, points_to_refund)
-      
+
       DiscourseSizeAction.create!(
         character_id: character.id,
         user_id: current_user.id,
@@ -167,19 +169,19 @@ module DiscourseSize
 
     def character_params
       params.permit(
-        :name, 
-        :picture, 
-        :info_post, 
-        :base_size, 
-        :allow_growth, 
-        :allow_shrink, 
+        :name,
+        :picture,
+        :info_post,
+        :base_size,
+        :allow_growth,
+        :allow_shrink,
         :measurement_system
       )
     end
 
     def character_serializer(c)
       c.sync_offset!
-      
+
       # Calculate rank
       biggest_rank = DiscourseSizeCharacter.where("(base_size + current_offset) > ?", c.base_size + c.current_offset).count + 1
       tiniest_rank = DiscourseSizeCharacter.where("(base_size + current_offset) < ?", c.base_size + c.current_offset).count + 1
@@ -210,6 +212,8 @@ module DiscourseSize
             id: a.id,
             action_type: a.action_type,
             size_change: a.size_change,
+            points_spent:
+              DiscourseSizeAction.column_names.include?("points_spent") ? a.points_spent.to_f : 0.0,
             created_at: a.created_at,
             user: {
               id: a.user.id,

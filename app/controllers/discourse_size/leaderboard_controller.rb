@@ -5,19 +5,19 @@ module DiscourseSize
     requires_plugin DiscourseSize::PLUGIN_NAME
 
     def index
-      direction = params[:sort] == 'smallest' ? 'ASC' : 'DESC'
+      direction = params[:sort] == "smallest" ? "ASC" : "DESC"
       direction = params[:sort] == "smallest" ? "ASC" : "DESC"
       limit = params[:limit] || 50
-      
+
       # For sorting, we can use the calculated current_size, but in SQL we don't have it directly.
       # Because current_size = base_size + current_calculated_offset.
       # As a proxy, base_size + target_offset is exactly what they are moving towards.
       # To make it accurate, we could just sort by (base_size + current_offset)
       # But current_offset is updated lazily. We can either do a background job to sync them, or just use what we have in DB.
-      
+
       # We'll use (base_size + current_offset) as sorting.
       characters = DiscourseSizeCharacter.includes(:user).order(Arel.sql("(base_size + current_offset) #{direction}")).limit(limit)
-      
+
       render json: { characters: characters.map { |c| character_serializer(c) } }
     end
 

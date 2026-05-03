@@ -12,6 +12,7 @@ en:
       no_size_history: "No size history found for this character."
       show_size_history: "Show Size History"
       recent_activity: "Recent Activity"
+      top_contributors: "Top Contributors"
       create_character: "Create Character"
       grow: "Grow"
       shrink: "Shrink"

@@ -28,7 +28,7 @@ class CreateDiscourseSizeTables < ActiveRecord::Migration[7.0]
       t.integer :user_id, null: false
       t.string :action_type, null: false
       t.float :size_change, null: false
-      
+
       t.timestamps
     end
 

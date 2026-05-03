@@ -55,7 +55,7 @@ export default class DiscourseSizeGrowthGraph extends Component {
     const paddingX = 80;
     const paddingY = 60;
 
-    const minSize = Math.min(...history.map((h) => h.size));
+    const minSize = Math.max(0, Math.min(...history.map((h) => h.size)));
     const maxSize = Math.max(...history.map((h) => h.size));
     const sizeRange = maxSize - minSize || 1;
 
@@ -126,6 +126,39 @@ export default class DiscourseSizeGrowthGraph extends Component {
       this.graphData?.maxSize || 0,
       this.args.model?.character?.measurement_system
     );
+  }
+
+  get topContributors() {
+    const actions = this.args.model?.character?.actions || [];
+    const byUser = {};
+
+    for (const a of actions) {
+      if (a.action_type === "reset") continue;
+      const uid = a.user.id;
+      if (!byUser[uid]) {
+        byUser[uid] = {
+          user: a.user,
+          totalPoints: 0,
+          totalSizeCm: 0,
+        };
+      }
+      byUser[uid].totalPoints += a.points_spent || 0;
+      // absolute cm contributed (grow = positive, shrink = negative)
+      byUser[uid].totalSizeCm += a.size_change || 0;
+    }
+
+    return Object.values(byUser)
+      .sort((a, b) => b.totalPoints - a.totalPoints)
+      .slice(0, 10)
+      .map((entry) => ({
+        ...entry,
+        formattedSize: formatSize(
+          Math.abs(entry.totalSizeCm),
+          this.args.model?.character?.measurement_system
+        ),
+        totalPoints: Math.round(entry.totalPoints),
+        netEffect: entry.totalSizeCm >= 0 ? "grow" : "shrink",
+      }));
   }
 
   @action
