@@ -14,6 +14,13 @@
           class="btn-default"
         />
       {{/if}}
+      {{#if this.currentUser.admin}}
+        <DButton
+          @action={{this.adminEditPoints}}
+          @label="discourse_size.admin_points"
+          class="btn-default"
+        />
+      {{/if}}
       <DButton
         @action={{this.createNewCharacter}}
         @icon="plus"
@@ -25,14 +32,22 @@
 {{else}}
   <div class="user-characters-header">
     <h3>{{this.user.username}}'s Characters</h3>
-    {{#if this.siteSettings.discourse_size_help_url}}
-      <DButton
-        @href={{this.siteSettings.discourse_size_help_url}}
-        @icon="question-circle"
-        @label="discourse_size.help"
-        class="btn-default"
-      />
-    {{/if}}
+    <div class="header-buttons">
+      {{#if this.siteSettings.discourse_size_help_url}}
+        <DButton
+          @href={{this.siteSettings.discourse_size_help_url}}
+          @label="discourse_size.help"
+          class="btn-default"
+        />
+      {{/if}}
+      {{#if this.currentUser.admin}}
+        <DButton
+          @action={{this.adminEditPoints}}
+          @label="discourse_size.admin_points"
+          class="btn-default"
+        />
+      {{/if}}
+    </div>
   </div>
 {{/if}}
 

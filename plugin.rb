@@ -26,7 +26,10 @@ after_initialize do
   # Points for inviting
   on(:user_invited) do |invitee|
     if SiteSetting.discourse_size_enabled && invitee.invited_by
-      DiscourseSize::PointsManager.add_points(invitee.invited_by, SiteSetting.discourse_size_points_per_invite)
+      DiscourseSize::PointsManager.add_points(
+        invitee.invited_by,
+        SiteSetting.discourse_size_points_per_invite,
+      )
     end
   end
 
@@ -42,14 +45,26 @@ after_initialize do
 
   on(:invite_redeemed) do |invite|
     if SiteSetting.discourse_size_enabled
-      DiscourseSize::PointsManager.add_points(invite.user, SiteSetting.discourse_size_points_per_invited) if invite.user
+      if invite.user
+        DiscourseSize::PointsManager.add_points(
+          invite.user,
+          SiteSetting.discourse_size_points_per_invited,
+        )
+      end
     end
   end
 
   # Points for posting a reply / new thread
   on(:post_created) do |post, opts, user|
     if SiteSetting.discourse_size_enabled && user
-      points = post.is_first_post? ? SiteSetting.discourse_size_points_per_topic : SiteSetting.discourse_size_points_per_reply
+      points =
+        (
+          if post.is_first_post?
+            SiteSetting.discourse_size_points_per_topic
+          else
+            SiteSetting.discourse_size_points_per_reply
+          end
+        )
       DiscourseSize::PointsManager.add_points(user, points)
     end
   end
@@ -62,7 +77,10 @@ after_initialize do
       if last_login_date != today
         user.custom_fields["discourse_size_last_daily_login_date"] = today
         user.save_custom_fields(true)
-        DiscourseSize::PointsManager.add_points(user, SiteSetting.discourse_size_points_per_daily_login)
+        DiscourseSize::PointsManager.add_points(
+          user,
+          SiteSetting.discourse_size_points_per_daily_login,
+        )
       end
     end
   end
@@ -74,11 +92,11 @@ after_initialize do
       # Maybe just add 1 point per post, but limit it? "amounts should be configurable"
       # Adding 1 point every single read could hit the DB hard.
       # But we'll do it as requested.
-      if rand < 0.1 # 10% chance to give 10x points to reduce DB writes, actually let's just do it cleanly:
-        # Actually user.save_custom_fields runs a db query every read. This is a bad idea in production.
-        # But for the plugin requirements we'll implement it straight:
-        # We can just increment standard points per read.
-        DiscourseSize::PointsManager.add_points(user, SiteSetting.discourse_size_points_per_read)
+      if rand < 0.1 # 10% chance to give 10x points to reduce DB writes
+        DiscourseSize::PointsManager.add_points(
+          user,
+          SiteSetting.discourse_size_points_per_read,
+        )
       end
     end
   end
@@ -93,7 +111,7 @@ after_initialize do
         picture: character.picture,
         info_post: character.info_post,
         current_size: character.current_size,
-        measurement_system: character.measurement_system
+        measurement_system: character.measurement_system,
       }
     end
   end
@@ -108,6 +126,9 @@ after_initialize do
 
   Discourse::Application.routes.append do
     mount ::DiscourseSize::Engine, at: "/size"
-    get "u/:username/characters" => "users#show", constraints: { username: RouteFormat.username }
+    get "u/:username/characters" => "users#show",
+        constraints: {
+          username: RouteFormat.username,
+        }
   end
 end

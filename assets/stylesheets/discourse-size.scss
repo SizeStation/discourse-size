@@ -3,11 +3,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
-  padding: 20px;
-  background: var(--primary-very-low);
-  border-radius: 16px;
-  border: 1px solid var(--primary-low);
+  margin: 20px 0;
 
   .header-buttons {
     display: flex;
@@ -840,17 +836,17 @@
   a {
     display: flex;
     align-items: center;
-    color: var(--primary-medium);
+    color: var(--primary);
     padding: 0.5em 0.7em;
     gap: 6px;
 
     &:hover {
-      color: var(--primary);
+      color: var(--tertiary);
     }
 
     &.active {
-      color: var(--primary);
-      border-bottom: 3px solid var(--tertiary);
+      color: var(--tertiary);
+      border-bottom: 1px solid var(--tertiary);
     }
 
     .d-icon {

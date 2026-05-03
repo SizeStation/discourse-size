@@ -214,10 +214,10 @@ module DiscourseSize
             user: {
               id: a.user.id,
               username: a.user.username,
-              avatar_template: a.user.avatar_template
-            }
+              avatar_template: a.user.avatar_template,
+            },
           }
-        end
+        end,
       }
     end
   end
