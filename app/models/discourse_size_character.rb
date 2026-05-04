@@ -5,12 +5,13 @@ class DiscourseSizeCharacter < ActiveRecord::Base
   before_save :ensure_single_main, if: :is_main?
 
   validates :name, presence: true
+  validates :base_size, presence: true
   validates :base_size,
-            presence: true,
             numericality: {
               greater_than_or_equal_to: -> { SiteSetting.discourse_size_min_base_size },
               less_than_or_equal_to: -> { SiteSetting.discourse_size_max_base_size },
-            }
+            },
+            if: :game?
   validates :user_id, presence: true
 
   has_many :discourse_size_actions, foreign_key: "character_id", dependent: :destroy

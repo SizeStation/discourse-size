@@ -67,12 +67,24 @@ export default class DiscourseSizeEditCharacter extends Component {
   _checkSize(val) {
     if (isNaN(val)) {
       this.sizeError = "Please enter a valid number.";
-    } else if (val < this.min) {
-      this.sizeError = `Minimum allowed size is ${this.min}cm.`;
-    } else if (val > this.max) {
-      this.sizeError = `Maximum allowed size is ${this.max}cm.`;
+      return;
+    }
+
+    if (this.characterType === "game") {
+      if (val < this.min) {
+        this.sizeError = `Minimum allowed size is ${this.min}cm.`;
+      } else if (val > this.max) {
+        this.sizeError = `Maximum allowed size is ${this.max}cm.`;
+      } else {
+        this.sizeError = null;
+      }
     } else {
-      this.sizeError = null;
+      // Freeform: allow any positive number
+      if (val <= 0) {
+        this.sizeError = "Size must be greater than 0.";
+      } else {
+        this.sizeError = null;
+      }
     }
   }
 
@@ -92,15 +104,26 @@ export default class DiscourseSizeEditCharacter extends Component {
   onBaseSizeBlur(event) {
     let val = parseFloat(event.target.value);
 
-    if (isNaN(val) || val < this.min) {
-      this.baseSize = this.min;
-      this.sizeError = `Clamped to minimum: ${this.min}cm.`;
-    } else if (val > this.max) {
-      this.baseSize = this.max;
-      this.sizeError = `Clamped to maximum: ${this.max}cm.`;
+    if (this.characterType === "game") {
+      if (isNaN(val) || val < this.min) {
+        this.baseSize = this.min;
+        this.sizeError = `Clamped to minimum: ${this.min}cm.`;
+      } else if (val > this.max) {
+        this.baseSize = this.max;
+        this.sizeError = `Clamped to maximum: ${this.max}cm.`;
+      } else {
+        this.baseSize = val;
+        this.sizeError = null;
+      }
     } else {
-      this.baseSize = val;
-      this.sizeError = null;
+      // Freeform: minimal clamping (just NaN or <= 0)
+      if (isNaN(val) || val <= 0) {
+        this.baseSize = 1.0;
+        this.sizeError = "Size must be greater than 0.";
+      } else {
+        this.baseSize = val;
+        this.sizeError = null;
+      }
     }
   }
 
@@ -137,10 +160,16 @@ export default class DiscourseSizeEditCharacter extends Component {
   async save() {
     // Final clamp before submitting
     const val = parseFloat(this.baseSize);
-    if (isNaN(val) || val < this.min) {
-      this.baseSize = this.min;
-    } else if (val > this.max) {
-      this.baseSize = this.max;
+    if (this.characterType === "game") {
+      if (isNaN(val) || val < this.min) {
+        this.baseSize = this.min;
+      } else if (val > this.max) {
+        this.baseSize = this.max;
+      }
+    } else {
+      if (isNaN(val) || val <= 0) {
+        this.baseSize = 1.0;
+      }
     }
     this.sizeError = null;
 

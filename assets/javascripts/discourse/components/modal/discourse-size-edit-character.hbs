@@ -135,8 +135,8 @@
           type="number"
           value={{this.baseSize}}
           step="0.1"
-          min={{this.siteSettings.discourse_size_min_base_size}}
-          max={{this.siteSettings.discourse_size_max_base_size}}
+          min={{if (eq this.characterType "game") this.siteSettings.discourse_size_min_base_size "0.1"}}
+          max={{if (eq this.characterType "game") this.siteSettings.discourse_size_max_base_size}}
           class="base-size-input"
           {{on "input" this.onBaseSizeInput}}
           {{on "blur" this.onBaseSizeBlur}}
