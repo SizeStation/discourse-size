@@ -89,16 +89,10 @@ module DiscourseSize
         )
       end
 
-      # Compounding growth with milder logarithmic dampening
+      # Compounding growth
       rate = SiteSetting.discourse_size_percentage_per_point / 100.0
-
-      # Dampen the points slightly so they don't spiral, but keep it feeling powerful
-      # Formula: points / (1.0 + log10(points/10 + 1) * 0.25)
-      log_factor = Math.log10((points_cost / 10.0) + 1.0)
-      effective_points = points_cost / (1.0 + log_factor * 0.25)
-
       current_target_total = character.base_size + character.target_offset
-      new_target_total = current_target_total * ((1.0 + rate)**effective_points)
+      new_target_total = current_target_total * ((1.0 + rate)**points_cost)
       amount_cm = new_target_total - current_target_total
 
       DiscourseSize::PointsManager.remove_points(current_user, points_cost)
@@ -133,13 +127,10 @@ module DiscourseSize
         )
       end
 
-      # Compounding shrink with milder logarithmic dampening
+      # Compounding shrink
       rate = SiteSetting.discourse_size_percentage_per_point / 100.0
-      log_factor = Math.log10((points_cost / 10.0) + 1.0)
-      effective_points = points_cost / (1.0 + log_factor * 0.25)
-
       current_target_total = character.base_size + character.target_offset
-      new_target_total = current_target_total * ((1.0 - rate)**effective_points)
+      new_target_total = current_target_total * ((1.0 - rate)**points_cost)
       amount_cm = new_target_total - current_target_total
 
       DiscourseSize::PointsManager.remove_points(current_user, points_cost)
@@ -179,6 +170,39 @@ module DiscourseSize
         user_id: current_user.id,
         action_type: "reset",
         size_change: 0,
+      )
+
+      render json: {
+               character: character_serializer(character),
+               points: DiscourseSize::PointsManager.get_points(current_user),
+             }
+    end
+
+    def boost_speed
+      character = DiscourseSizeCharacter.find(params[:id])
+      points_cost = params[:amount].to_f.abs
+
+      points = DiscourseSize::PointsManager.get_points(current_user)
+      if points < points_cost
+        return(
+          render json: failed_json.merge(error: "Not enough points"), status: :unprocessable_content
+        )
+      end
+
+      speed_bonus = points_cost * (SiteSetting.discourse_size_speed_percentage_per_point || 0.1)
+
+      character.sync_offset!
+      character.growth_rate_bought += speed_bonus
+      character.save!
+
+      DiscourseSize::PointsManager.remove_points(current_user, points_cost)
+
+      DiscourseSizeAction.create!(
+        character_id: character.id,
+        user_id: current_user.id,
+        action_type: "boost_speed",
+        size_change: speed_bonus,
+        points_spent: points_cost,
       )
 
       render json: {
@@ -255,6 +279,7 @@ module DiscourseSize
         allow_shrink: c.allow_shrink,
         measurement_system: c.measurement_system,
         is_main: c.is_main,
+        growth_rate_bought: c.growth_rate_bought,
         is_biggest: multiple_characters? && c.id == biggest_character_id,
         is_tiniest: multiple_characters? && c.id == tiniest_character_id,
         biggest_rank: biggest_rank,

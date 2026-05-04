@@ -111,6 +111,25 @@
             </DButton>
           </div>
         </div>
+        <div class="points-header boost-header">
+          <span class="label">Spend size coins to increase the growth/shrink
+            rate of this character</span>
+        </div>
+        <div class="input-row">
+          <input
+            type="number"
+            min="1"
+            value={{this.boostAmountInput}}
+            {{on "input" this.setBoostAmount}}
+            class="amount-input"
+          />
+          <div class="buttons">
+            <DButton @action={{this.boostSpeed}} class="btn-default">
+              Add
+              {{this.projectedSpeedBoost}}% / day
+            </DButton>
+          </div>
+        </div>
       </div>
     {{/if}}
   </div>
@@ -136,24 +155,32 @@
               ago</span>
             &mdash;
             <a href="/u/{{action.user.username}}">{{action.user.username}}</a>
-            made
-            {{@character.name}}
             {{#if (eq action.action_type "grow")}}
-              grew them by
+              grew
+              {{@character.name}}
+              by
               {{format-size
                 (abs action.size_change)
                 @character.measurement_system
               }}
             {{else if (eq action.action_type "shrink")}}
-              shrunk them by
+              shrunk
+              {{@character.name}}
+              by
               {{format-size
                 (abs action.size_change)
                 @character.measurement_system
               }}
             {{else if (eq action.action_type "reset")}}
-              reset their size
+              reset
+              {{@character.name}}'s size
+            {{else if (eq action.action_type "boost_speed")}}
+              increased
+              {{@character.name}}'s growth speed by
+              {{action.size_change}}%!
             {{else}}
               {{action.action_type}}
+              {{@character.name}}
             {{/if}}
           </li>
         {{/each}}

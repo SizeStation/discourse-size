@@ -9,13 +9,18 @@ module DiscourseSize
     def update_character
       character = DiscourseSizeCharacter.find(params[:id])
 
-      character.update!(
-        base_size: params[:base_size],
-        growth_rate_override: params[:growth_rate_override],
-      )
+      character.base_size = params[:base_size] if params[:base_size]
+      character.growth_rate_override = params[:growth_rate_override]
 
-      # If admin explicitly changed growth rate, we sync the offset to ensure it's not "jumpy"
-      character.sync_offset!
+      if params[:current_size]
+        new_size = params[:current_size].to_f
+        new_offset = new_size - character.base_size
+        character.current_offset = new_offset
+        character.target_offset = new_offset
+        character.offset_updated_at = Time.now
+      end
+
+      character.save!
 
       render json: success_json
     end

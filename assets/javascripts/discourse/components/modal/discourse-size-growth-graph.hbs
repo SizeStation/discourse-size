@@ -160,10 +160,16 @@
               </div>
               <div class="activity-details">
                 <span class="type">{{action.action_type}}</span>
-                <span class="amount">{{format-size
-                    (abs action.size_change)
-                    @model.character.measurement_system
-                  }}</span>
+                <span class="amount">
+                  {{#if (eq action.action_type "boost_speed")}}
+                    +{{action.size_change}}% / day
+                  {{else}}
+                    {{format-size
+                      (abs action.size_change)
+                      @model.character.measurement_system
+                    }}
+                  {{/if}}
+                </span>
                 {{#if action.points_spent}}
                   <span class="points-spent">({{action.points_spent}}
                     coins)</span>

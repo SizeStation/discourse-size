@@ -17,8 +17,9 @@
     </div>
 
     <div class="control-group">
-      <label>Growth Rate Override (cm/day)</label>
-      <span class="instructions">Max speed this character can grow. Leave blank for site default.</span>
+      <label>Growth Rate Override (%/day)</label>
+      <span class="instructions">Max speed this character can grow. Leave blank
+        for site default.</span>
       <Input @type="number" @value={{this.growthRateOverride}} step="0.1" />
     </div>
   </:body>
@@ -29,9 +30,6 @@
       @disabled={{this.isSaving}}
       class="btn-primary"
     />
-    <DButton
-      @action={{@closeModal}}
-      @label="cancel"
-    />
+    <DButton @action={{@closeModal}} @label="cancel" class="btn-default" />
   </:footer>
 </DModal>

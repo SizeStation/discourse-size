@@ -34,7 +34,9 @@ export default class DiscourseSizeGrowthGraph extends Component {
 
     // 2. Action Points
     this.oldestFirstActions.forEach((action) => {
-      cumulativeSize += parseFloat(action.size_change);
+      if (action.action_type === "grow" || action.action_type === "shrink") {
+        cumulativeSize += parseFloat(action.size_change);
+      }
       history.push({
         date: new Date(action.created_at),
         size: cumulativeSize,
@@ -133,7 +135,9 @@ export default class DiscourseSizeGrowthGraph extends Component {
     const byUser = {};
 
     for (const a of actions) {
-      if (a.action_type === "reset") continue;
+      if (a.action_type === "reset" || a.action_type === "boost_speed") {
+        continue;
+      }
       const uid = a.user.id;
       if (!byUser[uid]) {
         byUser[uid] = {

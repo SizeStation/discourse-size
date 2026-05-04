@@ -34,23 +34,26 @@ class DiscourseSizeCharacter < ActiveRecord::Base
     # If target_offset == current_offset, return current_offset
     return current_offset if target_offset == current_offset || offset_updated_at.nil?
 
-    rate_cm_per_day = growth_rate_override || SiteSetting.discourse_size_default_max_growth_rate
-    return target_offset if rate_cm_per_day <= 0
+    rate_percent_per_day =
+      (growth_rate_override || SiteSetting.discourse_size_default_max_growth_rate) +
+        growth_rate_bought
+    return target_offset if rate_percent_per_day <= 0
 
-    rate_cm_per_sec = rate_cm_per_day / 86400.0
-    seconds_elapsed = Time.now - offset_updated_at
+    days_elapsed = (Time.now - offset_updated_at) / 86400.0
+    current_size = base_size + current_offset
+    target_size = base_size + target_offset
 
-    max_change = rate_cm_per_sec * seconds_elapsed
+    multiplier = (1.0 + rate_percent_per_day / 100.0)**days_elapsed
 
     if target_offset > current_offset
-      new_offset = current_offset + max_change
-      new_offset = target_offset if new_offset > target_offset
+      new_size = current_size * multiplier
+      new_size = target_size if new_size > target_size
     else
-      new_offset = current_offset - max_change
-      new_offset = target_offset if new_offset < target_offset
+      new_size = current_size / multiplier
+      new_size = target_size if new_size < target_size
     end
 
-    new_offset
+    new_size - base_size
   end
 
   def sync_offset!

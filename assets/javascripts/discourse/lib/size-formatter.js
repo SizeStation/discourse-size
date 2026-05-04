@@ -549,8 +549,8 @@ function formatDuration(seconds) {
   return `${y} year${y !== 1 ? "s" : ""}`;
 }
 
-export function getGrowthComparison(character) {
-  if (!character) return null;
+export function getGrowthComparison(character, currentSize) {
+  if (!character || !currentSize) return null;
 
   const c = character;
   const isMoving = c.target_offset !== c.current_offset;
@@ -558,16 +558,20 @@ export function getGrowthComparison(character) {
 
   const isGrowing = c.target_offset > c.current_offset;
 
-  // Growth rate in cm/day
-  const rateCmPerDay =
-    c.growth_rate_override != null ? c.growth_rate_override : 1000; // fallback default
+  // Growth rate in percentage per day
+  const ratePercent =
+    (c.growth_rate_override != null ? c.growth_rate_override : 100) +
+    (parseFloat(c.growth_rate_bought) || 0);
+
+  // Instantaneous absolute growth rate in cm/day: Size * ln(1 + R/100)
+  const rateCmPerDay = currentSize * Math.log(1 + ratePercent / 100.0);
 
   // Find closest speed comparison (log scale)
   let best = SPEED_COMPARISONS[0];
   let minDiff = Infinity;
   for (const s of SPEED_COMPARISONS) {
     const diff = Math.abs(
-      Math.log10(rateCmPerDay + 1) - Math.log10(s.cmPerDay + 1)
+      Math.log10(rateCmPerDay + 1e-10) - Math.log10(s.cmPerDay + 1e-10)
     );
     if (diff < minDiff) {
       minDiff = diff;

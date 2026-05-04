@@ -32,30 +32,41 @@ export default class DiscourseSizeCharacterDetails extends Component {
       return c.current_size;
     }
 
-    const rateCmPerDay =
-      c.growth_rate_override ||
-      this.siteSettings.discourse_size_default_max_growth_rate;
-    if (rateCmPerDay <= 0) return c.base_size + c.target_offset;
+    const ratePercentPerDay =
+      (c.growth_rate_override ||
+        this.siteSettings.discourse_size_default_max_growth_rate) +
+      (parseFloat(c.growth_rate_bought) || 0);
+    if (ratePercentPerDay <= 0) return c.base_size + c.target_offset;
 
-    const rateCmPerSec = rateCmPerDay / 86400.0;
     const offsetDate = new Date(c.offset_updated_at);
-    const secondsElapsed =
-      (this._currentTime.getTime() - offsetDate.getTime()) / 1000;
+    const daysElapsed =
+      (this._currentTime.getTime() - offsetDate.getTime()) / 1000 / 86400.0;
 
-    if (secondsElapsed < 0) return c.current_size;
+    if (daysElapsed < 0) return c.current_size;
 
-    const maxChange = rateCmPerSec * secondsElapsed;
-    let newOffset;
+    const currentSize = c.base_size + c.current_offset;
+    const targetSize = c.base_size + c.target_offset;
+    const multiplier = Math.pow(1.0 + ratePercentPerDay / 100.0, daysElapsed);
 
+    let newSize;
     if (c.target_offset > c.current_offset) {
-      newOffset = c.current_offset + maxChange;
-      if (newOffset > c.target_offset) newOffset = c.target_offset;
+      newSize = currentSize * multiplier;
+      if (newSize > targetSize) newSize = targetSize;
     } else {
-      newOffset = c.current_offset - maxChange;
-      if (newOffset < c.target_offset) newOffset = c.target_offset;
+      newSize = currentSize / multiplier;
+      if (newSize < targetSize) newSize = targetSize;
     }
 
-    return c.base_size + newOffset;
+    return newSize;
+  }
+
+  get formattedGrowthRate() {
+    const c = this.args.character;
+    const ratePercent =
+      (c.growth_rate_override ||
+        this.siteSettings.discourse_size_default_max_growth_rate) +
+      (parseFloat(c.growth_rate_bought) || 0);
+    return `${ratePercent.toFixed(2)}% / day`;
   }
 
   get formattedSize() {

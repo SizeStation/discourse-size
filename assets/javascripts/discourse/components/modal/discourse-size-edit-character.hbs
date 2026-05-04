@@ -146,7 +146,11 @@
       @disabled={{or this.isSaving this.isInvalid}}
       class="btn-primary"
     />
-    <DButton @action={{@closeModal}} @label="discourse_size.cancel" />
+    <DButton
+      @action={{@closeModal}}
+      @label="discourse_size.cancel"
+      class="btn-default"
+    />
     {{#unless @model.isNew}}
       <DButton
         @action={{this.deleteCharacter}}

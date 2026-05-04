@@ -3,7 +3,7 @@ plugins:
     default: true
     client: true
   discourse_size_default_max_growth_rate:
-    default: 1000
+    default: 100
     client: true
     type: float
   discourse_size_min_base_size:
@@ -11,11 +11,11 @@ plugins:
     client: true
     type: float
   discourse_size_max_base_size:
-    default: 300.0
+    default: 300
     client: true
     type: float
   discourse_size_points_per_invite:
-    default: 50
+    default: 100
     type: integer
   discourse_size_points_per_invited:
     default: 100
@@ -24,10 +24,10 @@ plugins:
     default: 5
     type: integer
   discourse_size_points_per_topic:
-    default: 15
+    default: 10
     type: integer
   discourse_size_points_per_daily_login:
-    default: 20
+    default: 10
     type: integer
   discourse_size_points_per_read:
     default: 1
@@ -36,10 +36,10 @@ plugins:
     default: ""
     client: true
   discourse_size_percentage_per_point:
-    default: 0.1
+    default: 1
     client: true
     type: float
-  discourse_size_point_damping:
-    default: 0.8
+  discourse_size_speed_percentage_per_point:
+    default: 0.1
     client: true
     type: float

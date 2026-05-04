@@ -500,6 +500,12 @@
         align-items: center;
         font-size: 0.9em;
 
+        &.boost-header {
+          margin-top: 15px;
+          border-top: 1px solid var(--primary-low);
+          padding-top: 15px;
+        }
+
         .label {
           color: var(--primary-medium);
           font-weight: 600;
