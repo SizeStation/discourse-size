@@ -2,7 +2,11 @@ import Component from "@glimmer/component";
 import { action } from "@ember/object";
 import { tracked } from "@glimmer/tracking";
 import { inject as service } from "@ember/service";
-import { formatSize, getComparison, getGrowthComparison } from "../lib/size-formatter";
+import {
+  formatSize,
+  getComparison,
+  getGrowthComparison,
+} from "../lib/size-formatter";
 
 const MAX_SIZE = 1e120;
 
@@ -86,7 +90,7 @@ export default class DiscourseSizeCharacterDetails extends Component {
     });
     return getComparison(tempChar);
   }
-  
+
   get growthComparisonText() {
     return getGrowthComparison(this.args.character, this.calculatedSizeCm);
   }

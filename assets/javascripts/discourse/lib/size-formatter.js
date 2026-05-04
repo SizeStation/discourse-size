@@ -659,7 +659,7 @@ export function getComparison(character) {
       ratio >= 100
         ? Math.round(ratio).toLocaleString()
         : parseFloat(ratio.toPrecision(2));
-    comparisonText = `${formattedRatio} times the size of ${best.desc}`;
+    comparisonText = `${formattedRatio} times ${best.desc}`;
   }
 
   let result = rankText + comparisonText;

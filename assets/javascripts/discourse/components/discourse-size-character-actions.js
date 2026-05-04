@@ -16,7 +16,9 @@ export default class DiscourseSizeCharacterActions extends Component {
   constructor() {
     super(...arguments);
     if (this.args.character.character_type === "freeform") {
-      this.freeformSizeInput = (this.args.character.current_size || this.args.character.base_size).toString();
+      this.freeformSizeInput = (
+        this.args.character.current_size || this.args.character.base_size
+      ).toString();
     }
   }
 
@@ -61,10 +63,13 @@ export default class DiscourseSizeCharacterActions extends Component {
     if (isNaN(amount) || amount <= 0) return;
 
     try {
-      const result = await ajax(`/size/characters/${this.args.character.id}/grow`, {
-        type: "POST",
-        data: { amount },
-      });
+      const result = await ajax(
+        `/size/characters/${this.args.character.id}/grow`,
+        {
+          type: "POST",
+          data: { amount },
+        }
+      );
       this.args.onAction?.(result);
     } catch (e) {
       alert(e.jqXHR?.responseJSON?.error || "Error growing character");
@@ -77,10 +82,13 @@ export default class DiscourseSizeCharacterActions extends Component {
     if (isNaN(amount) || amount <= 0) return;
 
     try {
-      const result = await ajax(`/size/characters/${this.args.character.id}/shrink`, {
-        type: "POST",
-        data: { amount },
-      });
+      const result = await ajax(
+        `/size/characters/${this.args.character.id}/shrink`,
+        {
+          type: "POST",
+          data: { amount },
+        }
+      );
       this.args.onAction?.(result);
     } catch (e) {
       alert(e.jqXHR?.responseJSON?.error || "Error shrinking character");
@@ -93,10 +101,13 @@ export default class DiscourseSizeCharacterActions extends Component {
     if (isNaN(size)) return;
 
     try {
-      const result = await ajax(`/size/characters/${this.args.character.id}/set_size`, {
-        type: "POST",
-        data: { size },
-      });
+      const result = await ajax(
+        `/size/characters/${this.args.character.id}/set_size`,
+        {
+          type: "POST",
+          data: { size },
+        }
+      );
       this.args.onAction?.(result);
     } catch (e) {
       alert(e.jqXHR?.responseJSON?.error || "Error setting size");
@@ -109,10 +120,13 @@ export default class DiscourseSizeCharacterActions extends Component {
     if (isNaN(amount) || amount <= 0) return;
 
     try {
-      const result = await ajax(`/size/characters/${this.args.character.id}/boost_speed`, {
-        type: "POST",
-        data: { amount },
-      });
+      const result = await ajax(
+        `/size/characters/${this.args.character.id}/boost_speed`,
+        {
+          type: "POST",
+          data: { amount },
+        }
+      );
       this.args.onAction?.(result);
     } catch (e) {
       alert(e.jqXHR?.responseJSON?.error || "Error boosting speed");

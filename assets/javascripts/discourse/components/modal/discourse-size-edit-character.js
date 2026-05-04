@@ -197,7 +197,6 @@ export default class DiscourseSizeEditCharacter extends Component {
       : Math.floor(Math.abs(targetOffset) / 2);
   }
 
-
   @action
   onKeyDown(e) {
     if (e.key === "Enter") {
@@ -211,7 +210,6 @@ export default class DiscourseSizeEditCharacter extends Component {
       !this.args.model?.isNew && this.args.model?.character?.id && !this.isMain
     );
   }
-
 
   @action
   async deleteCharacter() {
