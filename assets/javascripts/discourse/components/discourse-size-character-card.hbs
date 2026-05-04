@@ -19,13 +19,15 @@
           {{#if @character.is_main}}
             <span class="badge main-badge">Main Character</span>
           {{/if}}
-          {{#if (eq @character.character_type "freeform")}}
-            <span class="badge freeform-badge">Freeform</span>
-          {{/if}}
         </h4>
 
         <div class="owner-actions">
-          {{#if (and this.currentUser.admin (not (eq @character.character_type "freeform")))}}
+          {{#if
+            (and
+              this.currentUser.admin
+              (not (eq @character.character_type "freeform"))
+            )
+          }}
             <DButton
               @action={{this.adminEdit}}
               @label="discourse_size.admin_edit"

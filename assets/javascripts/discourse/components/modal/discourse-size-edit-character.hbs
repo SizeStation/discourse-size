@@ -164,19 +164,21 @@
         </select>
       </div>
 
-      <div class="control-group checkbox-group">
-        <label>
-          <Input @type="checkbox" @checked={{this.allowGrowth}} />
-          Allow others to grow this character
-        </label>
-      </div>
+      {{#if (not (eq this.characterType "freeform"))}}
+        <div class="control-group checkbox-group">
+          <label>
+            <Input @type="checkbox" @checked={{this.allowGrowth}} />
+            Allow others to grow this character
+          </label>
+        </div>
 
-      <div class="control-group checkbox-group">
-        <label>
-          <Input @type="checkbox" @checked={{this.allowShrink}} />
-          Allow others to shrink this character
-        </label>
-      </div>
+        <div class="control-group checkbox-group">
+          <label>
+            <Input @type="checkbox" @checked={{this.allowShrink}} />
+            Allow others to shrink this character
+          </label>
+        </div>
+      {{/if}}
 
       <div class="control-group checkbox-group">
         <label>
