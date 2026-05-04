@@ -149,5 +149,10 @@ after_initialize do
   Discourse::Application.routes.append do
     mount ::DiscourseSize::Engine, at: "/size"
     get "u/:username/characters" => "users#show", :constraints => { username: RouteFormat.username }
+    post "size/characters/:id/grow" => "characters#grow"
+    post "size/characters/:id/shrink" => "characters#shrink"
+    post "size/characters/:id/reset" => "characters#reset_size"
+    post "size/characters/:id/boost_speed" => "characters#boost_speed"
+    post "size/characters/:id/set_size" => "characters#set_size"
   end
 end

@@ -11,6 +11,8 @@ import {
 import DiscourseSizeGrowthGraph from "./modal/discourse-size-growth-graph";
 import DiscourseSizeAdminEdit from "./modal/discourse-size-admin-edit";
 
+const MAX_SIZE = 1e120;
+
 export default class DiscourseSizeCharacterCard extends Component {
   @service currentUser;
   @service modal;
@@ -64,6 +66,7 @@ export default class DiscourseSizeCharacterCard extends Component {
     if (c.target_offset > c.current_offset) {
       newSize = currentSize * multiplier;
       if (newSize > targetSize) newSize = targetSize;
+      if (newSize > MAX_SIZE) newSize = MAX_SIZE;
     } else {
       newSize = currentSize / multiplier;
       if (newSize < targetSize) newSize = targetSize;
@@ -202,9 +205,21 @@ export default class DiscourseSizeCharacterCard extends Component {
     const seconds = daysRemaining * 86400;
 
     if (seconds < 60) return `${Math.ceil(seconds)}s`;
-    if (seconds < 3600) return `${Math.ceil(seconds / 60)}m`;
-    if (seconds < 86400) return `${Math.ceil(seconds / 3600)}h`;
+    if (seconds < 3600) {
+      const m = Math.floor(seconds / 60);
+      const s = Math.floor(seconds % 60);
+      return s > 0 ? `${m}m ${s}s` : `${m}m`;
+    }
+    if (seconds < 86400) {
+      const h = Math.floor(seconds / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      return m > 0 ? `${h}h ${m}m` : `${h}h`;
+    }
     return `${(seconds / 86400).toFixed(1)}d`;
+  }
+
+  get showSpeed() {
+    return this.args.character.character_type === "game";
   }
 
   get progressPercent() {
@@ -231,36 +246,13 @@ export default class DiscourseSizeCharacterCard extends Component {
   }
 
   get canShrink() {
-    return this.args.character.allow_shrink || this.args.isCurrentUser;
+    return this.args.character.allow_shrink || this.canEdit;
   }
 
-  @action
-  setAmount(event) {
-    this.amountInput = event.target.value;
-  }
-
-  @action
-  setBoostAmount(e) {
-    this.boostAmountInput = e.target.value;
-  }
-
-  @action
-  async boostSpeed() {
-    try {
-      const result = await ajax(
-        `/size/characters/${this.args.character.id}/boost_speed`,
-        {
-          type: "POST",
-          data: { amount: this.boostAmountInput },
-        }
-      );
-      if (result.points !== undefined) {
-        this.currentUser.set("discourse_size_points", result.points);
-      }
-      this.args.onAction();
-    } catch (e) {
-      alert(e.jqXHR?.responseJSON?.error || "Error boosting speed");
-    }
+  get canGrowOrShrink() {
+    if (!this.currentUser) return false;
+    if (this.args.character.character_type === "freeform") return false;
+    return this.canGrow || this.canShrink;
   }
 
   @action
@@ -273,68 +265,12 @@ export default class DiscourseSizeCharacterCard extends Component {
   }
 
   @action
-  async grow() {
-    try {
-      const result = await ajax(
-        `/size/characters/${this.args.character.id}/grow`,
-        {
-          type: "POST",
-          data: { amount: this.amountInput },
-        }
-      );
-      if (result.points !== undefined) {
-        this.currentUser.set("discourse_size_points", result.points);
-      }
-      this.args.onAction();
-    } catch (e) {
-      alert(e.jqXHR?.responseJSON?.error || "Error growing character");
-    }
-  }
-
-  @action
-  async shrink() {
-    try {
-      const result = await ajax(
-        `/size/characters/${this.args.character.id}/shrink`,
-        {
-          type: "POST",
-          data: { amount: this.amountInput },
-        }
-      );
-      if (result.points !== undefined) {
-        this.currentUser.set("discourse_size_points", result.points);
-      }
-      this.args.onAction();
-    } catch (e) {
-      alert(e.jqXHR?.responseJSON?.error || "Error shrinking character");
-    }
-  }
-
-  @action
-  async resetSize() {
-    if (confirm("Reset size? You will regain 50% of the points spent.")) {
-      try {
-        const result = await ajax(
-          `/size/characters/${this.args.character.id}/reset`,
-          { type: "POST" }
-        );
-        if (result.points !== undefined) {
-          this.currentUser.set("discourse_size_points", result.points);
-        }
-        this.args.onAction();
-      } catch (e) {
-        alert("Error resetting size");
-      }
-    }
-  }
-
-  @action
   async setMain() {
     try {
       await ajax(`/size/characters/${this.args.character.id}/set_main`, {
         type: "POST",
       });
-      this.args.onAction();
+      this.args.onAction?.();
     } catch (e) {
       alert("Error setting main character");
     }
@@ -345,7 +281,7 @@ export default class DiscourseSizeCharacterCard extends Component {
     this.modal.show(DiscourseSizeAdminEdit, {
       model: {
         character: this.args.character,
-        onSave: () => this.args.onAction(),
+        onSave: this.args.onAction,
       },
     });
   }

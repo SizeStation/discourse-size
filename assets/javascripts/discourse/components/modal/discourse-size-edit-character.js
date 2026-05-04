@@ -16,6 +16,7 @@ export default class DiscourseSizeEditCharacter extends Component {
   @tracked infoPostId = null;
   @tracked sizeError = null;
   @tracked isMain = false;
+  @tracked characterType = "game";
 
   @service currentUser;
   @service siteSettings;
@@ -29,8 +30,9 @@ export default class DiscourseSizeEditCharacter extends Component {
     this.baseSize = char.base_size || 170.0;
     this.measurementSystem = char.measurement_system || "imperial";
     this.allowGrowth = char.allow_growth !== false;
-    this.allowShrink = char.allow_shrink !== false;
+     this.allowShrink = char.allow_shrink !== false;
     this.isMain = char.is_main || false;
+    this.characterType = char.character_type || "game";
   }
 
   get min() {
@@ -63,6 +65,11 @@ export default class DiscourseSizeEditCharacter extends Component {
     } else {
       this.sizeError = null;
     }
+  }
+
+  @action
+  setCharType(type) {
+    this.characterType = type;
   }
 
   @action
@@ -138,6 +145,7 @@ export default class DiscourseSizeEditCharacter extends Component {
       measurement_system: this.measurementSystem,
       allow_growth: this.allowGrowth,
       allow_shrink: this.allowShrink,
+      character_type: this.characterType,
     };
 
     try {
@@ -169,15 +177,14 @@ export default class DiscourseSizeEditCharacter extends Component {
     if (!char) return 0;
 
     const targetOffset = char.target_offset || 0;
-    return Math.floor(Math.abs(targetOffset) / 2);
+    return char.character_type === "game" ? 0 : Math.floor(Math.abs(targetOffset) / 2);
   }
 
   @action
   async resetSize() {
-    const refund = this.refundAmount;
     if (
       confirm(
-        `Are you sure? This is not reversible. You will regain ${refund} points (50% of the points spent on growth).`
+        "Are you sure? This will return the character to its baseline size. This is not reversible."
       )
     ) {
       try {

@@ -5,6 +5,45 @@
 >
   <:body>
     <div onkeydown={{this.onKeyDown}}>
+        <div class="control-group">
+          <label>Character Mode</label>
+          {{#if @model.isNew}}
+            <span class="instructions">Choose how your character's size is
+              managed.
+              <strong>This cannot be changed later.</strong></span>
+            <div class="type-selection">
+              <label class="radio-label">
+                <input
+                  type="radio"
+                  name="char_type"
+                  value="game"
+                  checked={{eq this.characterType "game"}}
+                  {{on "change" (fn this.setCharType "game")}}
+                />
+                <span><strong>Game Mode</strong>: earn and use coins to grow or shrink your
+                  character, or let others grow/shrink your character.</span>
+              </label>
+              <label class="radio-label">
+                <input
+                  type="radio"
+                  name="char_type"
+                  value="freeform"
+                  checked={{eq this.characterType "freeform"}}
+                  {{on "change" (fn this.setCharType "freeform")}}
+                />
+                <span><strong>Freeform Mode</strong>: manually set your character's size to any
+                  number, no growing/shrinking.</span>
+              </label>
+            </div>
+          {{else}}
+            <div class="type-display">
+              <span class="mode-label">Mode:</span>
+              <strong>{{if (eq this.characterType "game") "Game Mode" "Freeform Mode"}}</strong>
+              <span class="instructions">(Mode cannot be changed after creation)</span>
+            </div>
+          {{/if}}
+        </div>
+
       <div class="control-group">
         <label>Name</label>
         <span class="instructions">What is this character called?</span>
@@ -41,8 +80,8 @@
       </div>
 
       <div class="control-group">
-        <label>Base Size (cm)</label>
-        <span class="instructions">The initial size of the character.</span>
+        <label>{{if (eq this.characterType "freeform") "Size (cm)" "Base Size (cm)"}}</label>
+        <span class="instructions">{{if (eq this.characterType "freeform") "The current size of the character." "The initial size of the character."}}</span>
         <input
           type="number"
           value={{this.baseSize}}
@@ -120,13 +159,11 @@
         </div>
       {{/unless}}
 
-      {{#unless @model.isNew}}
+      {{#if (and (not @model.isNew) (eq this.characterType "freeform"))}}
         <div class="control-group reset-section">
           <label>Character Reset</label>
           <span class="instructions">
-            Resetting will return
-            <strong>50% of the size coins</strong>
-            spent on this character's growth. This action is not reversible.
+            Resetting will return the character to its baseline size.
           </span>
           <button
             type="button"
@@ -136,7 +173,7 @@
             {{this.resetButtonLabel}}
           </button>
         </div>
-      {{/unless}}
+      {{/if}}
     </div>
   </:body>
   <:footer>

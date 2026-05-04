@@ -36,8 +36,11 @@ module DiscourseSize
         raise Discourse::InvalidAccess
       end
 
-      # size is NOT freely editable here, only name, picture, info_post, settings
-      if character.update(character_params)
+      # character_type cannot be changed after creation
+      p = character_params
+      p.delete(:character_type)
+
+      if character.update(p)
         render json: { character: character_serializer(character) }
       else
         render json: failed_json.merge(errors: character.errors.full_messages),
@@ -82,6 +85,10 @@ module DiscourseSize
         raise Discourse::InvalidAccess
       end
 
+      if character.freeform?
+        points_cost = 0
+      end
+
       points = DiscourseSize::PointsManager.get_points(current_user)
       if points < points_cost
         return(
@@ -120,6 +127,10 @@ module DiscourseSize
         raise Discourse::InvalidAccess
       end
 
+      if character.freeform?
+        points_cost = 0
+      end
+
       points = DiscourseSize::PointsManager.get_points(current_user)
       if points < points_cost
         return(
@@ -156,14 +167,14 @@ module DiscourseSize
         raise Discourse::InvalidAccess
       end
 
-      # "regain 50% of their spent points for doing so"
-      # We calculate spent points by summing actions by this user on this character? Or total offset?
-      # Wait, if they just reset, what do they regain? Total spent points by this user?
-      # Let's say we give them 50% of the absolute target_offset.
-      points_to_refund = (character.target_offset.abs / 2).floor
+      if character.game?
+        return render json: failed_json.merge(error: "Resetting is not allowed in Game mode"), status: :forbidden
+      end
+
+      points_to_refund = 0 # No refunds in freeform, and game is disabled
 
       character.update!(target_offset: 0, current_offset: 0, offset_updated_at: Time.now)
-      DiscourseSize::PointsManager.add_points(current_user, points_to_refund)
+      # DiscourseSize::PointsManager.add_points(current_user, points_to_refund) # redundant but safe
 
       DiscourseSizeAction.create!(
         character_id: character.id,
@@ -178,15 +189,52 @@ module DiscourseSize
              }
     end
 
+    def set_size
+      character = DiscourseSizeCharacter.find(params[:id])
+      unless character.freeform? || current_user.admin?
+        return render json: failed_json.merge(error: "Only Freeform characters can set size directly"), status: :forbidden
+      end
+
+      unless character.user_id == current_user.id || current_user.admin?
+        raise Discourse::InvalidAccess
+      end
+
+      new_total_cm = params[:size].to_f
+      new_total_cm = 1e-18 if new_total_cm < 1e-18
+      new_total_cm = DiscourseSizeCharacter::MAX_SIZE if new_total_cm > DiscourseSizeCharacter::MAX_SIZE
+
+      amount_cm = new_total_cm - character.current_size
+
+      character.update_size_target(amount_cm)
+
+      DiscourseSizeAction.create!(
+        character_id: character.id,
+        user_id: current_user.id,
+        action_type: "set_size",
+        size_change: amount_cm,
+        points_spent: 0,
+      )
+
+      render json: {
+               character: character_serializer(character),
+               points: DiscourseSize::PointsManager.get_points(current_user),
+             }
+    end
+
     def boost_speed
       character = DiscourseSizeCharacter.find(params[:id])
       points_cost = params[:amount].to_f.abs
 
-      points = DiscourseSize::PointsManager.get_points(current_user)
-      if points < points_cost
-        return(
-          render json: failed_json.merge(error: "Not enough points"), status: :unprocessable_content
-        )
+      if character.freeform?
+        points_cost = 0
+      else
+        points = DiscourseSize::PointsManager.get_points(current_user)
+        if points < points_cost
+          return(
+            render json: failed_json.merge(error: "Not enough points"),
+                   status: :unprocessable_content
+          )
+        end
       end
 
       speed_bonus = points_cost * (SiteSetting.discourse_size_speed_percentage_per_point || 0.1)
@@ -195,7 +243,9 @@ module DiscourseSize
       character.growth_rate_bought += speed_bonus
       character.save!
 
-      DiscourseSize::PointsManager.remove_points(current_user, points_cost)
+      if points_cost > 0
+        DiscourseSize::PointsManager.remove_points(current_user, points_cost)
+      end
 
       DiscourseSizeAction.create!(
         character_id: character.id,
@@ -245,23 +295,29 @@ module DiscourseSize
         :allow_growth,
         :allow_shrink,
         :measurement_system,
+        :character_type,
       )
     end
 
     def character_serializer(c)
       c.sync_offset!
 
-      # Calculate rank
-      biggest_rank =
-        DiscourseSizeCharacter.where(
-          "(base_size + current_offset) > ?",
-          c.base_size + c.current_offset,
-        ).count + 1
-      tiniest_rank =
-        DiscourseSizeCharacter.where(
-          "(base_size + current_offset) < ?",
-          c.base_size + c.current_offset,
-        ).count + 1
+      # Calculate rank (exclude freeform characters)
+      if c.game?
+        biggest_rank =
+          DiscourseSizeCharacter.where(character_type: 'game').where(
+            "(base_size + current_offset) > ?",
+            c.base_size + c.current_offset,
+          ).count + 1
+        tiniest_rank =
+          DiscourseSizeCharacter.where(character_type: 'game').where(
+            "(base_size + current_offset) < ?",
+            c.base_size + c.current_offset,
+          ).count + 1
+      else
+        biggest_rank = nil
+        tiniest_rank = nil
+      end
 
       {
         id: c.id,
@@ -280,11 +336,12 @@ module DiscourseSize
         measurement_system: c.measurement_system,
         is_main: c.is_main,
         growth_rate_bought: c.growth_rate_bought,
-        is_biggest: multiple_characters? && c.id == biggest_character_id,
-        is_tiniest: multiple_characters? && c.id == tiniest_character_id,
+        is_biggest: multiple_characters? && c.game? && c.id == biggest_character_id,
+        is_tiniest: multiple_characters? && c.game? && c.id == tiniest_character_id,
         biggest_rank: biggest_rank,
         tiniest_rank: tiniest_rank,
         growth_rate_override: c.growth_rate_override,
+        character_type: c.character_type,
         actions:
           c
             .discourse_size_actions

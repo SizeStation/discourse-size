@@ -1,0 +1,89 @@
+<div class="discourse-size-character-actions">
+  {{#if this.isGame}}
+    <div class="growth-panel">
+      <div class="points-header">
+        <span class="label">Spend size coins to grow or shrink this character</span>
+        <span class="balance">Your balance:
+          <strong>{{@userPoints}}</strong>
+          coins</span>
+      </div>
+      <div class="input-row">
+        <Input
+          @type="number"
+          min="1"
+          @value={{this.amountInput}}
+          class="amount-input"
+        />
+        <div class="buttons">
+          {{#if this.canGrow}}
+            <DButton @action={{this.grow}} @icon="plus" class="btn-primary">
+              Grow to
+              {{this.projectedGrowSize}}
+            </DButton>
+          {{/if}}
+          {{#if this.canShrink}}
+            <DButton @action={{this.shrink}} @icon="minus" class="btn-danger">
+              Shrink to
+              {{this.projectedShrinkSize}}
+            </DButton>
+          {{/if}}
+        </div>
+      </div>
+      <div class="points-header boost-header">
+        <span class="label">Spend size coins to increase the growth/shrink
+          rate of this character</span>
+      </div>
+      <div class="input-row">
+        <Input
+          @type="number"
+          min="1"
+          @value={{this.boostAmountInput}}
+          class="amount-input"
+        />
+        <div class="buttons">
+          <DButton @action={{this.boostSpeed}} class="btn-default">
+            Add
+            {{this.projectedSpeedBoost}}% / day
+          </DButton>
+        </div>
+      </div>
+    </div>
+  {{else}}
+    {{! Freeform Mode }}
+    <div class="growth-panel freeform-panel">
+      <div class="points-header">
+        <span class="label">Manually set the target size (Freeform Mode)</span>
+      </div>
+      <div class="input-row">
+        <Input
+          @type="number"
+          @value={{this.freeformSizeInput}}
+          class="amount-input"
+          placeholder="New size in cm..."
+        />
+        <div class="buttons">
+          <DButton @action={{this.setSize}} @icon="check" class="btn-primary">
+            Set Size
+          </DButton>
+        </div>
+      </div>
+
+      <div class="points-header boost-header">
+        <span class="label">Manually increase the growth/shrink rate (Free)</span>
+      </div>
+      <div class="input-row">
+        <Input
+          @type="number"
+          @value={{this.boostAmountInput}}
+          class="amount-input"
+        />
+        <div class="buttons">
+          <DButton @action={{this.boostSpeed}} class="btn-default">
+            Add
+            {{this.projectedSpeedBoost}}% / day
+          </DButton>
+        </div>
+      </div>
+    </div>
+  {{/if}}
+</div>

@@ -19,6 +19,7 @@ module DiscourseSize
       characters =
         DiscourseSizeCharacter
           .includes(:user)
+          .where(character_type: "game")
           .order(Arel.sql("(base_size + current_offset) #{direction}"))
           .limit(limit)
 

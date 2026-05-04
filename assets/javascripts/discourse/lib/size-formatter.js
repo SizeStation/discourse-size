@@ -480,14 +480,30 @@ function getOrdinal(n) {
 const SPEED_COMPARISONS = [
   // Geological / biological growth (not locomotion)
   { cmPerDay: 2.74e-5, desc: "as slow as a stalactite growing" },        // 0.1 mm/year
+  { cmPerDay: 2.74e-4, desc: "at the speed of a slow-growing lichen" },
   { cmPerDay: 2.74e-3, desc: "as slow as coral growing" },               // 1 cm/year
   { cmPerDay: 8.22e-3, desc: "about as fast as continental drift" },     // 3 cm/year
   { cmPerDay: 1.17e-2, desc: "about as fast as a fingernail grows" },    // 3.5 mm/month
-  { cmPerDay: 4.17e-2, desc: "about as fast as human hair grows" },      // 1.25 cm/month
+  { cmPerDay: 2.74e-2, desc: "as fast as a human child grows" },        // 10 cm/year
+  { cmPerDay: 4.11e-2, desc: "at the speed of a human puberty growth spurt" }, // 15 cm/year
+  { cmPerDay: 8.22e-2, desc: "twice as fast as any human grows" },
+  { cmPerDay: 0.5,     desc: "about as fast as a large puppy grows" },
+  { cmPerDay: 1.0,     desc: "at the speed of a fast-growing tree" },
+  { cmPerDay: 3.8,     desc: "as fast as a blue whale calf grows" },
+  { cmPerDay: 15,      desc: "faster than any animal's natural growth" },
+  { cmPerDay: 30,      desc: "at the speed of a kudzu vine" },
+  { cmPerDay: 60,      desc: "about as fast as giant kelp grows" },
   { cmPerDay: 91,      desc: "about as fast as bamboo sprouts" },        // 91 cm/day peak
+  { cmPerDay: 500,     desc: "faster than any known plant" },
+  { cmPerDay: 2000,    desc: "at a steady crawling pace" },
+  { cmPerDay: 10000,   desc: "faster than a tortoise" },
+  { cmPerDay: 50000,   desc: "at a very slow crawl" },
 
   // Animal / human movement (applied at 24 h/day)
   { cmPerDay: 1.15e5,  desc: "at the pace of a garden snail" },          // 0.03 mph × 24 h
+  { cmPerDay: 5.0e5,   desc: "faster than a giant tortoise" },
+  { cmPerDay: 2.0e6,   desc: "at a slow sloth's pace" },
+  { cmPerDay: 5.0e6,   desc: "at the speed of a house cat's walk" },
   { cmPerDay: 1.20e7,  desc: "at a casual walking pace" },               // 5 km/h × 24 h
   { cmPerDay: 2.40e7,  desc: "at a jogging pace" },                      // 10 km/h × 24 h
   { cmPerDay: 8.64e7,  desc: "about as fast as a sprinting human" },     // 36 km/h × 24 h
@@ -580,13 +596,16 @@ export function getGrowthComparison(character, currentSize) {
   }
 
   // How long have they been moving?
-  // Use the most recent action's created_at — that's when growth actually started.
-  // offset_updated_at is refreshed on every sync so it's useless for duration.
+  // Use the most recent growth/shrink action's created_at — that's when this movement started.
+  // 'boost_speed' actions shouldn't reset the timer.
   let durationText = "";
-  const recentAction = Array.isArray(c.actions) && c.actions[0];
-  if (recentAction && recentAction.created_at) {
+  const movementAction =
+    Array.isArray(c.actions) &&
+    c.actions.find((a) => ["grow", "shrink"].includes(a.action_type));
+
+  if (movementAction && movementAction.created_at) {
     const elapsed =
-      (Date.now() - new Date(recentAction.created_at).getTime()) / 1000;
+      (Date.now() - new Date(movementAction.created_at).getTime()) / 1000;
     if (elapsed > 5) {
       durationText = ` for ${formatDuration(elapsed)}`;
     }
@@ -601,16 +620,26 @@ export function getComparison(character) {
   const sizeCm = character.current_size;
   const name = character.name || "this character";
 
-  // Add ranking info if available
-  let rankText = "Test is ";
-  if (character.biggest_rank === 1) {
-    rankText = `${name} is the biggest character on the forum and is `;
-  } else if (character.tiniest_rank === 1) {
-    rankText = `${name} is the tiniest character on the forum and is `;
-  } else if (character.biggest_rank <= 10) {
-    rankText = `${name} is the ${getOrdinal(character.biggest_rank)} biggest character on the forum and is `;
-  } else if (character.tiniest_rank <= 10) {
-    rankText = `${name} is the ${getOrdinal(character.tiniest_rank)} tiniest character on the forum and is `;
+  // Add ranking info if available (skip for freeform)
+  let rankText = "";
+  if (character.character_type !== "freeform") {
+    if (character.biggest_rank === 1) {
+      rankText = `${name} is the biggest character on the forum and is `;
+    } else if (character.tiniest_rank === 1) {
+      rankText = `${name} is the tiniest character on the forum and is `;
+    } else if (character.biggest_rank <= 10) {
+      rankText = `${name} is the ${getOrdinal(
+        character.biggest_rank
+      )} biggest character on the forum and is `;
+    } else if (character.tiniest_rank <= 10) {
+      rankText = `${name} is the ${getOrdinal(
+        character.tiniest_rank
+      )} tiniest character on the forum and is `;
+    }
+  }
+
+  if (!rankText) {
+    rankText = `${name} is `;
   }
 
   let best = COMPARISONS[0];

@@ -10,15 +10,10 @@ files = [
   'plugin.rb'
 ]
 
-formatter = SyntaxTree::Formatter.new(
-  source: "",
-  *[],
-  options: SyntaxTree::Formatter::Options.new(print_width: 100)
-)
-
 files.each do |file|
+  next unless File.exist?(file)
   source = File.read(file)
-  formatted = SyntaxTree.format(source)
+  formatted = SyntaxTree.format(source, 100)
   File.write(file, formatted)
   puts "Formatted #{file}"
 end

@@ -2,10 +2,13 @@ import Component from "@glimmer/component";
 import { action } from "@ember/object";
 import { tracked } from "@glimmer/tracking";
 import { inject as service } from "@ember/service";
-import { formatSize, getComparison } from "../lib/size-formatter";
+import { formatSize, getComparison, getGrowthComparison } from "../lib/size-formatter";
+
+const MAX_SIZE = 1e120;
 
 export default class DiscourseSizeCharacterDetails extends Component {
   @service siteSettings;
+  @service currentUser;
 
   @tracked _currentTime = new Date();
   _timer = null;
@@ -52,6 +55,7 @@ export default class DiscourseSizeCharacterDetails extends Component {
     if (c.target_offset > c.current_offset) {
       newSize = currentSize * multiplier;
       if (newSize > targetSize) newSize = targetSize;
+      if (newSize > MAX_SIZE) newSize = MAX_SIZE;
     } else {
       newSize = currentSize / multiplier;
       if (newSize < targetSize) newSize = targetSize;
@@ -81,5 +85,80 @@ export default class DiscourseSizeCharacterDetails extends Component {
       current_size: this.calculatedSizeCm,
     });
     return getComparison(tempChar);
+  }
+  
+  get growthComparisonText() {
+    return getGrowthComparison(this.args.character, this.calculatedSizeCm);
+  }
+
+  get canEdit() {
+    return this.args.isCurrentUser || this.currentUser?.admin;
+  }
+
+  get showSpeed() {
+    return this.args.character.character_type === "game";
+  }
+
+  get showActions() {
+    if (!this.currentUser) return false;
+    if (this.args.character.character_type === "freeform") return false;
+    return true;
+  }
+
+  get timeRemaining() {
+    const c = this.args.character;
+    const currentSize = this.calculatedSizeCm;
+    const targetSize = c.base_size + c.target_offset;
+
+    if (
+      Math.abs(targetSize - currentSize) < 0.01 ||
+      currentSize <= 0 ||
+      targetSize <= 0
+    ) {
+      return null;
+    }
+
+    const ratePercentPerDay =
+      (c.growth_rate_override ||
+        this.siteSettings.discourse_size_default_max_growth_rate) +
+      (parseFloat(c.growth_rate_bought) || 0);
+    if (ratePercentPerDay <= 0) {
+      return null;
+    }
+
+    const multiplier = 1.0 + ratePercentPerDay / 100.0;
+    const ratio = Math.max(targetSize / currentSize, currentSize / targetSize);
+
+    const daysRemaining = Math.log(ratio) / Math.log(multiplier);
+    const seconds = daysRemaining * 86400;
+
+    if (seconds < 60) {
+      return `${Math.ceil(seconds)}s`;
+    }
+    if (seconds < 3600) {
+      const m = Math.floor(seconds / 60);
+      const s = Math.floor(seconds % 60);
+      return s > 0 ? `${m}m ${s}s` : `${m}m`;
+    }
+    if (seconds < 86400) {
+      const h = Math.floor(seconds / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      return m > 0 ? `${h}h ${m}m` : `${h}h`;
+    }
+    return `${(seconds / 86400).toFixed(1)}d`;
+  }
+
+  get targetSizeCm() {
+    return (
+      parseFloat(this.args.character.base_size) +
+      parseFloat(this.args.character.target_offset)
+    );
+  }
+
+  get formattedTargetSize() {
+    return formatSize(
+      this.targetSizeCm,
+      this.args.character.measurement_system
+    );
   }
 }

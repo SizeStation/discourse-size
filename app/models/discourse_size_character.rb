@@ -14,9 +14,29 @@ class DiscourseSizeCharacter < ActiveRecord::Base
 
   has_many :discourse_size_actions, foreign_key: "character_id", dependent: :destroy
 
+  TYPE_GAME = 'game'
+  TYPE_FREEFORM = 'freeform'
+
+  validates :character_type, inclusion: { in: [TYPE_GAME, TYPE_FREEFORM] }
+
+  def game?
+    character_type == TYPE_GAME
+  end
+
+  def freeform?
+    character_type == TYPE_FREEFORM
+  end
+
+  MAX_SIZE = 1e120 # Cap at a googol-plus to prevent Infinity overflow
+
   def update_size_target(amount)
     sync_offset!
     new_target = self.target_offset + amount
+
+    # Cap total size
+    if (self.base_size + new_target) > MAX_SIZE
+      new_target = MAX_SIZE - self.base_size
+    end
 
     # Floor total size at a nanoscopic value (1e-18 cm) to prevent true zero/negative
     new_target = 1e-18 - self.base_size if (self.base_size + new_target) < 1e-18
@@ -48,6 +68,7 @@ class DiscourseSizeCharacter < ActiveRecord::Base
     if target_offset > current_offset
       new_size = current_size * multiplier
       new_size = target_size if new_size > target_size
+      new_size = MAX_SIZE if new_size > MAX_SIZE
     else
       new_size = current_size / multiplier
       new_size = target_size if new_size < target_size
@@ -74,6 +95,7 @@ end
 #  allow_growth         :boolean          default(TRUE), not null
 #  allow_shrink         :boolean          default(TRUE), not null
 #  base_size            :float            not null
+#  character_type       :string           default("game"), not null
 #  current_offset       :float            default(0.0), not null
 #  growth_rate_bought   :float            default(0.0), not null
 #  growth_rate_override :float
