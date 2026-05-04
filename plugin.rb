@@ -93,10 +93,7 @@ after_initialize do
       # Adding 1 point every single read could hit the DB hard.
       # But we'll do it as requested.
       if rand < 0.1 # 10% chance to give 10x points to reduce DB writes
-        DiscourseSize::PointsManager.add_points(
-          user,
-          SiteSetting.discourse_size_points_per_read,
-        )
+        DiscourseSize::PointsManager.add_points(user, SiteSetting.discourse_size_points_per_read)
       end
     end
   end
@@ -105,9 +102,7 @@ after_initialize do
     character = DiscourseSizeCharacter.find_by(user_id: object.id, is_main: true)
     if character
       character.sync_offset!
-      rate =
-        character.growth_rate_override ||
-          SiteSetting.discourse_size_default_max_growth_rate
+      rate = character.growth_rate_override || SiteSetting.discourse_size_default_max_growth_rate
       {
         id: character.id,
         name: character.name,
@@ -117,10 +112,8 @@ after_initialize do
         target_size: character.base_size + character.target_offset,
         base_size: character.base_size,
         measurement_system: character.measurement_system,
-        is_growing:
-          character.target_offset > character.current_offset,
-        is_shrinking:
-          character.target_offset < character.current_offset,
+        is_growing: character.target_offset > character.current_offset,
+        is_shrinking: character.target_offset < character.current_offset,
         growth_rate_cm_per_day: rate,
       }
     end
@@ -134,9 +127,7 @@ after_initialize do
     character = DiscourseSizeCharacter.find_by(user_id: object.id, is_main: true)
     if character
       character.sync_offset!
-      rate =
-        character.growth_rate_override ||
-          SiteSetting.discourse_size_default_max_growth_rate
+      rate = character.growth_rate_override || SiteSetting.discourse_size_default_max_growth_rate
       {
         id: character.id,
         name: character.name,
@@ -157,9 +148,6 @@ after_initialize do
 
   Discourse::Application.routes.append do
     mount ::DiscourseSize::Engine, at: "/size"
-    get "u/:username/characters" => "users#show",
-        constraints: {
-          username: RouteFormat.username,
-        }
+    get "u/:username/characters" => "users#show", :constraints => { username: RouteFormat.username }
   end
 end

@@ -992,9 +992,10 @@
   }
 
   .main-character-section {
-    .main-character-status {
+      .main-character-status {
       display: flex;
       align-items: center;
+      justify-content: space-between;
       gap: 8px;
       padding: 10px 14px;
       border-radius: 8px;
@@ -1008,8 +1009,18 @@
         color: var(--tertiary);
       }
 
+      .status-text {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
       .d-icon {
         width: 1em;
+      }
+
+      .unset-main-btn {
+        margin: 0;
       }
     }
 

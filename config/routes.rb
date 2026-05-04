@@ -9,6 +9,7 @@ DiscourseSize::Engine.routes.draw do
   post "characters/:id/shrink" => "characters#shrink"
   post "characters/:id/reset" => "characters#reset_size"
   post "characters/:id/set_main" => "characters#set_main"
+  post "characters/:id/unset_main" => "characters#unset_main"
 
   get "leaderboard" => "leaderboard#index"
 

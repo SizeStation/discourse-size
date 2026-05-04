@@ -100,8 +100,15 @@
           </span>
           {{#if this.isMain}}
             <div class="main-character-status is-main">
-              {{d-icon "star"}}
-              This is your current main character
+              <div class="status-text">
+                {{d-icon "star"}}
+                This is your current main character
+              </div>
+              <DButton
+                @action={{this.unsetMain}}
+                @label="discourse_size.unset_main"
+                class="btn-default unset-main-btn"
+              />
             </div>
           {{else}}
             <DButton

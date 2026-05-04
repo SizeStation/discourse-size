@@ -7,7 +7,8 @@ module DiscourseSize
 
     def index
       user_id = params[:user_id]
-      characters = DiscourseSizeCharacter.where(user_id: user_id).order(is_main: :desc, created_at: :asc)
+      characters =
+        DiscourseSizeCharacter.where(user_id: user_id).order(is_main: :desc, created_at: :asc)
 
       # sync offsets before rendering
       characters.each(&:sync_offset!)
@@ -16,33 +17,39 @@ module DiscourseSize
     end
 
     def create
-      character = DiscourseSizeCharacter.new(character_params.merge(
-        user_id: current_user.id,
-        offset_updated_at: Time.now
-      ))
+      character =
+        DiscourseSizeCharacter.new(
+          character_params.merge(user_id: current_user.id, offset_updated_at: Time.now),
+        )
 
       if character.save
         render json: { character: character_serializer(character) }
       else
-        render json: failed_json.merge(errors: character.errors.full_messages), status: :unprocessable_content
+        render json: failed_json.merge(errors: character.errors.full_messages),
+               status: :unprocessable_content
       end
     end
 
     def update
       character = DiscourseSizeCharacter.find(params[:id])
-      raise Discourse::InvalidAccess unless character.user_id == current_user.id || current_user.admin?
+      unless character.user_id == current_user.id || current_user.admin?
+        raise Discourse::InvalidAccess
+      end
 
       # size is NOT freely editable here, only name, picture, info_post, settings
       if character.update(character_params)
         render json: { character: character_serializer(character) }
       else
-        render json: failed_json.merge(errors: character.errors.full_messages), status: :unprocessable_content
+        render json: failed_json.merge(errors: character.errors.full_messages),
+               status: :unprocessable_content
       end
     end
 
     def destroy
       character = DiscourseSizeCharacter.find(params[:id])
-      raise Discourse::InvalidAccess unless character.user_id == current_user.id || current_user.admin?
+      unless character.user_id == current_user.id || current_user.admin?
+        raise Discourse::InvalidAccess
+      end
 
       character.destroy
       render json: success_json
@@ -58,15 +65,28 @@ module DiscourseSize
       render json: success_json
     end
 
+    def unset_main
+      character = DiscourseSizeCharacter.find(params[:id])
+      raise Discourse::InvalidAccess unless character.user_id == current_user.id
+
+      character.update!(is_main: false)
+
+      render json: success_json
+    end
+
     def grow
       character = DiscourseSizeCharacter.find(params[:id])
       points_cost = params[:amount].to_f
 
-      raise Discourse::InvalidAccess unless character.allow_growth || character.user_id == current_user.id || current_user.admin?
+      unless character.allow_growth || character.user_id == current_user.id || current_user.admin?
+        raise Discourse::InvalidAccess
+      end
 
       points = DiscourseSize::PointsManager.get_points(current_user)
       if points < points_cost
-        return render json: failed_json.merge(error: "Not enough points"), status: :unprocessable_content
+        return(
+          render json: failed_json.merge(error: "Not enough points"), status: :unprocessable_content
+        )
       end
 
       # Compounding growth with milder logarithmic dampening
@@ -92,18 +112,25 @@ module DiscourseSize
         points_spent: points_cost,
       )
 
-      render json: { character: character_serializer(character), points: DiscourseSize::PointsManager.get_points(current_user) }
+      render json: {
+               character: character_serializer(character),
+               points: DiscourseSize::PointsManager.get_points(current_user),
+             }
     end
 
     def shrink
       character = DiscourseSizeCharacter.find(params[:id])
       points_cost = params[:amount].to_f.abs
 
-      raise Discourse::InvalidAccess unless character.allow_shrink || character.user_id == current_user.id || current_user.admin?
+      unless character.allow_shrink || character.user_id == current_user.id || current_user.admin?
+        raise Discourse::InvalidAccess
+      end
 
       points = DiscourseSize::PointsManager.get_points(current_user)
       if points < points_cost
-        return render json: failed_json.merge(error: "Not enough points"), status: :unprocessable_content
+        return(
+          render json: failed_json.merge(error: "Not enough points"), status: :unprocessable_content
+        )
       end
 
       # Compounding shrink with milder logarithmic dampening
@@ -126,12 +153,17 @@ module DiscourseSize
         points_spent: points_cost,
       )
 
-      render json: { character: character_serializer(character), points: DiscourseSize::PointsManager.get_points(current_user) }
+      render json: {
+               character: character_serializer(character),
+               points: DiscourseSize::PointsManager.get_points(current_user),
+             }
     end
 
     def reset_size
       character = DiscourseSizeCharacter.find(params[:id])
-      raise Discourse::InvalidAccess unless character.user_id == current_user.id || current_user.admin?
+      unless character.user_id == current_user.id || current_user.admin?
+        raise Discourse::InvalidAccess
+      end
 
       # "regain 50% of their spent points for doing so"
       # We calculate spent points by summing actions by this user on this character? Or total offset?
@@ -149,17 +181,30 @@ module DiscourseSize
         size_change: 0,
       )
 
-      render json: { character: character_serializer(character), points: DiscourseSize::PointsManager.get_points(current_user) }
+      render json: {
+               character: character_serializer(character),
+               points: DiscourseSize::PointsManager.get_points(current_user),
+             }
     end
 
     private
 
     def biggest_character_id
-      @biggest_character_id ||= DiscourseSizeCharacter.order(Arel.sql("(base_size + current_offset) DESC")).limit(1).pluck(:id).first
+      @biggest_character_id ||=
+        DiscourseSizeCharacter
+          .order(Arel.sql("(base_size + current_offset) DESC"))
+          .limit(1)
+          .pluck(:id)
+          .first
     end
 
     def tiniest_character_id
-      @tiniest_character_id ||= DiscourseSizeCharacter.order(Arel.sql("(base_size + current_offset) ASC")).limit(1).pluck(:id).first
+      @tiniest_character_id ||=
+        DiscourseSizeCharacter
+          .order(Arel.sql("(base_size + current_offset) ASC"))
+          .limit(1)
+          .pluck(:id)
+          .first
     end
 
     def multiple_characters?
@@ -175,7 +220,7 @@ module DiscourseSize
         :base_size,
         :allow_growth,
         :allow_shrink,
-        :measurement_system
+        :measurement_system,
       )
     end
 
@@ -183,8 +228,16 @@ module DiscourseSize
       c.sync_offset!
 
       # Calculate rank
-      biggest_rank = DiscourseSizeCharacter.where("(base_size + current_offset) > ?", c.base_size + c.current_offset).count + 1
-      tiniest_rank = DiscourseSizeCharacter.where("(base_size + current_offset) < ?", c.base_size + c.current_offset).count + 1
+      biggest_rank =
+        DiscourseSizeCharacter.where(
+          "(base_size + current_offset) > ?",
+          c.base_size + c.current_offset,
+        ).count + 1
+      tiniest_rank =
+        DiscourseSizeCharacter.where(
+          "(base_size + current_offset) < ?",
+          c.base_size + c.current_offset,
+        ).count + 1
 
       {
         id: c.id,
@@ -207,21 +260,32 @@ module DiscourseSize
         biggest_rank: biggest_rank,
         tiniest_rank: tiniest_rank,
         growth_rate_override: c.growth_rate_override,
-        actions: c.discourse_size_actions.order(created_at: :desc).limit(20).map do |a|
-          {
-            id: a.id,
-            action_type: a.action_type,
-            size_change: a.size_change,
-            points_spent:
-              DiscourseSizeAction.column_names.include?("points_spent") ? a.points_spent.to_f : 0.0,
-            created_at: a.created_at,
-            user: {
-              id: a.user.id,
-              username: a.user.username,
-              avatar_template: a.user.avatar_template,
-            },
-          }
-        end,
+        actions:
+          c
+            .discourse_size_actions
+            .order(created_at: :desc)
+            .limit(20)
+            .map do |a|
+              {
+                id: a.id,
+                action_type: a.action_type,
+                size_change: a.size_change,
+                points_spent:
+                  (
+                    if DiscourseSizeAction.column_names.include?("points_spent")
+                      a.points_spent.to_f
+                    else
+                      0.0
+                    end
+                  ),
+                created_at: a.created_at,
+                user: {
+                  id: a.user.id,
+                  username: a.user.username,
+                  avatar_template: a.user.avatar_template,
+                },
+              }
+            end,
       }
     end
   end

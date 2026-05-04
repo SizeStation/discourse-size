@@ -18,6 +18,7 @@ en:
       shrink: "Shrink"
       upload_picture: "Upload Picture"
       set_main: "Set Main"
+      unset_main: "Unset as Main"
       reset_size: "Reset Size"
       admin_edit: "Override"
       admin_points: "Size Coins"

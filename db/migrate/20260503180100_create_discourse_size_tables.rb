@@ -21,7 +21,7 @@ class CreateDiscourseSizeTables < ActiveRecord::Migration[7.0]
     end
 
     add_index :discourse_size_characters, :user_id
-    add_index :discourse_size_characters, [:user_id, :is_main], unique: true, where: "is_main = true"
+    add_index :discourse_size_characters, %i[user_id is_main], unique: true, where: "is_main = true"
 
     create_table :discourse_size_actions do |t|
       t.integer :character_id, null: false
@@ -33,6 +33,5 @@ class CreateDiscourseSizeTables < ActiveRecord::Migration[7.0]
     end
 
     add_index :discourse_size_actions, :character_id
-
   end
 end

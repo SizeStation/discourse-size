@@ -12,18 +12,14 @@ class DiscourseSizeCharacter < ActiveRecord::Base
             }
   validates :user_id, presence: true
 
-  has_many :discourse_size_actions,
-           foreign_key: "character_id",
-           dependent: :destroy
+  has_many :discourse_size_actions, foreign_key: "character_id", dependent: :destroy
 
   def update_size_target(amount)
     sync_offset!
     new_target = self.target_offset + amount
 
     # Floor total size at a nanoscopic value (1e-18 cm) to prevent true zero/negative
-    if (self.base_size + new_target) < 1e-18
-      new_target = 1e-18 - self.base_size
-    end
+    new_target = 1e-18 - self.base_size if (self.base_size + new_target) < 1e-18
 
     self.target_offset = new_target
     save!
@@ -65,7 +61,6 @@ class DiscourseSizeCharacter < ActiveRecord::Base
       self.save!
     end
   end
-
 end
 
 # == Schema Information

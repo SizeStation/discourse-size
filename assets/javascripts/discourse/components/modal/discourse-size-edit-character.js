@@ -222,6 +222,20 @@ export default class DiscourseSizeEditCharacter extends Component {
   }
 
   @action
+  async unsetMain() {
+    try {
+      await ajax(
+        `/size/characters/${this.args.model?.character?.id}/unset_main`,
+        { type: "POST" }
+      );
+      this.isMain = false;
+      this.args.model?.onSetMain?.();
+    } catch (e) {
+      alert("Error unsetting main character");
+    }
+  }
+
+  @action
   async deleteCharacter() {
     const confirmed = confirm(
       "Are you sure you want to delete this character? This cannot be undone, and you will NOT get any points back."

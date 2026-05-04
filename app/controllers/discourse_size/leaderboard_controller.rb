@@ -16,7 +16,11 @@ module DiscourseSize
       # But current_offset is updated lazily. We can either do a background job to sync them, or just use what we have in DB.
 
       # We'll use (base_size + current_offset) as sorting.
-      characters = DiscourseSizeCharacter.includes(:user).order(Arel.sql("(base_size + current_offset) #{direction}")).limit(limit)
+      characters =
+        DiscourseSizeCharacter
+          .includes(:user)
+          .order(Arel.sql("(base_size + current_offset) #{direction}"))
+          .limit(limit)
 
       render json: { characters: characters.map { |c| character_serializer(c) } }
     end
