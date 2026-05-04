@@ -75,6 +75,7 @@ end
 #  allow_shrink         :boolean          default(TRUE), not null
 #  base_size            :float            not null
 #  current_offset       :float            default(0.0), not null
+#  growth_rate_bought   :float            default(0.0), not null
 #  growth_rate_override :float
 #  info_post            :string
 #  is_main              :boolean          default(FALSE), not null

@@ -112,25 +112,31 @@
             <span class="activity-text">
               <strong>{{action.user.username}}</strong>
               {{#if (eq action.action_type "grow")}}
-                grow by
+                grew
+                {{@character.name}}
+                by
                 {{format-size
                   (abs action.size_change)
                   @character.measurement_system
                 }}
               {{else if (eq action.action_type "shrink")}}
-                shrink by
+                shrunk
+                {{@character.name}}
+                by
                 {{format-size
                   (abs action.size_change)
                   @character.measurement_system
                 }}
               {{else if (eq action.action_type "reset")}}
-                reset their size
+                reset
+                {{@character.name}}'s size
               {{else if (eq action.action_type "boost_speed")}}
                 increased
                 {{@character.name}}'s growth speed by
                 {{action.size_change}}%!
               {{else}}
                 {{action.action_type}}
+                {{@character.name}}
               {{/if}}
             </span>
           </div>
