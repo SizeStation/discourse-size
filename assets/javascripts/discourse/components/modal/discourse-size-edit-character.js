@@ -29,8 +29,7 @@ export default class DiscourseSizeEditCharacter extends Component {
     this.infoPost = char.info_post || "";
     this.baseSize = char.base_size || 170.0;
     this.measurementSystem = char.measurement_system || "imperial";
-    this.allowGrowth = char.allow_growth !== false;
-     this.allowShrink = char.allow_shrink !== false;
+    this.allowShrink = char.allow_shrink !== false;
     this.isMain = char.is_main || false;
     this.characterType = char.character_type || "game";
   }
@@ -177,7 +176,9 @@ export default class DiscourseSizeEditCharacter extends Component {
     if (!char) return 0;
 
     const targetOffset = char.target_offset || 0;
-    return char.character_type === "game" ? 0 : Math.floor(Math.abs(targetOffset) / 2);
+    return char.character_type === "game"
+      ? 0
+      : Math.floor(Math.abs(targetOffset) / 2);
   }
 
   @action

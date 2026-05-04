@@ -121,23 +121,29 @@ export default class DiscourseSizeCharacterActions extends Component {
 
   get projectedGrowSize() {
     const amount = parseFloat(this.amountInput) || 0;
-    const rate = (this.siteSettings.discourse_size_percentage_per_point || 1) / 100.0;
-    const currentTargetTotal = this.args.character.base_size + this.args.character.target_offset;
+    const rate =
+      (this.siteSettings.discourse_size_percentage_per_point || 1) / 100.0;
+    const currentTargetTotal =
+      this.args.character.base_size + this.args.character.target_offset;
     const newTargetTotal = currentTargetTotal * Math.pow(1.0 + rate, amount);
     return formatSize(newTargetTotal, this.args.character.measurement_system);
   }
 
   get projectedShrinkSize() {
     const amount = parseFloat(this.amountInput) || 0;
-    const rate = (this.siteSettings.discourse_size_percentage_per_point || 1) / 100.0;
-    const currentTargetTotal = this.args.character.base_size + this.args.character.target_offset;
+    const rate =
+      (this.siteSettings.discourse_size_percentage_per_point || 1) / 100.0;
+    const currentTargetTotal =
+      this.args.character.base_size + this.args.character.target_offset;
     const newTargetTotal = currentTargetTotal * Math.pow(1.0 - rate, amount);
     return formatSize(newTargetTotal, this.args.character.measurement_system);
   }
 
   get projectedSpeedBoost() {
     const amount = parseFloat(this.boostAmountInput) || 0;
-    const bonus = amount * (this.siteSettings.discourse_size_speed_percentage_per_point || 0.1);
+    const bonus =
+      amount *
+      (this.siteSettings.discourse_size_speed_percentage_per_point || 0.1);
     return bonus.toFixed(2);
   }
 }
