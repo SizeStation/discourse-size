@@ -115,6 +115,11 @@ after_initialize do
         is_growing: character.target_offset > character.current_offset,
         is_shrinking: character.target_offset < character.current_offset,
         growth_rate_cm_per_day: rate,
+        gender: character.gender,
+        pronouns: character.pronouns,
+        age: character.age,
+        description: character.description,
+        show_comparison: character.show_comparison,
       }
     end
   end

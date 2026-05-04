@@ -34,8 +34,8 @@ export default class UserCharactersIndexController extends Controller {
       model: {
         character: {},
         isNew: true,
-        onSave: (newChar) => {
-          this.set("characters", [...this.characters, newChar]);
+        onSave: () => {
+          this.refreshCharacters();
         },
       },
     });
@@ -59,15 +59,8 @@ export default class UserCharactersIndexController extends Controller {
       model: {
         character: Object.assign({}, character),
         isNew: false,
-        onSave: (updatedChar) => {
-          const index = this.characters.findIndex(
-            (c) => c.id === updatedChar.id
-          );
-          if (index !== -1) {
-            const newChars = [...this.characters];
-            newChars[index] = updatedChar;
-            this.set("characters", newChars);
-          }
+        onSave: () => {
+          this.refreshCharacters();
         },
         onDelete: () => {
           this.set(

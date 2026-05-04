@@ -2,6 +2,7 @@
 
 class DiscourseSizeCharacter < ActiveRecord::Base
   belongs_to :user
+  before_save :ensure_single_main, if: :is_main?
 
   validates :name, presence: true
   validates :base_size,
@@ -85,6 +86,12 @@ class DiscourseSizeCharacter < ActiveRecord::Base
       self.save!
     end
   end
+
+  private
+
+  def ensure_single_main
+    DiscourseSizeCharacter.where(user_id: user_id, is_main: true).where.not(id: id).update_all(is_main: false)
+  end
 end
 
 # == Schema Information
@@ -92,11 +99,14 @@ end
 # Table name: discourse_size_characters
 #
 #  id                   :bigint           not null, primary key
+#  age                  :string
 #  allow_growth         :boolean          default(TRUE), not null
 #  allow_shrink         :boolean          default(TRUE), not null
 #  base_size            :float            not null
 #  character_type       :string           default("game"), not null
 #  current_offset       :float            default(0.0), not null
+#  description          :text
+#  gender               :string
 #  growth_rate_bought   :float            default(0.0), not null
 #  growth_rate_override :float
 #  info_post            :string
@@ -105,6 +115,8 @@ end
 #  name                 :string           not null
 #  offset_updated_at    :datetime         not null
 #  picture              :string
+#  pronouns             :string
+#  show_comparison      :boolean          default(TRUE), not null
 #  target_offset        :float            default(0.0), not null
 #  created_at           :datetime         not null
 #  updated_at           :datetime         not null

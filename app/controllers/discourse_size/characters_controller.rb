@@ -40,9 +40,12 @@ module DiscourseSize
       p = character_params
       p.delete(:character_type)
 
+      Rails.logger.warn "Updating character #{character.id} with params: #{p.inspect}"
       if character.update(p)
+        Rails.logger.warn "Update succeeded. Gender: #{character.reload.gender}"
         render json: { character: character_serializer(character) }
       else
+        Rails.logger.warn "Update failed: #{character.errors.full_messages}"
         render json: failed_json.merge(errors: character.errors.full_messages),
                status: :unprocessable_content
       end
@@ -161,33 +164,6 @@ module DiscourseSize
              }
     end
 
-    def reset_size
-      character = DiscourseSizeCharacter.find(params[:id])
-      unless character.user_id == current_user.id || current_user.admin?
-        raise Discourse::InvalidAccess
-      end
-
-      if character.game?
-        return render json: failed_json.merge(error: "Resetting is not allowed in Game mode"), status: :forbidden
-      end
-
-      points_to_refund = 0 # No refunds in freeform, and game is disabled
-
-      character.update!(target_offset: 0, current_offset: 0, offset_updated_at: Time.now)
-      # DiscourseSize::PointsManager.add_points(current_user, points_to_refund) # redundant but safe
-
-      DiscourseSizeAction.create!(
-        character_id: character.id,
-        user_id: current_user.id,
-        action_type: "reset",
-        size_change: 0,
-      )
-
-      render json: {
-               character: character_serializer(character),
-               points: DiscourseSize::PointsManager.get_points(current_user),
-             }
-    end
 
     def set_size
       character = DiscourseSizeCharacter.find(params[:id])
@@ -296,6 +272,12 @@ module DiscourseSize
         :allow_shrink,
         :measurement_system,
         :character_type,
+        :gender,
+        :pronouns,
+        :age,
+        :description,
+        :show_comparison,
+        :is_main,
       )
     end
 
@@ -342,6 +324,11 @@ module DiscourseSize
         tiniest_rank: tiniest_rank,
         growth_rate_override: c.growth_rate_override,
         character_type: c.character_type,
+        gender: c.gender,
+        pronouns: c.pronouns,
+        age: c.age,
+        description: c.description,
+        show_comparison: c.show_comparison,
         actions:
           c
             .discourse_size_actions

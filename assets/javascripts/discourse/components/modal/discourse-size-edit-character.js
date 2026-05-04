@@ -8,10 +8,15 @@ export default class DiscourseSizeEditCharacter extends Component {
   @tracked name = "";
   @tracked picture = "";
   @tracked infoPost = "";
+  @tracked gender = "";
+  @tracked pronouns = "";
+  @tracked age = "";
+  @tracked description = "";
   @tracked baseSize = 170.0;
   @tracked measurementSystem = "imperial";
   @tracked allowGrowth = true;
   @tracked allowShrink = true;
+  @tracked showComparison = true;
   @tracked isSaving = false;
   @tracked infoPostId = null;
   @tracked sizeError = null;
@@ -27,11 +32,16 @@ export default class DiscourseSizeEditCharacter extends Component {
     this.name = char.name || "";
     this.picture = char.picture || "";
     this.infoPost = char.info_post || "";
+    this.gender = char.gender || "";
+    this.pronouns = char.pronouns || "";
+    this.age = char.age || "";
+    this.description = char.description || "";
     this.baseSize = char.base_size || 170.0;
     this.measurementSystem = char.measurement_system || "imperial";
     this.allowShrink = char.allow_shrink !== false;
     this.isMain = char.is_main || false;
     this.characterType = char.character_type || "game";
+    this.showComparison = char.show_comparison !== false;
   }
 
   get min() {
@@ -145,6 +155,12 @@ export default class DiscourseSizeEditCharacter extends Component {
       allow_growth: this.allowGrowth,
       allow_shrink: this.allowShrink,
       character_type: this.characterType,
+      gender: this.gender,
+      pronouns: this.pronouns,
+      age: this.age,
+      description: this.description,
+      show_comparison: this.showComparison,
+      is_main: this.isMain,
     };
 
     try {
@@ -181,25 +197,6 @@ export default class DiscourseSizeEditCharacter extends Component {
       : Math.floor(Math.abs(targetOffset) / 2);
   }
 
-  @action
-  async resetSize() {
-    if (
-      confirm(
-        "Are you sure? This will return the character to its baseline size. This is not reversible."
-      )
-    ) {
-      try {
-        const result = await ajax(
-          `/size/characters/${this.args.model?.character?.id}/reset`,
-          { type: "POST" }
-        );
-        this.args.model?.onSave?.(result.character);
-        this.args.closeModal?.();
-      } catch (e) {
-        alert("Error resetting size");
-      }
-    }
-  }
 
   @action
   onKeyDown(e) {
@@ -215,33 +212,6 @@ export default class DiscourseSizeEditCharacter extends Component {
     );
   }
 
-  @action
-  async setMain() {
-    try {
-      await ajax(
-        `/size/characters/${this.args.model?.character?.id}/set_main`,
-        { type: "POST" }
-      );
-      this.isMain = true;
-      this.args.model?.onSetMain?.();
-    } catch (e) {
-      alert("Error setting main character");
-    }
-  }
-
-  @action
-  async unsetMain() {
-    try {
-      await ajax(
-        `/size/characters/${this.args.model?.character?.id}/unset_main`,
-        { type: "POST" }
-      );
-      this.isMain = false;
-      this.args.model?.onSetMain?.();
-    } catch (e) {
-      alert("Error unsetting main character");
-    }
-  }
 
   @action
   async deleteCharacter() {

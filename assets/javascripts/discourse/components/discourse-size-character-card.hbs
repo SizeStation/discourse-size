@@ -25,7 +25,7 @@
         </h4>
 
         <div class="owner-actions">
-          {{#if this.currentUser.admin}}
+          {{#if (and this.currentUser.admin (not (eq @character.character_type "freeform")))}}
             <DButton
               @action={{this.adminEdit}}
               @label="discourse_size.admin_edit"
@@ -41,6 +41,27 @@
             />
           {{/if}}
         </div>
+      </div>
+
+      <div class="character-header-meta">
+        {{#if @character.gender}}
+          <span class="header-meta-card gender">
+            <span class="label">Gender:</span>
+            <span class="value">{{@character.gender}}</span>
+          </span>
+        {{/if}}
+        {{#if @character.pronouns}}
+          <span class="header-meta-card pronouns">
+            <span class="label">Pronouns:</span>
+            <span class="value">{{@character.pronouns}}</span>
+          </span>
+        {{/if}}
+        {{#if @character.age}}
+          <span class="header-meta-card age">
+            <span class="label">Age:</span>
+            <span class="value">{{@character.age}}</span>
+          </span>
+        {{/if}}
       </div>
 
       <div class="character-size-row">
@@ -76,16 +97,23 @@
   </div>
 
   <div class="character-description">
-    <p class="character-comparison">
-      {{this.comparisonText}}
-      {{#if this.growthComparisonText}}
-        <span class="growth-comparison"> {{this.growthComparisonText}}</span>
-      {{/if}}
-      {{#if @character.info_post}}
-        <a href={{@character.info_post}} target="_blank" class="info-link">More
-          info about this character.</a>
-      {{/if}}
-    </p>
+    {{#if @character.show_comparison}}
+      <div class="character-comparison">
+        {{this.comparisonText}}
+        {{#if this.growthComparisonText}}
+          <span class="growth-comparison"> {{this.growthComparisonText}}</span>
+        {{/if}}
+      </div>
+    {{/if}}
+
+    {{#if @character.description}}
+      <p class="character-full-description">{{@character.description}}</p>
+    {{/if}}
+
+    {{#if @character.info_post}}
+      <a href={{@character.info_post}} target="_blank" class="info-link">
+        More info about this character.</a>
+    {{/if}}
   </div>
 
   <div class="character-actions">

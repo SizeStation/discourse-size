@@ -26,6 +26,10 @@ en:
       delete: "Delete"
       save: "Save"
       cancel: "Cancel"
+      gender: "Gender"
+      pronouns: "Pronouns"
+      age: "Age"
+      description: "Description"
       leaderboard:
         biggest: "Biggest"
         tiniest: "Tiniest"

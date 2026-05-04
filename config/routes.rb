@@ -7,7 +7,6 @@ DiscourseSize::Engine.routes.draw do
   delete "characters/:id" => "characters#destroy"
   post "characters/:id/grow" => "characters#grow"
   post "characters/:id/shrink" => "characters#shrink"
-  post "characters/:id/reset" => "characters#reset_size"
   post "characters/:id/boost_speed" => "characters#boost_speed"
   post "characters/:id/set_main" => "characters#set_main"
   post "characters/:id/unset_main" => "characters#unset_main"
