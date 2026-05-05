@@ -10,6 +10,7 @@ DiscourseSize::Engine.routes.draw do
   post "characters/:id/boost_speed" => "characters#boost_speed"
   post "characters/:id/set_main" => "characters#set_main"
   post "characters/:id/unset_main" => "characters#unset_main"
+  delete "actions/:id" => "characters#destroy_action"
 
   get "leaderboard" => "leaderboard#index"
 

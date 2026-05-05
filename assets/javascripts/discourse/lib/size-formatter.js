@@ -461,6 +461,39 @@ export const COMPARISONS = [
   { size_cm: 1e120, desc: "bigger than existence itself" },
 ];
 
+export const UNITS = [
+  { id: "atoms", name: "Atoms", factor: 1e-8 },
+  { id: "pm", name: "Picometers (pm)", factor: 1e-10 },
+  { id: "nm", name: "Nanometers (nm)", factor: 1e-7 },
+  { id: "cells", name: "Cells", factor: 0.001 },
+  { id: "cm", name: "Centimeters (cm)", factor: 1 },
+  { id: "inch", name: "Inches (in)", factor: 2.54 },
+  { id: "ft", name: "Feet (ft)", factor: 30.48 },
+  { id: "m", name: "Meters (m)", factor: 100 },
+  { id: "km", name: "Kilometers (km)", factor: 100000 },
+  { id: "mi", name: "Miles (mi)", factor: 160934.4 },
+  { id: "ly", name: "Light Years (ly)", factor: 9.461e17 },
+  { id: "uni", name: "Universes (uni)", factor: 8.8e28 },
+];
+
+export function getBestUnit(sizeCm) {
+  const absSize = Math.abs(parseFloat(sizeCm));
+  if (isNaN(absSize) || absSize === 0) return UNITS.find((u) => u.id === "cm");
+
+  // Filter to reasonable units for editing
+  const candidates = UNITS.filter((u) => u.id !== "atoms" && u.id !== "cells");
+
+  let best = candidates[0];
+  for (const u of candidates) {
+    if (absSize / u.factor >= 1) {
+      best = u;
+    } else {
+      break;
+    }
+  }
+  return best;
+}
+
 function getOrdinal(n) {
   let s = ["th", "st", "nd", "rd"],
     v = n % 100;

@@ -237,6 +237,33 @@ module DiscourseSize
              }
     end
 
+    def destroy_action
+      action = DiscourseSizeAction.find(params[:id])
+      raise Discourse::InvalidAccess unless current_user.admin?
+
+      character = DiscourseSizeCharacter.find(action.character_id)
+      character.sync_offset!
+
+      case action.action_type
+      when "grow", "shrink", "set_size"
+        # Revert the size change immediately
+        character.target_offset -= action.size_change
+        character.current_offset -= action.size_change
+        character.start_offset = character.current_offset
+        character.offset_updated_at = Time.now
+      when "boost_speed"
+        # Revert the speed boost
+        character.growth_rate_bought -= action.size_change
+      end
+
+      character.save!
+      action.destroy
+
+      render json: {
+               character: character_serializer(character),
+             }
+    end
+
     private
 
     def biggest_character_id
@@ -275,6 +302,7 @@ module DiscourseSize
         :gender,
         :pronouns,
         :age,
+        :species,
         :description,
         :show_comparison,
         :is_main,
@@ -311,6 +339,7 @@ module DiscourseSize
         base_size: c.base_size,
         current_offset: c.current_offset,
         target_offset: c.target_offset,
+        start_offset: c.start_offset,
         offset_updated_at: c.offset_updated_at,
         current_size: c.current_size,
         allow_growth: c.allow_growth,
@@ -327,6 +356,7 @@ module DiscourseSize
         gender: c.gender,
         pronouns: c.pronouns,
         age: c.age,
+        species: c.species,
         description: c.description,
         show_comparison: c.show_comparison,
         actions:

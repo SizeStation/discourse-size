@@ -178,6 +178,15 @@
                     action.created_at
                     leaveAgo="true"
                   }}</span>
+                {{#if this.currentUser.admin}}
+                  <DButton
+                    @action={{fn this.deleteAction action}}
+                    class="btn-danger btn-small delete-action-btn"
+                    @title="discourse_size.delete_action"
+                  >
+                    Delete
+                  </DButton>
+                {{/if}}
               </div>
             </li>
           {{/each}}

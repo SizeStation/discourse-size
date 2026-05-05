@@ -29,7 +29,9 @@ en:
       gender: "Gender"
       pronouns: "Pronouns"
       age: "Age"
+      species: "Species"
       description: "Description"
+      delete_action: "Delete activity entry"
       leaderboard:
         biggest: "Biggest"
         tiniest: "Tiniest"

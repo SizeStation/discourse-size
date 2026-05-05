@@ -64,6 +64,12 @@
             <span class="value">{{@character.age}}</span>
           </span>
         {{/if}}
+        {{#if @character.species}}
+          <span class="header-meta-card species">
+            <span class="label">Species:</span>
+            <span class="value">{{@character.species}}</span>
+          </span>
+        {{/if}}
       </div>
 
       <div class="character-size-row">

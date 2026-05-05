@@ -32,11 +32,13 @@
             <td>
               <div class="lb-character-info">
                 {{#if character.picture}}
-                  <img
-                    src={{character.picture}}
-                    alt={{character.name}}
-                    class="lb-picture"
-                  />
+                  <a href="/u/{{character.user.username}}/characters" class="lb-picture-link">
+                    <img
+                      src={{character.picture}}
+                      alt={{character.name}}
+                      class="lb-picture"
+                    />
+                  </a>
                 {{/if}}
                 <a
                   href="/u/{{character.user.username}}/characters"

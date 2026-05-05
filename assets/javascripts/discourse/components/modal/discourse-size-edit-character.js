@@ -3,6 +3,7 @@ import { action } from "@ember/object";
 import { inject as service } from "@ember/service";
 import { tracked } from "@glimmer/tracking";
 import { ajax } from "discourse/lib/ajax";
+import { UNITS, getBestUnit } from "../../lib/size-formatter";
 
 export default class DiscourseSizeEditCharacter extends Component {
   @tracked name = "";
@@ -11,6 +12,7 @@ export default class DiscourseSizeEditCharacter extends Component {
   @tracked gender = "";
   @tracked pronouns = "";
   @tracked age = "";
+  @tracked species = "";
   @tracked description = "";
   @tracked baseSize = 170.0;
   @tracked measurementSystem = "imperial";
@@ -22,19 +24,22 @@ export default class DiscourseSizeEditCharacter extends Component {
   @tracked sizeError = null;
   @tracked isMain = false;
   @tracked characterType = "game";
+  @tracked sizeUnit = "cm";
+  @tracked displaySize = 170.0;
 
   @service currentUser;
   @service siteSettings;
 
   constructor() {
     super(...arguments);
-    const char = this.args.model?.character || {};
+    const char = this.args?.model?.character || {};
     this.name = char.name || "";
     this.picture = char.picture || "";
     this.infoPost = char.info_post || "";
     this.gender = char.gender || "";
     this.pronouns = char.pronouns || "";
     this.age = char.age || "";
+    this.species = char.species || "";
     this.description = char.description || "";
     this.baseSize = char.base_size || 170.0;
     this.measurementSystem = char.measurement_system || "imperial";
@@ -42,6 +47,14 @@ export default class DiscourseSizeEditCharacter extends Component {
     this.isMain = char.is_main || false;
     this.characterType = char.character_type || "game";
     this.showComparison = char.show_comparison !== false;
+
+    const unit = getBestUnit(this.baseSize);
+    this.sizeUnit = unit.id;
+    this.displaySize = parseFloat((this.baseSize / unit.factor).toPrecision(5));
+  }
+
+  get units() {
+    return UNITS;
   }
 
   get min() {
@@ -61,7 +74,7 @@ export default class DiscourseSizeEditCharacter extends Component {
   }
 
   get modalTitle() {
-    return this.args.model?.isNew ? "Create Character" : "Edit Character";
+    return this.args?.model?.isNew ? "Create Character" : "Edit Character";
   }
 
   _checkSize(val) {
@@ -96,32 +109,44 @@ export default class DiscourseSizeEditCharacter extends Component {
   @action
   onBaseSizeInput(event) {
     const val = parseFloat(event.target.value);
-    this.baseSize = isNaN(val) ? event.target.value : val;
-    this._checkSize(val);
+    this.displaySize = isNaN(val) ? event.target.value : val;
+    this._checkSize(this.baseSizeInCm);
+  }
+
+  @action
+  onUnitChange(unitId) {
+    this.sizeUnit = unitId;
+    this._checkSize(this.baseSizeInCm);
+  }
+
+  get baseSizeInCm() {
+    const unit = UNITS.find((u) => u.id === this.sizeUnit) || { factor: 1 };
+    return parseFloat(this.displaySize) * unit.factor;
   }
 
   @action
   onBaseSizeBlur(event) {
     let val = parseFloat(event.target.value);
+    const unit = UNITS.find((u) => u.id === this.sizeUnit) || { factor: 1 };
+    let valCm = val * unit.factor;
 
     if (this.characterType === "game") {
-      if (isNaN(val) || val < this.min) {
-        this.baseSize = this.min;
+      if (isNaN(valCm) || valCm < this.min) {
+        this.displaySize = parseFloat((this.min / unit.factor).toPrecision(5));
         this.sizeError = `Clamped to minimum: ${this.min}cm.`;
-      } else if (val > this.max) {
-        this.baseSize = this.max;
+      } else if (valCm > this.max) {
+        this.displaySize = parseFloat((this.max / unit.factor).toPrecision(5));
         this.sizeError = `Clamped to maximum: ${this.max}cm.`;
       } else {
-        this.baseSize = val;
+        this.displaySize = val;
         this.sizeError = null;
       }
     } else {
-      // Freeform: minimal clamping (just NaN or <= 0)
-      if (isNaN(val) || val <= 0) {
-        this.baseSize = 1.0;
+      if (isNaN(valCm) || valCm <= 0) {
+        this.displaySize = parseFloat((1.0 / unit.factor).toPrecision(5));
         this.sizeError = "Size must be greater than 0.";
       } else {
-        this.baseSize = val;
+        this.displaySize = val;
         this.sizeError = null;
       }
     }
@@ -159,16 +184,16 @@ export default class DiscourseSizeEditCharacter extends Component {
   @action
   async save() {
     // Final clamp before submitting
-    const val = parseFloat(this.baseSize);
+    let valCm = this.baseSizeInCm;
     if (this.characterType === "game") {
-      if (isNaN(val) || val < this.min) {
-        this.baseSize = this.min;
-      } else if (val > this.max) {
-        this.baseSize = this.max;
+      if (isNaN(valCm) || valCm < this.min) {
+        valCm = this.min;
+      } else if (valCm > this.max) {
+        valCm = this.max;
       }
     } else {
-      if (isNaN(val) || val <= 0) {
-        this.baseSize = 1.0;
+      if (isNaN(valCm) || valCm <= 0) {
+        valCm = 1.0;
       }
     }
     this.sizeError = null;
@@ -179,7 +204,7 @@ export default class DiscourseSizeEditCharacter extends Component {
       name: this.name,
       picture: this.picture,
       info_post: this.infoPost,
-      base_size: this.baseSize,
+      base_size: valCm,
       measurement_system: this.measurementSystem,
       allow_growth: this.allowGrowth,
       allow_shrink: this.allowShrink,
@@ -187,6 +212,7 @@ export default class DiscourseSizeEditCharacter extends Component {
       gender: this.gender,
       pronouns: this.pronouns,
       age: this.age,
+      species: this.species,
       description: this.description,
       show_comparison: this.showComparison,
       is_main: this.isMain,
@@ -194,19 +220,19 @@ export default class DiscourseSizeEditCharacter extends Component {
 
     try {
       let result;
-      if (this.args.model?.isNew) {
+      if (this.args?.model?.isNew) {
         result = await ajax("/size/characters", { type: "POST", data });
       } else {
         result = await ajax(
-          `/size/characters/${this.args.model?.character?.id}`,
+          `/size/characters/${this.args?.model?.character?.id}`,
           {
             type: "PUT",
             data,
           }
         );
       }
-      this.args.model?.onSave?.(result.character);
-      this.args.closeModal?.();
+      this.args?.model?.onSave?.(result.character);
+      this.args?.closeModal?.();
     } catch (e) {
       alert(
         e.jqXHR?.responseJSON?.errors?.join(", ") || "Error saving character"
@@ -217,7 +243,7 @@ export default class DiscourseSizeEditCharacter extends Component {
   }
 
   get refundAmount() {
-    const char = this.args.model?.character;
+    const char = this.args?.model?.character;
     if (!char) return 0;
 
     const targetOffset = char.target_offset || 0;
@@ -236,7 +262,7 @@ export default class DiscourseSizeEditCharacter extends Component {
 
   get canSetMain() {
     return (
-      !this.args.model?.isNew && this.args.model?.character?.id && !this.isMain
+      !this.args?.model?.isNew && this.args?.model?.character?.id && !this.isMain
     );
   }
 
@@ -248,11 +274,11 @@ export default class DiscourseSizeEditCharacter extends Component {
     if (!confirmed) return;
 
     try {
-      await ajax(`/size/characters/${this.args.model?.character?.id}`, {
+      await ajax(`/size/characters/${this.args?.model?.character?.id}`, {
         type: "DELETE",
       });
-      this.args.model?.onDelete?.();
-      this.args.closeModal?.();
+      this.args?.model?.onDelete?.();
+      this.args?.closeModal?.();
     } catch (e) {
       alert("Error deleting character");
     }

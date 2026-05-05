@@ -76,9 +76,20 @@ export default class UserCharactersIndexController extends Controller {
   }
 
   @action
-  refreshCharacters() {
-    ajax(`/size/characters?user_id=${this.user.id}`).then((result) => {
-      this.set("characters", result.characters);
+  refreshCharacters(result) {
+    if (result && result.character) {
+      const characters = this.characters || [];
+      const index = characters.findIndex((c) => c.id === result.character.id);
+      if (index !== -1) {
+        const newCharacters = [...characters];
+        newCharacters[index] = result.character;
+        this.set("characters", newCharacters);
+        return;
+      }
+    }
+
+    ajax(`/size/characters?user_id=${this.user.id}`).then((res) => {
+      this.set("characters", res.characters);
     });
   }
 }

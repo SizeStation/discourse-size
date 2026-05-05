@@ -2,24 +2,36 @@ import Component from "@glimmer/component";
 import { tracked } from "@glimmer/tracking";
 import { action } from "@ember/object";
 import { formatSize } from "../../lib/size-formatter";
+import { ajax } from "discourse/lib/ajax";
+import { inject as service } from "@ember/service";
 
 export default class DiscourseSizeGrowthGraph extends Component {
   @tracked hoveredPoint = null;
+  @tracked _actions = null;
+  @tracked _character = null;
+  @service currentUser;
+
+  get character() {
+    return this._character || this.args?.model?.character;
+  }
+
+  get actions() {
+    return this._actions || this.character?.actions || [];
+  }
 
   get oldestFirstActions() {
     if (!this.args) return [];
-    // Character actions come in newest-first, so we reverse for history calculation
-    return (this.args.model?.character?.actions || []).slice().reverse();
+    return this.actions.slice().reverse();
   }
 
   get newestFirstActions() {
     if (!this.args) return [];
-    return this.args.model?.character?.actions || [];
+    return this.actions;
   }
 
   get history() {
     if (!this.args) return [];
-    const char = this.args.model?.character;
+    const char = this.character;
     if (!char) return [];
     const history = [];
     let cumulativeSize = parseFloat(char.base_size);
@@ -87,7 +99,7 @@ export default class DiscourseSizeGrowthGraph extends Component {
         tooltipSizeY: y - 25,
         formattedSize: formatSize(
           h.size,
-          this.args.model?.character?.measurement_system
+          this.character?.measurement_system
         ),
       };
     });
@@ -119,19 +131,19 @@ export default class DiscourseSizeGrowthGraph extends Component {
   get formattedMinSize() {
     return formatSize(
       this.graphData?.minSize || 0,
-      this.args.model?.character?.measurement_system
+      this.character?.measurement_system
     );
   }
 
   get formattedMaxSize() {
     return formatSize(
       this.graphData?.maxSize || 0,
-      this.args.model?.character?.measurement_system
+      this.character?.measurement_system
     );
   }
 
   get topContributors() {
-    const actions = this.args.model?.character?.actions || [];
+    const actions = this.actions;
     const byUser = {};
 
     for (const a of actions) {
@@ -158,7 +170,7 @@ export default class DiscourseSizeGrowthGraph extends Component {
         ...entry,
         formattedSize: formatSize(
           Math.abs(entry.totalSizeCm),
-          this.args.model?.character?.measurement_system
+          this.character?.measurement_system
         ),
         totalPoints: Math.round(entry.totalPoints),
         netEffect: entry.totalSizeCm >= 0 ? "grow" : "shrink",
@@ -168,5 +180,26 @@ export default class DiscourseSizeGrowthGraph extends Component {
   @action
   setHoveredPoint(point) {
     this.hoveredPoint = point;
+  }
+
+  @action
+  async deleteAction(actionItem) {
+    if (!confirm("Are you sure you want to delete this activity entry?")) {
+      return;
+    }
+
+    try {
+      const result = await ajax(`/size/actions/${actionItem.id}`, {
+        type: "DELETE",
+      });
+      this._actions = result.character.actions;
+      this._character = result.character;
+
+      if (this.args?.model?.onActionDeleted) {
+        this.args.model.onActionDeleted(result.character);
+      }
+    } catch (e) {
+      alert("Error deleting action");
+    }
   }
 }

@@ -5,15 +5,39 @@
 >
   <:body>
     <div class="control-group">
-      <label>Base Size (cm)</label>
+      <label>Base Size</label>
       <span class="instructions">The starting size of the character.</span>
-      <Input @type="number" @value={{this.baseSize}} step="0.1" />
+      <div class="size-input-wrapper">
+        <Input @type="number" @value={{this.displayBaseSize}} step="0.0001" />
+        <select
+          class="size-unit-selector"
+          {{on "change" (action "onBaseSizeUnitChange" value="target.value")}}
+        >
+          {{#each this.units as |unit|}}
+            <option value={{unit.id}} selected={{eq this.baseSizeUnit unit.id}}>
+              {{unit.name}}
+            </option>
+          {{/each}}
+        </select>
+      </div>
     </div>
 
     <div class="control-group">
-      <label>Override Current Size (cm)</label>
+      <label>Override Current Size</label>
       <span class="instructions">Directly teleport the character to this size.</span>
-      <Input @type="number" @value={{this.currentSize}} step="0.1" />
+      <div class="size-input-wrapper">
+        <Input @type="number" @value={{this.displaySize}} step="0.0001" />
+        <select
+          class="size-unit-selector"
+          {{on "change" (action "onUnitChange" value="target.value")}}
+        >
+          {{#each this.units as |unit|}}
+            <option value={{unit.id}} selected={{eq this.sizeUnit unit.id}}>
+              {{unit.name}}
+            </option>
+          {{/each}}
+        </select>
+      </div>
     </div>
 
     <div class="control-group">

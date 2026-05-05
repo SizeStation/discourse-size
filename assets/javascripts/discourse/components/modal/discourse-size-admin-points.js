@@ -9,7 +9,7 @@ export default class DiscourseSizeAdminPoints extends Component {
 
   constructor() {
     super(...arguments);
-    this.points = this.args.model?.points || 0;
+    this.points = this.args?.model?.points || 0;
   }
 
   @action
@@ -17,12 +17,12 @@ export default class DiscourseSizeAdminPoints extends Component {
     this.isSaving = true;
 
     try {
-      await ajax(`/size/admin/users/${this.args.model?.user?.id}/points`, {
+      await ajax(`/size/admin/users/${this.args?.model?.user?.id}/points`, {
         type: "PUT",
         data: { points: this.points },
       });
-      this.args.model?.onSave?.(this.points);
-      this.args.closeModal?.();
+      this.args?.model?.onSave?.(this.points);
+      this.args?.closeModal?.();
     } catch (e) {
       alert(e.jqXHR?.responseJSON?.error || "Error saving points");
     } finally {

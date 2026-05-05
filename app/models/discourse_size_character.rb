@@ -33,6 +33,7 @@ class DiscourseSizeCharacter < ActiveRecord::Base
 
   def update_size_target(amount)
     sync_offset!
+    self.start_offset = self.current_offset
     new_target = self.target_offset + amount
 
     # Cap total size
@@ -57,8 +58,11 @@ class DiscourseSizeCharacter < ActiveRecord::Base
     return current_offset if target_offset == current_offset || offset_updated_at.nil?
 
     rate_percent_per_day =
-      (growth_rate_override || SiteSetting.discourse_size_default_max_growth_rate) +
-        growth_rate_bought
+      if growth_rate_override.present?
+        growth_rate_override
+      else
+        SiteSetting.discourse_size_default_max_growth_rate + growth_rate_bought
+      end
     return target_offset if rate_percent_per_day <= 0
 
     days_elapsed = (Time.now - offset_updated_at) / 86400.0

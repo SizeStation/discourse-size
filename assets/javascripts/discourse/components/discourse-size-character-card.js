@@ -28,7 +28,7 @@ export default class DiscourseSizeCharacterCard extends Component {
     super(...arguments);
     this._timer = setInterval(() => {
       if (
-        this.args.character.target_offset !== this.args.character.current_offset
+        this.args?.character?.target_offset !== this.args?.character?.current_offset
       ) {
         this._currentTime = new Date();
       }
@@ -41,15 +41,16 @@ export default class DiscourseSizeCharacterCard extends Component {
   }
 
   get calculatedSizeCm() {
-    const c = this.args.character;
-    if (!c.offset_updated_at || c.target_offset === c.current_offset) {
+    const c = this.args?.character;
+    if (!c || !c.offset_updated_at || c.target_offset === c.current_offset) {
       return c.current_size;
     }
 
     const ratePercentPerDay =
-      (c.growth_rate_override ||
-        this.siteSettings.discourse_size_default_max_growth_rate) +
-      (parseFloat(c.growth_rate_bought) || 0);
+      c.growth_rate_override !== null && c.growth_rate_override !== undefined
+        ? parseFloat(c.growth_rate_override)
+        : this.siteSettings.discourse_size_default_max_growth_rate +
+          (parseFloat(c.growth_rate_bought) || 0);
     if (ratePercentPerDay <= 0) return c.base_size + c.target_offset;
 
     const offsetDate = new Date(c.offset_updated_at);
@@ -78,19 +79,19 @@ export default class DiscourseSizeCharacterCard extends Component {
   get formattedSize() {
     return formatSize(
       this.calculatedSizeCm,
-      this.args.character.measurement_system
+      this.args?.character?.measurement_system
     );
   }
 
   get comparisonText() {
-    const tempChar = Object.assign({}, this.args.character, {
+    const tempChar = Object.assign({}, this.args?.character, {
       current_size: this.calculatedSizeCm,
     });
     return getComparison(tempChar);
   }
 
   get growthComparisonText() {
-    return getGrowthComparison(this.args.character, this.calculatedSizeCm);
+    return getGrowthComparison(this.args?.character, this.calculatedSizeCm);
   }
 
   get pointsCost() {
@@ -110,7 +111,7 @@ export default class DiscourseSizeCharacterCard extends Component {
 
   get formattedSizeChange() {
     const val = parseFloat(this.amountInput) || 0;
-    return formatSize(Math.abs(val), this.args.character.measurement_system);
+    return formatSize(Math.abs(val), this.args?.character?.measurement_system);
   }
 
   get projectedGrowSize() {
@@ -140,7 +141,7 @@ export default class DiscourseSizeCharacterCard extends Component {
 
     const resultSizeCm = currentTargetTotal * Math.pow(1.0 - rate, points);
 
-    return formatSize(resultSizeCm, this.args.character.measurement_system);
+    return formatSize(resultSizeCm, this.args?.character?.measurement_system);
   }
 
   get pointsCost() {
@@ -148,38 +149,41 @@ export default class DiscourseSizeCharacterCard extends Component {
   }
 
   get pointsLeft() {
-    const currentPoints = parseInt(this.args.userPoints, 10) || 0;
+    const currentPoints = parseInt(this.args?.userPoints, 10) || 0;
     return currentPoints - this.pointsCost;
   }
 
   get targetSizeCm() {
-    return this.args.character.base_size + this.args.character.target_offset;
+    return this.args?.character?.base_size + this.args?.character?.target_offset;
   }
 
   get formattedTargetSize() {
     return formatSize(
       this.targetSizeCm,
-      this.args.character.measurement_system
+      this.args?.character?.measurement_system
     );
   }
 
   get isAnimating() {
     return (
-      this.args.character.target_offset !== this.args.character.current_offset
+      this.args?.character?.target_offset !== this.args?.character?.current_offset
     );
   }
 
   get formattedGrowthRate() {
-    const c = this.args.character;
+    const c = this.args?.character;
+    if (!c) return "";
     const ratePercent =
-      (c.growth_rate_override ||
-        this.siteSettings.discourse_size_default_max_growth_rate) +
-      (parseFloat(c.growth_rate_bought) || 0);
+      c.growth_rate_override !== null && c.growth_rate_override !== undefined
+        ? parseFloat(c.growth_rate_override)
+        : this.siteSettings.discourse_size_default_max_growth_rate +
+          (parseFloat(c.growth_rate_bought) || 0);
     return `${ratePercent.toFixed(2)}% / day`;
   }
 
   get timeRemaining() {
-    const c = this.args.character;
+    const c = this.args?.character;
+    if (!c) return null;
     const currentSize = this.calculatedSizeCm;
     const targetSize = c.base_size + c.target_offset;
 
@@ -192,9 +196,10 @@ export default class DiscourseSizeCharacterCard extends Component {
       return null;
 
     const ratePercentPerDay =
-      (c.growth_rate_override ||
-        this.siteSettings.discourse_size_default_max_growth_rate) +
-      (parseFloat(c.growth_rate_bought) || 0);
+      c.growth_rate_override !== null && c.growth_rate_override !== undefined
+        ? parseFloat(c.growth_rate_override)
+        : this.siteSettings.discourse_size_default_max_growth_rate +
+          (parseFloat(c.growth_rate_bought) || 0);
     if (ratePercentPerDay <= 0) return null;
 
     const multiplier = 1.0 + ratePercentPerDay / 100.0;
@@ -219,12 +224,13 @@ export default class DiscourseSizeCharacterCard extends Component {
   }
 
   get showSpeed() {
-    return this.args.character.character_type === "game";
+    return this.args?.character?.character_type === "game";
   }
 
   get progressPercent() {
-    const c = this.args.character;
-    const startOffset = parseFloat(c.current_offset);
+    const c = this.args?.character;
+    if (!c) return 0;
+    const startOffset = parseFloat(c.start_offset || c.current_offset);
     const targetOffset = parseFloat(c.target_offset);
     const currentOffset = this.calculatedSizeCm - parseFloat(c.base_size);
 
@@ -238,20 +244,20 @@ export default class DiscourseSizeCharacterCard extends Component {
   }
 
   get canEdit() {
-    return this.args.isCurrentUser || this.currentUser?.admin;
+    return this.args?.isCurrentUser || this.currentUser?.admin;
   }
 
   get canGrow() {
-    return this.args.character.allow_growth || this.args.isCurrentUser;
+    return this.args?.character?.allow_growth || this.args?.isCurrentUser;
   }
 
   get canShrink() {
-    return this.args.character.allow_shrink || this.canEdit;
+    return this.args?.character?.allow_shrink || this.canEdit;
   }
 
   get canGrowOrShrink() {
     if (!this.currentUser) return false;
-    if (this.args.character.character_type === "freeform") return false;
+    if (this.args?.character?.character_type === "freeform") return false;
     return this.canGrow || this.canShrink;
   }
 
@@ -259,7 +265,10 @@ export default class DiscourseSizeCharacterCard extends Component {
   showGrowthGraph() {
     this.modal.show(DiscourseSizeGrowthGraph, {
       model: {
-        character: this.args.character,
+        character: this.args?.character,
+        onActionDeleted: (updatedChar) => {
+          this.args?.onAction?.(updatedChar);
+        },
       },
     });
   }
@@ -267,10 +276,10 @@ export default class DiscourseSizeCharacterCard extends Component {
   @action
   async setMain() {
     try {
-      await ajax(`/size/characters/${this.args.character.id}/set_main`, {
+      await ajax(`/size/characters/${this.args?.character?.id}/set_main`, {
         type: "POST",
       });
-      this.args.onAction?.();
+      this.args?.onAction?.();
     } catch (e) {
       alert("Error setting main character");
     }
@@ -280,8 +289,8 @@ export default class DiscourseSizeCharacterCard extends Component {
   adminEdit() {
     this.modal.show(DiscourseSizeAdminEdit, {
       model: {
-        character: this.args.character,
-        onSave: this.args.onAction,
+        character: this.args?.character,
+        onSave: this.args?.onAction,
       },
     });
   }
