@@ -122,6 +122,8 @@ end
 #  picture              :string
 #  pronouns             :string
 #  show_comparison      :boolean          default(TRUE), not null
+#  species              :string
+#  start_offset         :float            default(0.0), not null
 #  target_offset        :float            default(0.0), not null
 #  created_at           :datetime         not null
 #  updated_at           :datetime         not null
