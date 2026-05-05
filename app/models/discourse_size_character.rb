@@ -187,6 +187,7 @@ end
 #  name                 :string           not null
 #  offset_updated_at    :datetime         not null
 #  picture              :string
+#  position             :integer          default(0), not null
 #  pronouns             :string
 #  show_comparison      :boolean          default(TRUE), not null
 #  species              :string
@@ -194,10 +195,12 @@ end
 #  target_offset        :float            default(0.0), not null
 #  created_at           :datetime         not null
 #  updated_at           :datetime         not null
+#  folder_id            :integer
 #  user_id              :integer          not null
 #
 # Indexes
 #
+#  index_discourse_size_characters_on_folder_id            (folder_id)
 #  index_discourse_size_characters_on_user_id              (user_id)
 #  index_discourse_size_characters_on_user_id_and_is_main  (user_id,is_main) UNIQUE WHERE (is_main = true)
 #

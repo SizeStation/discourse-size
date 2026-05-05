@@ -18,14 +18,15 @@ end
 #
 # Table name: discourse_size_actions
 #
-#  id           :bigint           not null, primary key
-#  action_type  :string           not null
-#  points_spent :float            default(0.0), not null
-#  size_change  :float            not null
-#  created_at   :datetime         not null
-#  updated_at   :datetime         not null
-#  character_id :integer          not null
-#  user_id      :integer          not null
+#  id              :bigint           not null, primary key
+#  action_type     :string           not null
+#  points_spent    :float            default(0.0), not null
+#  size_change     :float            not null
+#  created_at      :datetime         not null
+#  updated_at      :datetime         not null
+#  character_id    :integer          not null
+#  notification_id :integer
+#  user_id         :integer          not null
 #
 # Indexes
 #

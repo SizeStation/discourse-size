@@ -21,3 +21,20 @@ class DiscourseSizeFolder < ActiveRecord::Base
     end
   end
 end
+
+# == Schema Information
+#
+# Table name: discourse_size_folders
+#
+#  id         :bigint           not null, primary key
+#  hex_color  :string
+#  name       :string           not null
+#  position   :integer          default(0), not null
+#  created_at :datetime         not null
+#  updated_at :datetime         not null
+#  user_id    :integer          not null
+#
+# Indexes
+#
+#  index_discourse_size_folders_on_user_id  (user_id)
+#
