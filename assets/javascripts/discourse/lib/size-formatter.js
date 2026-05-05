@@ -702,6 +702,31 @@ export function getComparison(character) {
   return result;
 }
 
+function smartFixed(val, system = "metric") {
+  const absVal = Math.abs(val);
+  let formatted;
+
+  if (absVal >= 100) {
+    formatted = Math.round(val).toString();
+    // Add thousands separator
+    const separator = system === "metric" ? "." : ",";
+    formatted = formatted.replace(/\B(?=(\d{3})+(?!\d))/g, separator);
+    return formatted;
+  }
+
+  if (absVal >= 10) {
+    formatted = val.toFixed(1);
+  } else {
+    formatted = val.toFixed(2);
+  }
+
+  if (system === "metric") {
+    formatted = formatted.replace(".", ",");
+  }
+
+  return formatted;
+}
+
 export function formatSize(sizeCm, system = "metric") {
   const parsedSize = parseFloat(sizeCm);
   if (isNaN(parsedSize) || parsedSize === 0) return "0 cm";
@@ -724,21 +749,21 @@ export function formatSize(sizeCm, system = "metric") {
   }
 
   if (system === "metric") {
-    if (absSize < 1e-7) return `${sign}${pm.toFixed(2)} pm`;
-    if (absSize < 1e-5) return `${sign}${nm.toFixed(2)} nm`;
-    if (absSize < 0.01) return `${sign}${cells.toFixed(2)} cells`;
-    if (absSize < 100) return `${sign}${absSize.toFixed(2)} cm`;
-    if (absSize < 100000) return `${sign}${(absSize / 100).toFixed(2)} m`;
-    if (absSize < 9.461e17) return `${sign}${(absSize / 100000).toFixed(2)} km`;
-    if (absSize < 8.8e28) return `${sign}${lightyears.toFixed(2)} ly`;
-    return `${sign}${universes.toFixed(2)} uni`;
+    if (absSize < 1e-7) return `${sign}${smartFixed(pm, system)} pm`;
+    if (absSize < 1e-5) return `${sign}${smartFixed(nm, system)} nm`;
+    if (absSize < 0.01) return `${sign}${smartFixed(cells, system)} cells`;
+    if (absSize < 100) return `${sign}${smartFixed(absSize, system)} cm`;
+    if (absSize < 100000) return `${sign}${smartFixed(absSize / 100, system)} m`;
+    if (absSize < 9.461e17) return `${sign}${smartFixed(absSize / 100000, system)} km`;
+    if (absSize < 8.8e28) return `${sign}${smartFixed(lightyears, system)} ly`;
+    return `${sign}${smartFixed(universes, system)} uni`;
   } else {
-    if (absSize < 1e-7) return `${sign}${pm.toFixed(2)} pm`;
-    if (absSize < 1e-5) return `${sign}${nm.toFixed(2)} nm`;
-    if (absSize < 0.01) return `${sign}${cells.toFixed(2)} cells`;
+    if (absSize < 1e-7) return `${sign}${smartFixed(pm, system)} pm`;
+    if (absSize < 1e-5) return `${sign}${smartFixed(nm, system)} nm`;
+    if (absSize < 0.01) return `${sign}${smartFixed(cells, system)} cells`;
 
     const inches = absSize / 2.54;
-    if (inches < 12) return `${sign}${inches.toFixed(2)}"`;
+    if (inches < 12) return `${sign}${smartFixed(inches, system)}"`;
 
     const feet = inches / 12;
     if (feet < 5280) {
@@ -749,8 +774,8 @@ export function formatSize(sizeCm, system = "metric") {
     }
 
     const miles = feet / 5280;
-    if (absSize < 9.461e17) return `${sign}${miles.toFixed(2)} mi`;
-    if (absSize < 8.8e28) return `${sign}${lightyears.toFixed(2)} ly`;
-    return `${sign}${universes.toFixed(2)} uni`;
+    if (absSize < 9.461e17) return `${sign}${smartFixed(miles, system)} mi`;
+    if (absSize < 8.8e28) return `${sign}${smartFixed(lightyears, system)} ly`;
+    return `${sign}${smartFixed(universes, system)} uni`;
   }
 }

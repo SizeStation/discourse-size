@@ -51,6 +51,45 @@ export default class DiscourseSizeEditCharacter extends Component {
     const unit = getBestUnit(this.baseSize);
     this.sizeUnit = unit.id;
     this.displaySize = parseFloat((this.baseSize / unit.factor).toPrecision(5));
+
+    this._initialDisplaySize = this.displaySize;
+    this._initialSizeUnit = this.sizeUnit;
+  }
+
+  get isDirty() {
+    const char = this.args?.model?.character || {};
+    const initialAllowGrowth = char.allow_growth !== false;
+    const initialAllowShrink = char.allow_shrink !== false;
+    const initialShowComparison = char.show_comparison !== false;
+
+    return (
+      this.name !== (char.name || "") ||
+      this.picture !== (char.picture || "") ||
+      this.infoPost !== (char.info_post || "") ||
+      this.gender !== (char.gender || "") ||
+      this.pronouns !== (char.pronouns || "") ||
+      this.age !== (char.age || "") ||
+      this.species !== (char.species || "") ||
+      this.description !== (char.description || "") ||
+      this.measurementSystem !== (char.measurement_system || "imperial") ||
+      this.allowGrowth !== initialAllowGrowth ||
+      this.allowShrink !== initialAllowShrink ||
+      this.showComparison !== initialShowComparison ||
+      this.isMain !== (char.is_main || false) ||
+      this.characterType !== (char.character_type || "game") ||
+      parseFloat(this.displaySize) !== parseFloat(this._initialDisplaySize) ||
+      this.sizeUnit !== this._initialSizeUnit
+    );
+  }
+
+  @action
+  close() {
+    if (this.isDirty) {
+      if (!confirm("You have unsaved changes. Are you sure you want to exit?")) {
+        return;
+      }
+    }
+    this.args.closeModal();
   }
 
   get units() {

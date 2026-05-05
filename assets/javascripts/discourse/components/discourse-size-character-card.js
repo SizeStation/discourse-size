@@ -243,12 +243,55 @@ export default class DiscourseSizeCharacterCard extends Component {
     return Math.min(100, Math.max(0, Math.round(progress * 100)));
   }
 
+  get hasDescription() {
+    const c = this.args?.character;
+    return c?.show_comparison || c?.description || c?.info_post;
+  }
+
   get canEdit() {
     return this.args?.isCurrentUser || this.currentUser?.admin;
   }
 
   get canGrow() {
     return this.args?.character?.allow_growth || this.args?.isCurrentUser;
+  }
+
+  get isGrowing() {
+    return (
+      this.args?.character?.target_offset > this.args?.character?.current_offset
+    );
+  }
+
+  get isShrinking() {
+    return (
+      this.args?.character?.target_offset < this.args?.character?.current_offset
+    );
+  }
+
+  get formattedStartSize() {
+    const c = this.args?.character;
+    if (!c) return "";
+    const startSize = c.base_size + (c.start_offset || c.current_offset);
+    return formatSize(startSize, c.measurement_system);
+  }
+
+  get movementDuration() {
+    const c = this.args?.character;
+    if (!c || !Array.isArray(c.actions)) return "";
+
+    const movementAction = c.actions.find((a) =>
+      ["grow", "shrink"].includes(a.action_type)
+    );
+    if (!movementAction || !movementAction.created_at) return "";
+
+    const elapsed =
+      (Date.now() - new Date(movementAction.created_at).getTime()) / 1000;
+    if (elapsed < 5) return "";
+
+    if (elapsed < 60) return `${Math.round(elapsed)}s`;
+    if (elapsed < 3600) return `${Math.round(elapsed / 60)}m`;
+    if (elapsed < 86400) return `${Math.round(elapsed / 3600)}h`;
+    return `${(elapsed / 86400).toFixed(1)}d`;
   }
 
   get canShrink() {

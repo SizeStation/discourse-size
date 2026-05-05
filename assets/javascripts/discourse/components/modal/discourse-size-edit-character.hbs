@@ -1,6 +1,5 @@
 <DModal
   @title={{this.modalTitle}}
-  @closeModal={{@closeModal}}
   class="discourse-size-edit-character-modal"
 >
   <:body>
@@ -226,7 +225,7 @@
       class="btn-primary"
     />
     <DButton
-      @action={{@closeModal}}
+      @action={{this.close}}
       @label="discourse_size.cancel"
       class="btn-default"
     />
