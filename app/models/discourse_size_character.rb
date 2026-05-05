@@ -5,6 +5,24 @@ class DiscourseSizeCharacter < ActiveRecord::Base
   belongs_to :discourse_size_folder, foreign_key: "folder_id", optional: true
   before_validation :trim_fields
   before_save :ensure_single_main, if: :is_main?
+  before_create :set_default_position
+  before_save :set_folder_position, if: :will_save_change_to_folder_id?
+
+  def set_default_position
+    return if position.present?
+    if folder_id.nil?
+      max_char = DiscourseSizeCharacter.where(user_id: user_id, folder_id: nil).maximum(:position) || 0
+      max_folder = DiscourseSizeFolder.where(user_id: user_id).maximum(:position) || 0
+      self.position = [max_char, max_folder].max + 1
+    else
+      self.position = DiscourseSizeCharacter.where(folder_id: folder_id).maximum(:position).to_i + 1
+    end
+  end
+
+  def set_folder_position
+    return unless folder_id && will_save_change_to_folder_id?
+    self.position = DiscourseSizeCharacter.where(folder_id: folder_id).maximum(:position).to_i + 1
+  end
 
   validates :name, presence: true
   validates :base_size, presence: true
@@ -46,16 +64,17 @@ class DiscourseSizeCharacter < ActiveRecord::Base
   def update_size_target(amount)
     sync_offset!
     self.start_offset = self.current_offset
+    self.offset_updated_at = Time.now
     new_target = self.target_offset + amount
-
+ 
     # Cap total size
     if (self.base_size + new_target) > MAX_SIZE
       new_target = MAX_SIZE - self.base_size
     end
-
+ 
     # Floor total size at a nanoscopic value (1e-18 cm) to prevent true zero/negative
     new_target = 1e-18 - self.base_size if (self.base_size + new_target) < 1e-18
-
+ 
     self.target_offset = new_target
     save!
   end

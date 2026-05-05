@@ -14,6 +14,18 @@
         {{on "keydown" this.handleKeyDown}}
       />
     </div>
+
+    <div class="control-group">
+      <label>Folder Color</label>
+      <div class="color-picker-wrapper">
+        <Input
+          @type="color"
+          @value={{this.hexColor}}
+          class="folder-color-input"
+        />
+        <span class="color-value">{{this.hexColor}}</span>
+      </div>
+    </div>
   </:body>
 
   <:footer>

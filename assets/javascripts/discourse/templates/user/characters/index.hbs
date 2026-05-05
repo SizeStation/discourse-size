@@ -78,7 +78,7 @@
     @onReorder={{this.onCharacterReorder}}
     data-top-level="true"
   >
-    {{#each this.combinedTopLevelList as |item|}}
+    {{#each this.combinedTopLevelList key="id" as |item|}}
       <div
         class="reorderable-item"
         data-id={{item.id}}
@@ -108,7 +108,7 @@
               @onReorder={{this.onCharacterReorder}}
               data-folder-id={{item.id}}
             >
-              {{#each (get this.organizedCharacters item.id) as |character|}}
+              {{#each (get this.organizedCharacters item.id) key="id" as |character|}}
                 <div
                   class="reorderable-item"
                   data-id={{character.id}}

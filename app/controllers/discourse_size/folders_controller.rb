@@ -12,10 +12,6 @@ module DiscourseSize
       # Authorization
       guardian.ensure_can_edit_user!(User.find(folder.user_id))
 
-      # Put at bottom
-      max_pos = DiscourseSizeFolder.where(user_id: folder.user_id).maximum(:position) || 0
-      folder.position = max_pos + 1
-
       if folder.save
         render_serialized(folder, FolderSerializer)
       else
@@ -53,7 +49,7 @@ module DiscourseSize
     private
 
     def folder_params
-      params.require(:folder).permit(:name)
+      params.require(:folder).permit(:name, :hex_color)
     end
   end
 end

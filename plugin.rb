@@ -15,8 +15,11 @@ end
 
 require_relative "lib/discourse_size/engine"
 require_relative "lib/discourse_size/points_manager"
+require_relative "lib/discourse_size/notification_manager"
 
 register_svg_icon "paw"
+register_svg_icon "angle-double-up"
+register_svg_icon "angle-double-down"
 register_asset "stylesheets/discourse-size.scss"
 
 after_initialize do
@@ -24,35 +27,70 @@ after_initialize do
   require_relative "app/models/discourse_size_action"
   require_relative "app/models/discourse_size_folder"
 
-  # Points for inviting
-  on(:user_invited) do |invitee|
-    if SiteSetting.discourse_size_enabled && invitee.invited_by
-      DiscourseSize::PointsManager.add_points(
-        invitee.invited_by,
-        SiteSetting.discourse_size_points_per_invite,
-      )
-    end
+  # This registers it both on the model and for the frontend
+  # register_notification_type is the modern way
+  if respond_to?(:register_notification_type)
+    register_notification_type(:discourse_size_notification, 801)
+  else
+    Notification.types[:discourse_size_notification] = 801
   end
 
-  # Points for being invited (redeemed invite)
-  on(:user_created) do |user|
-    # wait, this doesn't know if they were invited easily without checking invite.
-  end
-
-  on(:user_promoted) do |args|
-    # When user reaches TL1, we could say they are verified as an invitee.
-    # But a better way is to hook into `invite_redeemed`.
-  end
-
+  # Points for inviting / being invited
   on(:invite_redeemed) do |invite|
     if SiteSetting.discourse_size_enabled
+      # Points for the person who joined
       if invite.user
         DiscourseSize::PointsManager.add_points(
           invite.user,
           SiteSetting.discourse_size_points_per_invited,
         )
       end
+      # Points for the person who sent the invite
+      if invite.invited_by
+        DiscourseSize::PointsManager.add_points(
+          invite.invited_by,
+          SiteSetting.discourse_size_points_per_invite,
+        )
+      end
     end
+  end
+
+  # Points for daily login (fires on explicit login)
+  on(:user_logged_in) do |user|
+    if SiteSetting.discourse_size_enabled
+      last_login_date = user.custom_fields["discourse_size_last_daily_login_date"]
+      today = Date.today.to_s
+      if last_login_date != today
+        user.custom_fields["discourse_size_last_daily_login_date"] = today
+        user.save_custom_fields(true)
+        DiscourseSize::PointsManager.add_points(
+          user,
+          SiteSetting.discourse_size_points_per_daily_login,
+        )
+      end
+    end
+  end
+
+  # Points for opening the site (for users already logged in)
+  add_to_class(:application_controller, :check_discourse_size_daily_points) do
+    return unless SiteSetting.discourse_size_enabled && current_user
+    return if @discourse_size_checked_daily_points
+    @discourse_size_checked_daily_points = true
+
+    last_login_date = current_user.custom_fields["discourse_size_last_daily_login_date"]
+    today = Date.today.to_s
+    if last_login_date != today
+      current_user.custom_fields["discourse_size_last_daily_login_date"] = today
+      current_user.save_custom_fields(true)
+      DiscourseSize::PointsManager.add_points(
+        current_user,
+        SiteSetting.discourse_size_points_per_daily_login,
+      )
+    end
+  end
+
+  class ::ApplicationController
+    before_action :check_discourse_size_daily_points
   end
 
   # Points for posting a reply / new thread
@@ -67,22 +105,6 @@ after_initialize do
           end
         )
       DiscourseSize::PointsManager.add_points(user, points)
-    end
-  end
-
-  # Points for daily login
-  on(:user_logged_in) do |user|
-    if SiteSetting.discourse_size_enabled
-      last_login_date = user.custom_fields["discourse_size_last_daily_login_date"]
-      today = Date.today.to_s
-      if last_login_date != today
-        user.custom_fields["discourse_size_last_daily_login_date"] = today
-        user.save_custom_fields(true)
-        DiscourseSize::PointsManager.add_points(
-          user,
-          SiteSetting.discourse_size_points_per_daily_login,
-        )
-      end
     end
   end
 

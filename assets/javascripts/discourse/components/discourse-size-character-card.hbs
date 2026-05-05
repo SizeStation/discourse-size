@@ -19,7 +19,6 @@
           {{/if}}
         </h2>
 
-
         <div class="owner-actions">
           {{#if
             (and
@@ -160,7 +159,9 @@
   {{#if @character.actions.length}}
     <div class="character-activity">
       <div class="activity-header">
-        <h5>{{i18n "discourse_size.recent_activity"}} ({{@character.actions.length}})</h5>
+        <h5>{{i18n "discourse_size.recent_activity"}}
+          ({{@character.actions.length}}
+          total)</h5>
         <DButton
           @action={{this.showGrowthGraph}}
           @icon="chart-line"
@@ -208,14 +209,6 @@
           </li>
         {{/each}}
       </ul>
-      {{#if this.moreActionsCount}}
-        <div class="more-activity">
-          <a href {{on "click" this.showGrowthGraph}}>
-            {{this.moreActionsCount}}
-            more...
-          </a>
-        </div>
-      {{/if}}
     </div>
   {{/if}}
 </div>

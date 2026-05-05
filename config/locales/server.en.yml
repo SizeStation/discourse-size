@@ -1,1 +1,5 @@
 en:
+  notifications:
+    discourse_size_notification:
+      grow: "%{username} made your character %{character_name} grow by %{amount}."
+      shrink: "%{username} made your character %{character_name} shrink by %{amount}."

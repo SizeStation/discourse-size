@@ -100,6 +100,14 @@ export default class UserCharactersIndexController extends Controller {
 
   @action
   async refreshCharacters(result) {
+    // Update points if returned
+    if (result && result.points !== undefined) {
+      this.set("user.discourse_size_points", result.points);
+      if (this.isCurrentUser) {
+        this.currentUser.set("discourse_size_points", result.points);
+      }
+    }
+
     // If it's a simple character update, try to update in-place to avoid full reload
     if (result && result.character) {
       const characters = this.get("characters") || [];
@@ -191,8 +199,12 @@ export default class UserCharactersIndexController extends Controller {
       }
     });
 
-    this.set("characters", characters);
-    this.set("folders", folders);
+    // Use a small delay before updating state to let Sortable finish its DOM work
+    // This helps prevent duplicate items from appearing
+    setTimeout(() => {
+      this.set("characters", characters);
+      this.set("folders", folders);
+    }, 0);
 
     try {
       await ajax("/size/characters/reorder_top_level", {
@@ -236,7 +248,10 @@ export default class UserCharactersIndexController extends Controller {
       }
     });
 
-    this.set("characters", characters);
+    // Use a small delay before updating state to let Sortable finish its DOM work
+    setTimeout(() => {
+      this.set("characters", characters);
+    }, 0);
 
     try {
       await ajax("/size/characters/reorder", {
@@ -270,7 +285,9 @@ export default class UserCharactersIndexController extends Controller {
       }
     });
 
-    this.set("folders", folders);
+    setTimeout(() => {
+      this.set("folders", folders);
+    }, 0);
 
     try {
       await ajax("/size/folders/reorder", {

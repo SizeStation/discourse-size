@@ -39,3 +39,7 @@ en:
         biggest: "Biggest"
         tiniest: "Tiniest"
         smallest: "Smallest"
+      notifications:
+        title: "Character Interaction"
+        grow: "%{username} made %{character_name} grow by %{amount}."
+        shrink: "%{username} made %{character_name} shrink by %{amount}."

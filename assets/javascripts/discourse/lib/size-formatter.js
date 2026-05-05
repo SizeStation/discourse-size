@@ -753,10 +753,13 @@ export function formatSize(sizeCm, system = "metric") {
     if (absSize < 1e-5) return `${sign}${smartFixed(nm, system)} nm`;
     if (absSize < 0.01) return `${sign}${smartFixed(cells, system)} cells`;
     if (absSize < 100) return `${sign}${smartFixed(absSize, system)} cm`;
-    if (absSize < 100000) return `${sign}${smartFixed(absSize / 100, system)} m`;
-    if (absSize < 9.461e17) return `${sign}${smartFixed(absSize / 100000, system)} km`;
-    if (absSize < 8.8e28) return `${sign}${smartFixed(lightyears, system)} ly`;
-    return `${sign}${smartFixed(universes, system)} uni`;
+    if (absSize < 100000)
+      return `${sign}${smartFixed(absSize / 100, system)} m`;
+    if (absSize < 9.461e17)
+      return `${sign}${smartFixed(absSize / 100000, system)} km`;
+    if (absSize < 8.8e28)
+      return `${sign}${smartFixed(lightyears, system)} lightyears`;
+    return `${sign}${smartFixed(universes, system)} universes`;
   } else {
     if (absSize < 1e-7) return `${sign}${smartFixed(pm, system)} pm`;
     if (absSize < 1e-5) return `${sign}${smartFixed(nm, system)} nm`;
@@ -775,7 +778,8 @@ export function formatSize(sizeCm, system = "metric") {
 
     const miles = feet / 5280;
     if (absSize < 9.461e17) return `${sign}${smartFixed(miles, system)} mi`;
-    if (absSize < 8.8e28) return `${sign}${smartFixed(lightyears, system)} ly`;
-    return `${sign}${smartFixed(universes, system)} uni`;
+    if (absSize < 8.8e28)
+      return `${sign}${smartFixed(lightyears, system)} lightyears`;
+    return `${sign}${smartFixed(universes, system)} universes`;
   }
 }

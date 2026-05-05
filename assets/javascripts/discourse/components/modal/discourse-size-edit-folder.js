@@ -5,6 +5,7 @@ import { ajax } from "discourse/lib/ajax";
 
 export default class DiscourseSizeEditFolder extends Component {
   @tracked name = this.args.model.folder?.name || "";
+  @tracked hexColor = this.args.model.folder?.hex_color || "#f4f4f4";
   @tracked isSaving = false;
 
   get title() {
@@ -25,7 +26,12 @@ export default class DiscourseSizeEditFolder extends Component {
     }
 
     this.isSaving = true;
-    const data = { folder: { name: this.name.trim() } };
+    const data = {
+      folder: {
+        name: this.name.trim(),
+        hex_color: this.hexColor,
+      },
+    };
 
     try {
       let result;

@@ -150,12 +150,20 @@ module DiscourseSize
       DiscourseSize::PointsManager.remove_points(current_user, points_cost)
       character.update_size_target(amount_cm)
 
+      notification_id = DiscourseSize::NotificationManager.send_growth_notification(
+        current_user,
+        character,
+        "grow",
+        amount_cm
+      )
+
       DiscourseSizeAction.create!(
         character_id: character.id,
         user_id: current_user.id,
         action_type: "grow",
         size_change: amount_cm,
         points_spent: points_cost,
+        notification_id: notification_id
       )
 
       render json: {
@@ -192,12 +200,20 @@ module DiscourseSize
       DiscourseSize::PointsManager.remove_points(current_user, points_cost)
       character.update_size_target(amount_cm)
 
+      notification_id = DiscourseSize::NotificationManager.send_growth_notification(
+        current_user,
+        character,
+        "shrink",
+        amount_cm
+      )
+
       DiscourseSizeAction.create!(
         character_id: character.id,
         user_id: current_user.id,
         action_type: "shrink",
         size_change: amount_cm,
         points_spent: points_cost,
+        notification_id: notification_id
       )
 
       render json: {
@@ -282,6 +298,11 @@ module DiscourseSize
     def destroy_action
       action = DiscourseSizeAction.find(params[:id])
       raise Discourse::InvalidAccess unless current_user.admin?
+
+      # Delete notification if it exists
+      if action.respond_to?(:notification_id) && action.notification_id
+        DiscourseSize::NotificationManager.delete_notification(action.notification_id)
+      end
 
       character = DiscourseSizeCharacter.find(action.character_id)
       character.sync_offset!
@@ -440,6 +461,7 @@ module DiscourseSize
         name: f.name,
         position: f.position,
         user_id: f.user_id,
+        hex_color: f.hex_color,
       }
     end
   end
