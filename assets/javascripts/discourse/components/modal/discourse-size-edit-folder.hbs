@@ -1,0 +1,48 @@
+<DModal
+  @title={{this.title}}
+  @closeModal={{@closeModal}}
+  class="discourse-size-edit-folder-modal"
+>
+  <:body>
+    <div class="control-group">
+      <label>Folder Name</label>
+      <Input
+        @type="text"
+        @value={{this.name}}
+        autofocus="autofocus"
+        class="folder-name-input"
+        {{on "keydown" this.handleKeyDown}}
+      />
+    </div>
+  </:body>
+
+  <:footer>
+    <div class="modal-footer-actions">
+      <div class="main-actions">
+        <DButton
+          @action={{this.save}}
+          @label={{if
+            this.args.model.isNew
+            "discourse_size.create"
+            "discourse_size.save"
+          }}
+          @disabled={{this.isSaving}}
+          class="btn-primary"
+        />
+        <DButton
+          @action={{@closeModal}}
+          @label="discourse_size.cancel"
+          class="btn-default"
+        />
+      </div>
+
+      {{#unless this.args.model.isNew}}
+        <DButton
+          @action={{this.deleteFolder}}
+          @label="discourse_size.delete_folder"
+          class="btn-danger"
+        />
+      {{/unless}}
+    </div>
+  </:footer>
+</DModal>

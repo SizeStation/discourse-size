@@ -32,6 +32,9 @@ en:
       species: "Species"
       description: "Description"
       delete_action: "Delete activity entry"
+      create_folder: "Create Folder"
+      delete_folder: "Delete Folder"
+      create: "Create"
       leaderboard:
         biggest: "Biggest"
         tiniest: "Tiniest"

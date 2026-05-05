@@ -11,13 +11,14 @@
     {{/if}}
 
     <div class="character-info">
-      <div class="character-header">
+      <div class="character-title-row">
         <h2>
           <strong>{{@character.name}}</strong>
           {{#if @character.is_main}}
             <span class="badge main-badge">Main Character</span>
           {{/if}}
         </h2>
+
 
         <div class="owner-actions">
           {{#if
@@ -39,6 +40,12 @@
               @label="discourse_size.edit"
               class="btn-default"
             />
+          {{/if}}
+
+          {{#if @showReorderHandle}}
+            <div class="character-drag-handle">
+              {{d-icon "bars"}}
+            </div>
           {{/if}}
         </div>
       </div>
@@ -153,7 +160,7 @@
   {{#if @character.actions.length}}
     <div class="character-activity">
       <div class="activity-header">
-        <h5>{{i18n "discourse_size.recent_activity"}}</h5>
+        <h5>{{i18n "discourse_size.recent_activity"}} ({{@character.actions.length}})</h5>
         <DButton
           @action={{this.showGrowthGraph}}
           @icon="chart-line"
@@ -162,7 +169,7 @@
         />
       </div>
       <ul>
-        {{#each @character.actions as |action|}}
+        {{#each this.recentActions as |action|}}
           <li>
             <span class="activity-date">{{format-date
                 action.created_at
@@ -201,6 +208,14 @@
           </li>
         {{/each}}
       </ul>
+      {{#if this.moreActionsCount}}
+        <div class="more-activity">
+          <a href {{on "click" this.showGrowthGraph}}>
+            {{this.moreActionsCount}}
+            more...
+          </a>
+        </div>
+      {{/if}}
     </div>
   {{/if}}
 </div>

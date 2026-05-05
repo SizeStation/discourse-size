@@ -12,6 +12,7 @@ export default class UserCharactersIndexRoute extends DiscourseRoute {
       return {
         user: user,
         characters: result.characters,
+        folders: result.folders || [],
       };
     });
   }

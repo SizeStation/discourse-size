@@ -22,6 +22,7 @@ register_asset "stylesheets/discourse-size.scss"
 after_initialize do
   require_relative "app/models/discourse_size_character"
   require_relative "app/models/discourse_size_action"
+  require_relative "app/models/discourse_size_folder"
 
   # Points for inviting
   on(:user_invited) do |invitee|

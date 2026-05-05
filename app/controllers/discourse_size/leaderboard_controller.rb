@@ -30,6 +30,8 @@ module DiscourseSize
 
     def character_serializer(c)
       c.sync_offset!
+      target_size = c.base_size + c.target_offset
+      time_left = c.time_remaining_hours
 
       {
         id: c.id,
@@ -37,13 +39,34 @@ module DiscourseSize
         name: c.name,
         picture: c.picture,
         current_size: c.current_size,
+        target_size: target_size,
         measurement_system: c.measurement_system,
+        is_animating: (c.current_offset - c.target_offset).abs > 0.0001,
+        is_growing: c.target_offset > c.current_offset,
+        time_remaining: (time_left && time_left > 0) ? format_duration(time_left) : nil,
         user: {
           id: c.user.id,
           username: c.user.username,
           avatar_template: c.user.avatar_template,
         },
       }
+    end
+
+    def format_duration(hours)
+      seconds = hours * 3600
+      if seconds < 60
+        "#{seconds.ceil}s"
+      elsif seconds < 3600
+        m = (seconds / 60).floor
+        s = (seconds % 60).floor
+        s > 0 ? "#{m}m #{s}s" : "#{m}m"
+      elsif seconds < 86400
+        h = (seconds / 3600).floor
+        m = ((seconds % 3600) / 60).floor
+        m > 0 ? "#{h}h #{m}m" : "#{h}h"
+      else
+        "#{(seconds / 86400.0).round(1)}d"
+      end
     end
   end
 end

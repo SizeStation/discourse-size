@@ -22,6 +22,12 @@
         />
       {{/if}}
       <DButton
+        @action={{this.createNewFolder}}
+        @icon="plus"
+        @label="discourse_size.create_folder"
+        class="btn-default"
+      />
+      <DButton
         @action={{this.createNewCharacter}}
         @icon="plus"
         @label="discourse_size.create_character"
@@ -51,17 +57,82 @@
   </div>
 {{/if}}
 
-<div class="user-characters-list">
-  {{#each this.characters as |character|}}
-    <DiscourseSizeCharacterCard
-      @character={{character}}
-      @isCurrentUser={{this.isCurrentUser}}
-      @userPoints={{this.currentUser.discourse_size_points}}
-      @onDelete={{this.deleteCharacter}}
-      @onUpdate={{this.updateCharacter}}
-      @onAction={{this.refreshCharacters}}
-    />
-  {{else}}
+<div class="user-characters-container">
+  {{#if this.mainCharacter}}
+    <div class="main-character-section">
+      <DiscourseSizeCharacterCard
+        @character={{this.mainCharacter}}
+        @isCurrentUser={{this.isCurrentUser}}
+        @userPoints={{this.currentUser.discourse_size_points}}
+        @onDelete={{this.deleteCharacter}}
+        @onUpdate={{this.updateCharacter}}
+        @onAction={{this.refreshCharacters}}
+      />
+    </div>
+  {{/if}}
+
+  <DiscourseSizeReorderableList
+    @enabled={{this.isCurrentUser}}
+    @handle=".character-drag-handle, .folder-drag-handle"
+    @group="character"
+    @onReorder={{this.onCharacterReorder}}
+    data-top-level="true"
+  >
+    {{#each this.combinedTopLevelList as |item|}}
+      <div
+        class="reorderable-item"
+        data-id={{item.id}}
+        data-type={{item.type}}
+      >
+        {{#if (eq item.type "character")}}
+          <DiscourseSizeCharacterCard
+            @character={{item}}
+            @isCurrentUser={{this.isCurrentUser}}
+            @userPoints={{this.currentUser.discourse_size_points}}
+            @onDelete={{this.deleteCharacter}}
+            @onUpdate={{this.updateCharacter}}
+            @onAction={{this.refreshCharacters}}
+            @showReorderHandle={{this.isCurrentUser}}
+          />
+        {{else}}
+          <DiscourseSizeFolder
+            @folder={{item}}
+            @isCurrentUser={{this.isCurrentUser}}
+            @onEdit={{fn this.editFolder item}}
+            @characterCount={{get this.organizedCharacterCounts item.id}}
+          >
+            <DiscourseSizeReorderableList
+              @enabled={{this.isCurrentUser}}
+              @handle=".character-drag-handle"
+              @group="character"
+              @onReorder={{this.onCharacterReorder}}
+              data-folder-id={{item.id}}
+            >
+              {{#each (get this.organizedCharacters item.id) as |character|}}
+                <div
+                  class="reorderable-item"
+                  data-id={{character.id}}
+                  data-type="character"
+                >
+                  <DiscourseSizeCharacterCard
+                    @character={{character}}
+                    @isCurrentUser={{this.isCurrentUser}}
+                    @userPoints={{this.currentUser.discourse_size_points}}
+                    @onDelete={{this.deleteCharacter}}
+                    @onUpdate={{this.updateCharacter}}
+                    @onAction={{this.refreshCharacters}}
+                    @showReorderHandle={{this.isCurrentUser}}
+                  />
+                </div>
+              {{/each}}
+            </DiscourseSizeReorderableList>
+          </DiscourseSizeFolder>
+        {{/if}}
+      </div>
+    {{/each}}
+  </DiscourseSizeReorderableList>
+
+  {{#unless this.characters.length}}
     <p>No characters found.</p>
-  {{/each}}
+  {{/unless}}
 </div>

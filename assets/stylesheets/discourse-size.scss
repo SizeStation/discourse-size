@@ -676,6 +676,7 @@
   gap: 8px;
   flex-wrap: wrap;
   justify-content: flex-end;
+  align-items: center;
 }
 
 .admin-actions {
@@ -692,11 +693,10 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 10px;
   }
 
   h5 {
-    margin: 0 0 10px 0;
+    margin: 0;
     font-size: 0.9em;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -705,10 +705,8 @@
 
   ul {
     list-style: none;
-    margin: 0;
+    margin: 10px 0 0 0;
     padding: 0;
-    max-height: 150px;
-    overflow-y: auto;
 
     li {
       padding: 8px 0;
@@ -726,6 +724,23 @@
 
       &:last-child {
         border-bottom: none;
+      }
+    }
+  }
+
+  .more-activity {
+    margin-top: 10px;
+    text-align: center;
+    border-top: 1px dashed var(--primary-low);
+    padding-top: 8px;
+
+    a {
+      font-size: 0.85em;
+      color: var(--tertiary);
+      font-weight: 600;
+
+      &:hover {
+        color: var(--tertiary-hover);
       }
     }
   }
@@ -806,6 +821,55 @@
             padding: 15px 20px;
             border-bottom: 1px solid var(--primary-low);
             vertical-align: middle;
+
+            &.lb-size-column {
+              font-weight: 700;
+              color: var(--primary-high);
+
+              .lb-size-wrapper {
+                display: flex;
+                flex-direction: column;
+                gap: 2px;
+
+                .lb-current-size {
+                  font-size: 1.1em;
+                  font-weight: 800;
+                }
+
+                .lb-growth-info {
+                  font-size: 0.82em;
+                  display: flex;
+                  flex-direction: column;
+                  gap: 1px;
+
+                  &.growing {
+                    color: var(--success);
+                  }
+
+                  &.shrinking {
+                    color: var(--danger);
+                  }
+
+                  .lb-status-label {
+                    font-weight: 700;
+                    display: flex;
+                    align-items: center;
+                    gap: 4px;
+
+                    .d-icon {
+                      font-size: 0.9em;
+                    }
+                  }
+
+                  .lb-target-size {
+                    color: var(--primary-medium);
+                    font-weight: 600;
+                    font-style: italic;
+                    opacity: 0.9;
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -1007,6 +1071,42 @@
       display: flex;
       flex-direction: column;
       gap: 15px;
+    }
+
+    .folder-contents {
+      padding: 10px;
+      background: var(--secondary);
+      min-height: 20px; // Ensure there's a drop target even if empty
+
+      &.collapsed {
+        display: none;
+      }
+    }
+
+    .empty-folder-indicator {
+      padding: 30px 20px;
+      border: 2px dashed var(--primary-low);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      color: var(--primary-medium);
+      font-style: italic;
+      margin: 5px;
+      pointer-events: none;
+      background: var(--primary-very-low);
+
+      .d-icon {
+        font-size: 2em;
+        color: var(--primary-low);
+      }
+
+      span {
+        font-size: 0.95em;
+        text-align: center;
+      }
     }
 
     .activity-item {
@@ -1661,4 +1761,190 @@
   border-radius: 4px;
   background: var(--secondary);
   color: var(--primary);
+}
+
+.user-characters-container {
+  display: flex;
+  flex-direction: column;
+
+  .main-character-section {
+    padding-bottom: 20px;
+  }
+}
+
+.discourse-size-folder {
+  background: var(--primary-very-low);
+  border-radius: 16px;
+  border: 1px solid var(--primary-low);
+  overflow: hidden;
+  margin-bottom: 10px;
+
+  &.collapsed .folder-contents {
+    display: none;
+  }
+
+  &.is-drag-over {
+    border-color: var(--tertiary);
+    box-shadow: 0 0 0 3px var(--tertiary-low);
+    background: var(--tertiary-very-low);
+
+    .folder-header {
+      background: var(--tertiary-low);
+    }
+  }
+
+  .folder-header {
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    background: var(--primary-very-low);
+    border-bottom: 1px solid transparent;
+    transition: all 0.2s;
+
+    &:hover {
+      background: var(--primary-low);
+    }
+
+    .folder-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 1.1em;
+      color: var(--primary-high);
+    }
+
+    .folder-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .folder-drag-handle {
+        cursor: grab;
+        color: var(--primary-medium);
+        padding: 5px;
+
+        &:active {
+          cursor: grabbing;
+        }
+      }
+    }
+  }
+
+  .folder-contents {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    min-height: 100px; // Very generous drop target
+    background: var(--secondary);
+    transition: background 0.2s;
+  }
+
+  .empty-folder-indicator {
+    padding: 40px 20px;
+    border: 2px dashed var(--primary-low);
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    color: var(--primary-medium);
+    font-style: italic;
+    margin: 5px;
+    pointer-events: none;
+    background: var(--primary-very-low);
+
+    .d-icon {
+      font-size: 2.2em;
+      color: var(--primary-low);
+    }
+
+    span {
+      font-size: 1em;
+      text-align: center;
+      max-width: 200px;
+    }
+  }
+}
+
+.character-drag-handle {
+  cursor: grab;
+  color: var(--primary-medium);
+  padding: 8px;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+
+  &:hover {
+    opacity: 1;
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.character-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.sortable-ghost {
+  opacity: 0.4;
+  background: var(--tertiary-low) !important;
+}
+
+.discourse-size-reorderable-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  min-height: 20px;
+}
+
+.modal-footer-actions {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  align-items: center;
+
+  .main-actions {
+    display: flex;
+    gap: 10px;
+  }
+}
+
+.sortable-ghost {
+  opacity: 0.1 !important;
+  background: var(--primary-low) !important;
+  border: 2px dashed var(--tertiary) !important;
+  border-radius: 16px;
+  outline: none;
+  visibility: visible !important;
+
+  // Preserve the approximate height of character cards to prevent layout shift
+  min-height: 180px;
+
+  & > * {
+    visibility: hidden;
+  }
+}
+
+.sortable-fallback {
+  opacity: 1 !important;
+  transform: rotate(2deg);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+  z-index: 10000;
+  cursor: grabbing !important;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.sortable-drag {
+  opacity: 0; // Hide the "real" element being moved if fallback is used
 }

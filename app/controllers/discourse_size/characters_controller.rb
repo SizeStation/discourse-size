@@ -7,13 +7,32 @@ module DiscourseSize
 
     def index
       user_id = params[:user_id]
-      characters =
-        DiscourseSizeCharacter.where(user_id: user_id).order(is_main: :desc, created_at: :asc)
+      folders = DiscourseSizeFolder.where(user_id: user_id).order(position: :asc)
+      characters = DiscourseSizeCharacter.where(user_id: user_id).order(is_main: :desc, position: :asc, created_at: :asc)
 
       # sync offsets before rendering
       characters.each(&:sync_offset!)
 
-      render json: { characters: characters.map { |c| character_serializer(c) } }
+      render json: {
+        folders: folders.map { |f| folder_serializer(f) },
+        characters: characters.map { |c| character_serializer(c) }
+      }
+    end
+
+    def reorder
+      user_id = params[:user_id] || current_user.id
+      guardian.ensure_can_edit_user!(User.find(user_id))
+
+      if params[:character_mapping]
+        DiscourseSizeCharacter.reorder(User.find(user_id), params[:character_mapping])
+      end
+
+      if params[:folder_id] && params[:character_ids]
+        # folder_id can be nil (move out of folder)
+        DiscourseSizeCharacter.where(id: params[:character_ids], user_id: user_id).update_all(folder_id: params[:folder_id])
+      end
+
+      render json: success_json
     end
 
     def create
@@ -58,6 +77,29 @@ module DiscourseSize
       end
 
       character.destroy
+      render json: success_json
+    end
+
+    def reorder_top_level
+      user_id = params[:user_id] || current_user.id
+      guardian.ensure_can_edit_user!(User.find(user_id))
+
+      mapping = params[:mapping] || []
+      mapping = mapping.values if mapping.respond_to?(:values)
+
+      mapping.each_with_index do |item, index|
+        if item[:type] == "character"
+          DiscourseSizeCharacter.where(id: item[:id], user_id: user_id).update_all(
+            position: index,
+            folder_id: nil,
+          )
+        elsif item[:type] == "folder"
+          DiscourseSizeFolder.where(id: item[:id], user_id: user_id).update_all(
+            position: index,
+          )
+        end
+      end
+
       render json: success_json
     end
 
@@ -306,6 +348,8 @@ module DiscourseSize
         :description,
         :show_comparison,
         :is_main,
+        :folder_id,
+        :position,
       )
     end
 
@@ -359,6 +403,8 @@ module DiscourseSize
         species: c.species,
         description: c.description,
         show_comparison: c.show_comparison,
+        folder_id: c.folder_id,
+        position: c.position,
         actions:
           c
             .discourse_size_actions
@@ -385,6 +431,15 @@ module DiscourseSize
                 },
               }
             end,
+      }
+    end
+
+    def folder_serializer(f)
+      {
+        id: f.id,
+        name: f.name,
+        position: f.position,
+        user_id: f.user_id,
       }
     end
   end

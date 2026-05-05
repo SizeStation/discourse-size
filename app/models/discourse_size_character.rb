@@ -2,11 +2,22 @@
 
 class DiscourseSizeCharacter < ActiveRecord::Base
   belongs_to :user
+  belongs_to :discourse_size_folder, foreign_key: "folder_id", optional: true
   before_validation :trim_fields
   before_save :ensure_single_main, if: :is_main?
 
   validates :name, presence: true
   validates :base_size, presence: true
+
+  def self.reorder(user, mapping)
+    mapping.each do |id, position|
+      where(id: id, user_id: user.id).update_all(position: position)
+    end
+  end
+
+  def self.move_to_folder(user, character_ids, folder_id)
+    where(id: character_ids, user_id: user.id).update_all(folder_id: folder_id)
+  end
   validates :base_size,
             numericality: {
               greater_than_or_equal_to: -> { SiteSetting.discourse_size_min_base_size },
@@ -82,6 +93,28 @@ class DiscourseSizeCharacter < ActiveRecord::Base
     end
 
     new_size - base_size
+  end
+
+  def time_remaining_hours
+    return 0 if (target_offset - current_offset).abs < 0.0001
+
+    rate_percent_per_day =
+      if growth_rate_override.present?
+        growth_rate_override
+      else
+        SiteSetting.discourse_size_default_max_growth_rate + growth_rate_bought
+      end
+    return 0 if rate_percent_per_day <= 0
+
+    c_size = current_size
+    t_size = base_size + target_offset
+
+    return 0 if c_size <= 0 || t_size <= 0
+
+    # days = log(ratio) / log(1 + rate/100)
+    ratio = t_size > c_size ? (t_size / c_size) : (c_size / t_size)
+    days = Math.log(ratio) / Math.log(1.0 + rate_percent_per_day / 100.0)
+    days * 24.0
   end
 
   def sync_offset!

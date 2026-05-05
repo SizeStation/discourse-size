@@ -10,7 +10,13 @@ DiscourseSize::Engine.routes.draw do
   post "characters/:id/boost_speed" => "characters#boost_speed"
   post "characters/:id/set_main" => "characters#set_main"
   post "characters/:id/unset_main" => "characters#unset_main"
+  post "characters/reorder" => "characters#reorder"
+  post "characters/reorder_top_level" => "characters#reorder_top_level"
   delete "actions/:id" => "characters#destroy_action"
+
+  resources :folders, only: [:create, :update, :destroy] do
+    post "reorder", on: :collection
+  end
 
   get "leaderboard" => "leaderboard#index"
 

@@ -32,7 +32,10 @@
             <td>
               <div class="lb-character-info">
                 {{#if character.picture}}
-                  <a href="/u/{{character.user.username}}/characters" class="lb-picture-link">
+                  <a
+                    href="/u/{{character.user.username}}/characters"
+                    class="lb-picture-link"
+                  >
                     <img
                       src={{character.picture}}
                       alt={{character.name}}
@@ -50,11 +53,48 @@
                 href="/u/{{character.user.username}}"
               >{{character.user.username}}</a>
             </td>
-            <td>
-              {{format-size
-                character.current_size
-                character.measurement_system
-              }}
+            <td class="lb-size-column">
+              <div class="lb-size-wrapper">
+                <div class="lb-current-size">
+                  {{format-size
+                    character.current_size
+                    character.measurement_system
+                  }}
+                </div>
+                {{#if character.is_animating}}
+                  <div
+                    class="lb-growth-info
+                      {{if character.is_growing 'growing' 'shrinking'}}"
+                  >
+                    <span class="lb-status-label">
+                      {{#if character.is_growing}}
+                        {{d-icon "arrow-up"}}
+                        Currently growing
+                      {{else}}
+                        {{d-icon "arrow-down"}}
+                        Currently shrinking
+                      {{/if}}
+                      {{#if character.time_remaining}}
+                        <div></div>
+                        <div class="growth-meta">
+                          <span class="time-remaining">
+                            {{d-icon "clock"}}
+                            {{character.time_remaining}}
+                            remaining
+                          </span>
+                        </div>
+                      {{/if}}
+                    </span>
+                    <span class="lb-target-size">
+                      Target:
+                      {{format-size
+                        character.target_size
+                        character.measurement_system
+                      }}
+                    </span>
+                  </div>
+                {{/if}}
+              </div>
             </td>
           </tr>
         {{else}}

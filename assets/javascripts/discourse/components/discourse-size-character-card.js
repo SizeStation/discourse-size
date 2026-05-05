@@ -304,6 +304,15 @@ export default class DiscourseSizeCharacterCard extends Component {
     return this.canGrow || this.canShrink;
   }
 
+  get recentActions() {
+    return (this.args?.character?.actions || []).slice(0, 3);
+  }
+
+  get moreActionsCount() {
+    const total = (this.args?.character?.actions || []).length;
+    return total > 3 ? total - 3 : 0;
+  }
+
   @action
   showGrowthGraph() {
     this.modal.show(DiscourseSizeGrowthGraph, {

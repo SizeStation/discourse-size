@@ -1,0 +1,39 @@
+<div
+  class="discourse-size-folder {{if this.collapsed 'collapsed'}} {{if this.isEmpty 'is-empty'}} {{if this.isDragOver 'is-drag-over'}}"
+  {{on "dragenter" this.handleDragEnter}}
+  {{on "dragleave" this.handleDragLeave}}
+  {{did-insert this.setupEvents}}
+  data-folder-id={{@folder.id}}
+>
+  <div class="folder-header" {{on "click" this.toggle}}>
+    <div class="folder-title">
+      {{d-icon (if this.collapsed "chevron-right" "chevron-down")}}
+      <span class="folder-name">{{@folder.name}} ({{@characterCount}})</span>
+    </div>
+
+    {{#if @isCurrentUser}}
+      <div class="folder-actions">
+        <button
+          type="button"
+          class="btn btn-flat edit-folder-btn"
+          {{on "click" this.edit}}
+        >
+          Edit
+        </button>
+        <div class="folder-drag-handle">
+          {{d-icon "bars"}}
+        </div>
+      </div>
+    {{/if}}
+  </div>
+
+  <div class="folder-contents" data-folder-id={{@folder.id}}>
+    {{yield}}
+    {{#if (and (not this.collapsed) this.isEmpty)}}
+      <div class="empty-folder-indicator">
+        {{d-icon "plus-circle"}}
+        <span>Empty folder - drop characters here</span>
+      </div>
+    {{/if}}
+  </div>
+</div>
