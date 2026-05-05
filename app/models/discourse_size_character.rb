@@ -2,6 +2,7 @@
 
 class DiscourseSizeCharacter < ActiveRecord::Base
   belongs_to :user
+  before_validation :trim_fields
   before_save :ensure_single_main, if: :is_main?
 
   validates :name, presence: true
@@ -94,8 +95,22 @@ class DiscourseSizeCharacter < ActiveRecord::Base
 
   private
 
+  def trim_fields
+    self.name = name&.strip
+    self.picture = picture&.strip
+    self.info_post = info_post&.strip
+    self.gender = gender&.strip
+    self.pronouns = pronouns&.strip
+    self.age = age&.strip
+    self.species = species&.strip
+    self.description = description&.strip
+  end
+
   def ensure_single_main
-    DiscourseSizeCharacter.where(user_id: user_id, is_main: true).where.not(id: id).update_all(is_main: false)
+    DiscourseSizeCharacter
+      .where(user_id: user_id, is_main: true)
+      .where.not(id: id)
+      .update_all(is_main: false)
   end
 end
 

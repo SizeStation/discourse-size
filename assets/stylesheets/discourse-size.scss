@@ -400,7 +400,6 @@
         border: 1px solid var(--primary-low);
         font-size: 0.88em;
         display: flex;
-        gap: 6px;
         align-items: center;
         transition:
           transform 0.2s ease,
@@ -412,11 +411,20 @@
           font-size: 0.85em;
           text-transform: uppercase;
           letter-spacing: 0.5px;
+          padding-right: 8px;
+          margin-right: 8px;
+          border-right: 1px solid var(--primary-low);
+          display: flex;
+          align-items: center;
+          height: 1.2em;
         }
 
         .value {
           color: var(--primary);
           font-weight: 600;
+          display: flex;
+          align-items: center;
+          line-height: 1.2em;
         }
 
         &.gender .value {
@@ -469,7 +477,20 @@
         font-weight: 700;
         color: var(--primary-high);
         display: flex;
-        justify-content: space-between;
+        align-items: center;
+        gap: 6px;
+
+        &.growing {
+          color: var(--success);
+        }
+
+        &.shrinking {
+          color: var(--danger);
+        }
+
+        .d-icon {
+          font-size: 0.9em;
+        }
       }
 
       .progress-bar-wrapper {
@@ -506,6 +527,7 @@
 
       .growth-meta {
         display: flex;
+        flex-grow: 1;
         justify-content: flex-end;
 
         .time-remaining {
@@ -526,18 +548,20 @@
   background: var(--primary-very-low);
   padding: 15px;
   border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
   border: 1px solid var(--primary-low);
 
   .character-comparison {
-    font-size: 0.9em;
+    font-size: 0.95em;
     line-height: 1.5;
     color: var(--primary-high);
     font-style: italic;
   }
 
   .character-full-description {
-    margin: 10px 0;
-    font-size: 1.1em;
+    font-size: 1.05em;
     color: var(--primary);
     font-style: normal;
     white-space: pre-wrap;
@@ -545,7 +569,6 @@
 
   .info-link {
     display: inline-block;
-    margin-top: 5px;
     font-size: 0.9em;
     font-weight: 600;
     color: var(--tertiary);
@@ -583,7 +606,7 @@
       }
 
       .label {
-        color: var(--primary-medium);
+        color: var(--primary-high);
         font-weight: 600;
       }
 
@@ -1052,6 +1075,12 @@
         width: 100%;
       }
     }
+  }
+
+  .character-description-input {
+    min-height: 300px;
+    width: 100%;
+    field-sizing: content;
   }
 }
 

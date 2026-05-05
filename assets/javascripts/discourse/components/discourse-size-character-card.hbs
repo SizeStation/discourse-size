@@ -45,30 +45,30 @@
 
       <div class="character-header-meta">
         <span class="header-meta-card size">
-          <span class="label">Size:</span>
+          <span class="label">Size</span>
           <span class="value">{{this.formattedSize}}</span>
         </span>
         {{#if @character.gender}}
           <span class="header-meta-card gender">
-            <span class="label">Gender:</span>
+            <span class="label">Gender</span>
             <span class="value">{{@character.gender}}</span>
           </span>
         {{/if}}
         {{#if @character.pronouns}}
           <span class="header-meta-card pronouns">
-            <span class="label">Pronouns:</span>
+            <span class="label">Pronouns</span>
             <span class="value">{{@character.pronouns}}</span>
           </span>
         {{/if}}
         {{#if @character.age}}
           <span class="header-meta-card age">
-            <span class="label">Age:</span>
+            <span class="label">Age</span>
             <span class="value">{{@character.age}}</span>
           </span>
         {{/if}}
         {{#if @character.species}}
           <span class="header-meta-card species">
-            <span class="label">Species:</span>
+            <span class="label">Species</span>
             <span class="value">{{@character.species}}</span>
           </span>
         {{/if}}
@@ -77,8 +77,18 @@
       {{#if this.isAnimating}}
         <div class="character-size-row">
           <div class="growth-stats">
-            <div class="growth-status-label">
-              {{if this.isGrowing "Currently growing" "Currently shrinking"}}
+            <div
+              class="growth-status-label
+                {{if this.isGrowing 'growing' 'shrinking'}}"
+            >
+              {{#if this.isGrowing}}
+                {{d-icon "arrow-up"}}
+                Currently growing
+              {{else}}
+                {{d-icon "arrow-down"}}
+                Currently shrinking
+              {{/if}}
+
               <div class="growth-meta">
                 <span class="time-remaining">
                   {{d-icon "clock"}}
@@ -119,7 +129,7 @@
       {{/if}}
 
       {{#if @character.description}}
-        <p class="character-full-description">{{@character.description}}</p>
+        <div class="character-full-description">{{@character.description}}</div>
       {{/if}}
 
       {{#if @character.info_post}}
