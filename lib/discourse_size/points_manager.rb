@@ -5,8 +5,17 @@ module ::DiscourseSize
     CUSTOM_FIELD = "discourse_size_points"
 
     def self.get_points(user)
-      return 0 if user.nil? || !user.respond_to?(:custom_fields) || user.custom_fields.nil?
-      user.custom_fields[CUSTOM_FIELD].to_i
+      return 0 if user.nil?
+      return 0 unless user.respond_to?(:custom_fields)
+
+      fields = user.custom_fields
+      return 0 if fields.nil?
+
+      begin
+        fields[CUSTOM_FIELD].to_i
+      rescue StandardError
+        0
+      end
     end
 
     def self.add_points(user, amount, source_type: "unknown", description: nil)
