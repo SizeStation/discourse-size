@@ -12,6 +12,63 @@ class DiscourseSizeAction < ActiveRecord::Base
               in: %w[grow shrink reset boost_speed set_main unset_main],
             }
   validates :size_change, presence: true
+
+  def speed
+    res = has_attribute?(:speed) ? read_attribute(:speed) : 1.0
+    res.to_f > 0 ? res.to_f : 1.0
+  end
+
+  def speed=(val)
+    write_attribute(:speed, val) if has_attribute?(:speed)
+  end
+
+  def start_offset
+    has_attribute?(:start_offset) ? read_attribute(:start_offset) : nil
+  end
+
+  def start_offset=(val)
+    write_attribute(:start_offset, val) if has_attribute?(:start_offset)
+  end
+
+  def end_offset
+    has_attribute?(:end_offset) ? read_attribute(:end_offset) : nil
+  end
+
+  def end_offset=(val)
+    write_attribute(:end_offset, val) if has_attribute?(:end_offset)
+  end
+
+  def item_key
+    has_attribute?(:item_key) ? read_attribute(:item_key) : nil
+  end
+
+  def item_key=(val)
+    write_attribute(:item_key, val) if has_attribute?(:item_key)
+  end
+
+  def duration_minutes
+    has_attribute?(:duration_minutes) ? read_attribute(:duration_minutes) : 0
+  end
+
+  def duration_minutes=(val)
+    write_attribute(:duration_minutes, val) if has_attribute?(:duration_minutes)
+  end
+
+  def start_time
+    has_attribute?(:start_time) ? read_attribute(:start_time) : nil
+  end
+
+  def start_time=(val)
+    write_attribute(:start_time, val) if has_attribute?(:start_time)
+  end
+
+  def end_time
+    has_attribute?(:end_time) ? read_attribute(:end_time) : nil
+  end
+
+  def end_time=(val)
+    write_attribute(:end_time, val) if has_attribute?(:end_time)
+  end
 end
 
 # == Schema Information

@@ -11,8 +11,6 @@ import {
 import DiscourseSizeGrowthGraph from "./modal/discourse-size-growth-graph";
 import DiscourseSizeAdminEdit from "./modal/discourse-size-admin-edit";
 
-const MAX_SIZE = 1e120;
-
 export default class DiscourseSizeCharacterCard extends Component {
   @service currentUser;
   @service modal;
@@ -20,19 +18,16 @@ export default class DiscourseSizeCharacterCard extends Component {
 
   @tracked _currentTime = new Date();
   @tracked amountInput = 1;
-  @tracked boostAmountInput = 1;
 
   _timer = null;
 
   constructor() {
     super(...arguments);
     this._timer = setInterval(() => {
-      if (
-        this.args?.character?.target_offset !== this.args?.character?.current_offset
-      ) {
+      if (this.isAnimating) {
         this._currentTime = new Date();
       }
-    }, 100); // 10 fps
+    }, 100);
   }
 
   willDestroy() {
@@ -40,40 +35,54 @@ export default class DiscourseSizeCharacterCard extends Component {
     if (this._timer) clearInterval(this._timer);
   }
 
+  _activeActionAt(time) {
+    const c = this.args?.character;
+    if (!c || !Array.isArray(c.actions)) return null;
+
+    return c.actions.find((a) => {
+      if (!a.start_time || !a.end_time) return false;
+      const start = new Date(a.start_time);
+      const end = new Date(a.end_time);
+      return time >= start && time < end;
+    });
+  }
+
   get calculatedSizeCm() {
     const c = this.args?.character;
-    if (!c || !c.offset_updated_at || c.target_offset === c.current_offset) {
-      return c.current_size;
+    if (!c) return 0;
+
+    const now = this._currentTime;
+    const activeAction = this._activeActionAt(now);
+
+    if (activeAction) {
+      const startT = new Date(activeAction.start_time);
+      const endT = new Date(activeAction.end_time);
+      const totalDuration = endT.getTime() - startT.getTime();
+
+      if (totalDuration > 0) {
+        const elapsed = now.getTime() - startT.getTime();
+        const progress = elapsed / totalDuration;
+
+        const startOff = parseFloat(activeAction.start_offset);
+        const endOff = parseFloat(activeAction.end_offset);
+
+        const currentOffset = startOff + (endOff - startOff) * progress;
+        return parseFloat(c.base_size) + currentOffset;
+      } else {
+        return parseFloat(c.base_size) + parseFloat(activeAction.end_offset);
+      }
     }
 
-    const ratePercentPerDay =
-      c.growth_rate_override !== null && c.growth_rate_override !== undefined
-        ? parseFloat(c.growth_rate_override)
-        : this.siteSettings.discourse_size_default_max_growth_rate +
-          (parseFloat(c.growth_rate_bought) || 0);
-    if (ratePercentPerDay <= 0) return c.base_size + c.target_offset;
+    const nextAction = c.actions
+      .slice()
+      .filter((a) => a.start_time && new Date(a.start_time) > now)
+      .sort((a, b) => new Date(a.start_time) - new Date(b.start_time))[0];
 
-    const offsetDate = new Date(c.offset_updated_at);
-    const daysElapsed =
-      (this._currentTime.getTime() - offsetDate.getTime()) / 1000 / 86400.0;
-
-    if (daysElapsed < 0) return c.current_size;
-
-    const currentSize = c.base_size + c.current_offset;
-    const targetSize = c.base_size + c.target_offset;
-    const multiplier = Math.pow(1.0 + ratePercentPerDay / 100.0, daysElapsed);
-
-    let newSize;
-    if (c.target_offset > c.current_offset) {
-      newSize = currentSize * multiplier;
-      if (newSize > targetSize) newSize = targetSize;
-      if (newSize > MAX_SIZE) newSize = MAX_SIZE;
-    } else {
-      newSize = currentSize / multiplier;
-      if (newSize < targetSize) newSize = targetSize;
+    if (nextAction) {
+      return parseFloat(c.base_size) + parseFloat(nextAction.start_offset);
     }
 
-    return newSize;
+    return parseFloat(c.base_size) + parseFloat(c.target_offset);
   }
 
   get formattedSize() {
@@ -94,67 +103,11 @@ export default class DiscourseSizeCharacterCard extends Component {
     return getGrowthComparison(this.args?.character, this.calculatedSizeCm);
   }
 
-  get pointsCost() {
-    return Math.ceil(Math.abs(parseFloat(this.amountInput) || 0));
-  }
-
-  get projectedSpeedBoost() {
-    const points = parseFloat(this.boostAmountInput) || 0;
-    const ratePerPoint =
-      this.siteSettings.discourse_size_speed_percentage_per_point || 0.1;
-    return (points * ratePerPoint).toFixed(2);
-  }
-
-  get sizeChangeCm() {
-    return Math.abs(parseFloat(this.amountInput) || 0);
-  }
-
-  get formattedSizeChange() {
-    const val = parseFloat(this.amountInput) || 0;
-    return formatSize(Math.abs(val), this.args?.character?.measurement_system);
-  }
-
-  get projectedGrowSize() {
-    if (!this.args) return "";
-    const points = parseFloat(this.amountInput) || 0;
-    const base = parseFloat(this.args.character?.base_size || 0);
-    const offset = parseFloat(this.args.character?.target_offset || 0);
-    const currentTarget = base + offset;
-
-    const rate =
-      (this.siteSettings.discourse_size_percentage_per_point || 0.1) / 100.0;
-
-    const target = currentTarget * Math.pow(1.0 + rate, points);
-    return formatSize(target, this.args.character?.measurement_system);
-  }
-
-  get projectedShrinkSize() {
-    if (!this.args?.character) return "";
-
-    const points = parseFloat(this.amountInput) || 0;
-    const base = parseFloat(this.args.character.base_size) || 170.0;
-    const offset = parseFloat(this.args.character.target_offset) || 0.0;
-    const currentTargetTotal = base + offset;
-
-    const rate =
-      (this.siteSettings.discourse_size_percentage_per_point || 0.1) / 100.0;
-
-    const resultSizeCm = currentTargetTotal * Math.pow(1.0 - rate, points);
-
-    return formatSize(resultSizeCm, this.args?.character?.measurement_system);
-  }
-
-  get pointsCost() {
-    return Math.ceil(parseFloat(this.amountInput) || 0);
-  }
-
-  get pointsLeft() {
-    const currentPoints = parseInt(this.args?.userPoints, 10) || 0;
-    return currentPoints - this.pointsCost;
-  }
-
   get targetSizeCm() {
-    return this.args?.character?.base_size + this.args?.character?.target_offset;
+    return (
+      parseFloat(this.args?.character?.base_size) +
+      parseFloat(this.args?.character?.target_offset)
+    );
   }
 
   get formattedTargetSize() {
@@ -165,152 +118,115 @@ export default class DiscourseSizeCharacterCard extends Component {
   }
 
   get isAnimating() {
-    return (
-      this.args?.character?.target_offset !== this.args?.character?.current_offset
-    );
-  }
-
-  get formattedGrowthRate() {
     const c = this.args?.character;
-    if (!c) return "";
-    const ratePercent =
-      c.growth_rate_override !== null && c.growth_rate_override !== undefined
-        ? parseFloat(c.growth_rate_override)
-        : this.siteSettings.discourse_size_default_max_growth_rate +
-          (parseFloat(c.growth_rate_bought) || 0);
-    return `${ratePercent.toFixed(2)}% / day`;
+    if (!c) return false;
+
+    const now = this._currentTime;
+    const lastAction = c.actions
+      .slice()
+      .filter((a) => a.end_time)
+      .sort((a, b) => new Date(b.end_time) - new Date(a.end_time))[0];
+
+    if (!lastAction) return false;
+    return new Date(lastAction.end_time) > now;
   }
 
   get timeRemaining() {
     const c = this.args?.character;
     if (!c) return null;
-    const currentSize = this.calculatedSizeCm;
-    const targetSize = c.base_size + c.target_offset;
 
-    // Prevent issues with floating point precision or zero sizes
-    if (
-      Math.abs(targetSize - currentSize) < 0.01 ||
-      currentSize <= 0 ||
-      targetSize <= 0
-    )
-      return null;
+    const now = this._currentTime;
+    const lastAction = c.actions
+      .slice()
+      .filter((a) => a.end_time)
+      .sort((a, b) => new Date(b.end_time) - new Date(a.end_time))[0];
 
-    const ratePercentPerDay =
-      c.growth_rate_override !== null && c.growth_rate_override !== undefined
-        ? parseFloat(c.growth_rate_override)
-        : this.siteSettings.discourse_size_default_max_growth_rate +
-          (parseFloat(c.growth_rate_bought) || 0);
-    if (ratePercentPerDay <= 0) return null;
+    if (!lastAction || new Date(lastAction.end_time) <= now) return null;
 
-    const multiplier = 1.0 + ratePercentPerDay / 100.0;
-    const ratio = Math.max(targetSize / currentSize, currentSize / targetSize);
+    const seconds = Math.floor((new Date(lastAction.end_time) - now) / 1000);
+    if (seconds <= 0) return null;
 
-    // Calculate days required to reach the target ratio
-    const daysRemaining = Math.log(ratio) / Math.log(multiplier);
-    const seconds = daysRemaining * 86400;
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
 
-    if (seconds < 60) return `${Math.ceil(seconds)}s`;
-    if (seconds < 3600) {
-      const m = Math.floor(seconds / 60);
-      const s = Math.floor(seconds % 60);
-      return s > 0 ? `${m}m ${s}s` : `${m}m`;
-    }
-    if (seconds < 86400) {
-      const h = Math.floor(seconds / 3600);
-      const m = Math.floor((seconds % 3600) / 60);
-      return m > 0 ? `${h}h ${m}m` : `${h}h`;
-    }
-    return `${(seconds / 86400).toFixed(1)}d`;
-  }
-
-  get showSpeed() {
-    return this.args?.character?.character_type === "game";
+    if (h > 0) return `${h}h ${m}m ${s}s`;
+    if (m > 0) return `${m}m ${s}s`;
+    return `${s}s`;
   }
 
   get progressPercent() {
     const c = this.args?.character;
     if (!c) return 0;
-    const startOffset = parseFloat(c.start_offset || c.current_offset);
-    const targetOffset = parseFloat(c.target_offset);
-    const currentOffset = this.calculatedSizeCm - parseFloat(c.base_size);
 
-    if (Math.abs(targetOffset - startOffset) < 0.001) {
-      return 100;
-    }
+    const now = this._currentTime;
+    const activeAction = this._activeActionAt(now);
+    if (!activeAction) return 0;
 
-    const progress =
-      (currentOffset - startOffset) / (targetOffset - startOffset);
-    return Math.min(100, Math.max(0, Math.round(progress * 100)));
-  }
+    const startT = new Date(activeAction.start_time);
+    const endT = new Date(activeAction.end_time);
+    const total = endT - startT;
+    if (total <= 0) return 100;
 
-  get hasDescription() {
-    const c = this.args?.character;
-    return c?.show_comparison || c?.description || c?.info_post;
-  }
-
-  get canEdit() {
-    return this.args?.isCurrentUser || this.currentUser?.admin;
-  }
-
-  get canGrow() {
-    return this.args?.character?.allow_growth || this.args?.isCurrentUser;
+    return Math.min(100, Math.max(0, ((now - startT) / total) * 100));
   }
 
   get isGrowing() {
-    return (
-      this.args?.character?.target_offset > this.args?.character?.current_offset
-    );
-  }
-
-  get isShrinking() {
-    return (
-      this.args?.character?.target_offset < this.args?.character?.current_offset
-    );
+    const c = this.args?.character;
+    if (!c) return false;
+    const now = this._currentTime;
+    const activeAction = this._activeActionAt(now);
+    if (activeAction) {
+      return (
+        parseFloat(activeAction.end_offset) >
+        parseFloat(activeAction.start_offset)
+      );
+    }
+    return parseFloat(c.target_offset) > parseFloat(c.current_offset);
   }
 
   get formattedStartSize() {
     const c = this.args?.character;
     if (!c) return "";
-    const startSize = c.base_size + (c.start_offset || c.current_offset);
-    return formatSize(startSize, c.measurement_system);
-  }
-
-  get movementDuration() {
-    const c = this.args?.character;
-    if (!c || !Array.isArray(c.actions)) return "";
-
-    const movementAction = c.actions.find((a) =>
-      ["grow", "shrink"].includes(a.action_type)
+    const now = this._currentTime;
+    const activeAction = this._activeActionAt(now);
+    if (!activeAction) return "";
+    return formatSize(
+      parseFloat(c.base_size) + parseFloat(activeAction.start_offset),
+      c.measurement_system
     );
-    if (!movementAction || !movementAction.created_at) return "";
-
-    const elapsed =
-      (Date.now() - new Date(movementAction.created_at).getTime()) / 1000;
-    if (elapsed < 5) return "";
-
-    if (elapsed < 60) return `${Math.round(elapsed)}s`;
-    if (elapsed < 3600) return `${Math.round(elapsed / 60)}m`;
-    if (elapsed < 86400) return `${Math.round(elapsed / 3600)}h`;
-    return `${(elapsed / 86400).toFixed(1)}d`;
   }
 
-  get canShrink() {
-    return this.args?.character?.allow_shrink || this.canEdit;
+  get hasDescription() {
+    const c = this.args?.character;
+    return c?.description || c?.info_post || c?.show_comparison;
   }
 
-  get canGrowOrShrink() {
+  get showActions() {
     if (!this.currentUser) return false;
-    if (this.args?.character?.character_type === "freeform") return false;
-    return this.canGrow || this.canShrink;
+    const char = this.args?.character;
+    if (!char) return false;
+
+    // Owner and admin can always see actions
+    if (this.currentUser.id === char.user_id || this.currentUser.admin) {
+      return true;
+    }
+
+    // Freeform characters only allow owner/admin to take actions
+    if (char.character_type === "freeform") return false;
+
+    // Show actions for everyone logged in (the component handles the blocked button)
+    return true;
+  }
+
+  get canSeeBlockedStatus() {
+    if (!this.currentUser) return false;
+    const char = this.args?.character;
+    return this.currentUser.id === char?.user_id || this.currentUser.admin;
   }
 
   get recentActions() {
     return (this.args?.character?.actions || []).slice(0, 3);
-  }
-
-  get moreActionsCount() {
-    const total = (this.args?.character?.actions || []).length;
-    return total > 3 ? total - 3 : 0;
   }
 
   @action
@@ -345,5 +261,9 @@ export default class DiscourseSizeCharacterCard extends Component {
         onSave: this.args?.onAction,
       },
     });
+  }
+
+  get canEdit() {
+    return this.args?.isCurrentUser || this.currentUser?.admin;
   }
 }

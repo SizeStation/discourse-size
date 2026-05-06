@@ -15,8 +15,6 @@ export default class DiscourseSizeAdminEdit extends Component {
     const char = this.args?.model?.character || {};
     this.currentSize = char.current_size;
     this.originalCurrentSize = char.current_size;
-    this.growthRateOverride = char.growth_rate_override || "";
-
     const unit = getBestUnit(this.currentSize);
     this.sizeUnit = unit.id;
     this.displaySize = parseFloat((this.currentSize / unit.factor).toPrecision(5));
@@ -31,10 +29,6 @@ export default class DiscourseSizeAdminEdit extends Component {
     this.sizeUnit = unitId;
   }
 
-  @action
-  onBaseSizeUnitChange(unitId) {
-    // Removed
-  }
 
   @action
   async save() {
@@ -51,11 +45,6 @@ export default class DiscourseSizeAdminEdit extends Component {
       data.current_size = currentSizeInCm;
     }
 
-    if (this.growthRateOverride !== "") {
-      data.growth_rate_override = this.growthRateOverride;
-    } else {
-      data.growth_rate_override = null;
-    }
 
     try {
       await ajax(`/size/admin/characters/${this.args?.model?.character?.id}`, {

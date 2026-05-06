@@ -8,6 +8,8 @@ class DiscourseSizeCharacter < ActiveRecord::Base
   before_create :set_default_position
   before_save :set_folder_position, if: :will_save_change_to_folder_id?
 
+  self.ignored_columns = %w[allow_growth allow_shrink growth_speed_multiplier]
+
   def set_default_position
     return if position.present?
     if folder_id.nil?
@@ -84,56 +86,59 @@ class DiscourseSizeCharacter < ActiveRecord::Base
   end
 
   def current_calculated_offset
-    # Calculate offset based on target_offset, current_offset, offset_updated_at, and max_growth_rate
-    # If target_offset == current_offset, return current_offset
     return current_offset if target_offset == current_offset || offset_updated_at.nil?
-
-    rate_percent_per_day =
-      if growth_rate_override.present?
-        growth_rate_override
+    
+    now = Time.now
+    # Find the action that is currently active
+    active_action = discourse_size_actions.where(action_type: ["grow", "shrink"])
+      .where("start_time <= ? AND end_time > ?", now, now)
+      .first
+    
+    if active_action
+      # Linear interpolation within the action duration
+      start_t = active_action.start_time
+      end_t = active_action.end_time
+      total_duration = end_t - start_t
+      
+      if total_duration > 0
+        elapsed = now - start_t
+        progress = elapsed / total_duration
+        
+        start_off = active_action.start_offset
+        end_off = active_action.end_offset
+        
+        return start_off + (end_off - start_off) * progress
       else
-        SiteSetting.discourse_size_default_max_growth_rate + growth_rate_bought
+        return active_action.end_offset
       end
-    return target_offset if rate_percent_per_day <= 0
-
-    days_elapsed = (Time.now - offset_updated_at) / 86400.0
-    current_size = base_size + current_offset
-    target_size = base_size + target_offset
-
-    multiplier = (1.0 + rate_percent_per_day / 100.0)**days_elapsed
-
-    if target_offset > current_offset
-      new_size = current_size * multiplier
-      new_size = target_size if new_size > target_size
-      new_size = MAX_SIZE if new_size > MAX_SIZE
-    else
-      new_size = current_size / multiplier
-      new_size = target_size if new_size < target_size
     end
 
-    new_size - base_size
+    # If no active action, check if we are in between actions or after all actions
+    next_action = discourse_size_actions.where(action_type: ["grow", "shrink"])
+      .where("start_time > ?", now)
+      .order(start_time: :asc)
+      .first
+      
+    if next_action
+      # We are waiting for the next action to start.
+      # The size should be the end of the previous segment (start of next)
+      return next_action.start_offset
+    end
+    
+    # Otherwise, all actions are complete
+    target_offset
   end
 
-  def time_remaining_hours
+  def time_remaining_seconds
     return 0 if (target_offset - current_offset).abs < 0.0001
-
-    rate_percent_per_day =
-      if growth_rate_override.present?
-        growth_rate_override
-      else
-        SiteSetting.discourse_size_default_max_growth_rate + growth_rate_bought
-      end
-    return 0 if rate_percent_per_day <= 0
-
-    c_size = current_size
-    t_size = base_size + target_offset
-
-    return 0 if c_size <= 0 || t_size <= 0
-
-    # days = log(ratio) / log(1 + rate/100)
-    ratio = t_size > c_size ? (t_size / c_size) : (c_size / t_size)
-    days = Math.log(ratio) / Math.log(1.0 + rate_percent_per_day / 100.0)
-    days * 24.0
+    
+    last_action = discourse_size_actions.where(action_type: ["grow", "shrink"]).order(end_time: :desc).first
+    return 0 if last_action&.end_time.nil?
+    
+    now = Time.now
+    return 0 if last_action.end_time <= now
+    
+    (last_action.end_time - now).to_i
   end
 
   def sync_offset!
@@ -143,6 +148,38 @@ class DiscourseSizeCharacter < ActiveRecord::Base
       self.offset_updated_at = Time.now
       self.save!
     end
+  end
+
+  def is_blocked?(user, item_key: nil, action_type: nil)
+    return false if user.nil?
+    return false if user.id == user_id # Owner is never blocked
+
+    # Check user block
+    return true if blocked_user_ids.include?(user.id)
+    
+    # Check global/bulk blocks
+    return true if blocked_item_keys.include?("__all__")
+
+    # If it's a shop item, action_type is determined by the item's effect
+    if item_key
+      return true if blocked_item_keys.include?(item_key)
+      item = DiscourseSizeShopItem.find_by(key: item_key)
+      if item
+        return true if item.effect == "grow" && blocked_item_keys.include?("__all_growing__")
+        return true if item.effect == "shrink" && blocked_item_keys.include?("__all_shrinking__")
+      end
+    end
+
+    # Check direct action blocks
+    if action_type == "grow"
+      return true if blocked_item_keys.include?("__all_growing__")
+      return true if blocked_item_keys.include?("__direct_grow__")
+    elsif action_type == "shrink"
+      return true if blocked_item_keys.include?("__all_shrinking__")
+      return true if blocked_item_keys.include?("__direct_shrink__")
+    end
+
+    false
   end
 
   private
@@ -159,48 +196,10 @@ class DiscourseSizeCharacter < ActiveRecord::Base
   end
 
   def ensure_single_main
+    self.folder_id = nil
     DiscourseSizeCharacter
       .where(user_id: user_id, is_main: true)
       .where.not(id: id)
       .update_all(is_main: false)
   end
 end
-
-# == Schema Information
-#
-# Table name: discourse_size_characters
-#
-#  id                   :bigint           not null, primary key
-#  age                  :string
-#  allow_growth         :boolean          default(TRUE), not null
-#  allow_shrink         :boolean          default(TRUE), not null
-#  base_size            :float            not null
-#  character_type       :string           default("game"), not null
-#  current_offset       :float            default(0.0), not null
-#  description          :text
-#  gender               :string
-#  growth_rate_bought   :float            default(0.0), not null
-#  growth_rate_override :float
-#  info_post            :string
-#  is_main              :boolean          default(FALSE), not null
-#  measurement_system   :string           default("imperial"), not null
-#  name                 :string           not null
-#  offset_updated_at    :datetime         not null
-#  picture              :string
-#  position             :integer          default(0), not null
-#  pronouns             :string
-#  show_comparison      :boolean          default(TRUE), not null
-#  species              :string
-#  start_offset         :float            default(0.0), not null
-#  target_offset        :float            default(0.0), not null
-#  created_at           :datetime         not null
-#  updated_at           :datetime         not null
-#  folder_id            :integer
-#  user_id              :integer          not null
-#
-# Indexes
-#
-#  index_discourse_size_characters_on_folder_id            (folder_id)
-#  index_discourse_size_characters_on_user_id              (user_id)
-#  index_discourse_size_characters_on_user_id_and_is_main  (user_id,is_main) UNIQUE WHERE (is_main = true)
-#

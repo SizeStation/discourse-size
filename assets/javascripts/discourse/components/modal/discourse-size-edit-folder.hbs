@@ -23,7 +23,15 @@
           @value={{this.hexColor}}
           class="folder-color-input"
         />
-        <span class="color-value">{{this.hexColor}}</span>
+        {{#if this.hexColor}}
+          <span class="color-value">{{this.hexColor}}</span>
+          <DButton
+            @action={{this.clearColor}}
+            class="btn-danger"
+          >Clear</DButton>
+        {{else}}
+          <span class="color-value">(Default)</span>
+        {{/if}}
       </div>
     </div>
   </:body>

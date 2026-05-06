@@ -2,11 +2,9 @@
   <:body>
     <div onkeydown={{this.onKeyDown}}>
       <div class="control-group">
-        <label>Character Mode</label>
+        <label>{{i18n "discourse_size.modes.title"}}</label>
         {{#if @model.isNew}}
-          <span class="instructions">Choose how your character's size is
-            managed.
-            <strong>This cannot be changed later.</strong></span>
+          <span class="instructions">{{i18n "discourse_size.modes.help"}}</span>
           <div class="type-selection">
             <label class="radio-label">
               <input
@@ -16,8 +14,8 @@
                 checked={{eq this.characterType "game"}}
                 {{on "change" (fn this.setCharType "game")}}
               />
-              <span><strong>Game Mode</strong>: earn and use coins to grow or
-                shrink your character, or let others grow/shrink your character.</span>
+              <span><strong>{{i18n "discourse_size.modes.game_name"}}</strong>:
+                {{i18n "discourse_size.modes.game_desc"}}</span>
             </label>
             <label class="radio-label">
               <input
@@ -27,8 +25,10 @@
                 checked={{eq this.characterType "freeform"}}
                 {{on "change" (fn this.setCharType "freeform")}}
               />
-              <span><strong>Freeform Mode</strong>: manually set your
-                character's size to any number, no growing/shrinking.</span>
+              <span><strong>{{i18n
+                    "discourse_size.modes.freeform_name"
+                  }}</strong>:
+                {{i18n "discourse_size.modes.freeform_desc"}}</span>
             </label>
           </div>
         {{else}}
@@ -36,22 +36,28 @@
             <span class="mode-label">Mode:</span>
             <strong>{{if
                 (eq this.characterType "game")
-                "Game Mode"
-                "Freeform Mode"
+                (i18n "discourse_size.modes.game_name")
+                (i18n "discourse_size.modes.freeform_name")
               }}</strong>
-            <span class="instructions">(Mode cannot be changed after creation)</span>
+            <span class="instructions">{{i18n
+                "discourse_size.modes.cannot_change"
+              }}</span>
           </div>
         {{/if}}
       </div>
 
+      <hr />
+
       <div class="control-group">
-        <label>Name</label>
-        <span class="instructions">What is this character called?</span>
+        <label>{{i18n "discourse_size.fields.name"}}</label>
+        <span class="instructions">{{i18n
+            "discourse_size.fields.name_help"
+          }}</span>
         <Input @type="text" @value={{this.name}} />
       </div>
 
       <div class="control-group">
-        <label>Picture</label>
+        <label>{{i18n "discourse_size.fields.picture"}}</label>
         <div class="picture-upload-wrapper">
           {{#if this.picture}}
             <img src={{this.picture}} alt="Preview" class="upload-preview" />
@@ -105,8 +111,9 @@
 
       <div class="control-group">
         <label>{{i18n "discourse_size.description"}}</label>
-        <span class="instructions">Tell us more about this character's
-          personality or backstory.</span>
+        <span class="instructions">{{i18n
+            "discourse_size.fields.description_help"
+          }}</span>
         <Textarea
           @value={{this.description}}
           class="character-description-input"
@@ -114,9 +121,10 @@
       </div>
 
       <div class="control-group">
-        <label>Info URL</label>
-        <span class="instructions">A link to a forum post or external page with
-          more information about this character.</span>
+        <label>{{i18n "discourse_size.fields.info_url"}}</label>
+        <span class="instructions">{{i18n
+            "discourse_size.fields.info_url_help"
+          }}</span>
         <Input
           @type="text"
           @value={{this.infoPost}}
@@ -125,16 +133,18 @@
         />
       </div>
 
+      <hr />
+
       <div class="control-group">
         <label>{{if
             (eq this.characterType "freeform")
-            "Size"
-            "Base Size"
+            (i18n "discourse_size.fields.size")
+            (i18n "discourse_size.fields.base_size")
           }}</label>
         <span class="instructions">{{if
             (eq this.characterType "freeform")
-            "The current size of the character."
-            "The initial size of the character."
+            (i18n "discourse_size.fields.size_help")
+            (i18n "discourse_size.fields.base_size_help")
           }}</span>
         <div class="size-input-wrapper">
           <input
@@ -162,55 +172,167 @@
       </div>
 
       <div class="control-group">
-        <label>Measurement System</label>
-        <span class="instructions">How sizes should be displayed for this
-          character.</span>
+        <label>{{i18n "discourse_size.fields.measurement_system"}}</label>
+        <span class="instructions">{{i18n
+            "discourse_size.fields.measurement_system_help"
+          }}</span>
         <select
           onchange={{action (mut this.measurementSystem) value="target.value"}}
         >
           <option
             value="imperial"
             selected={{eq this.measurementSystem "imperial"}}
-          >Imperial (ft/in/mi)</option>
+          >{{i18n "discourse_size.measurement_system_imperial"}}</option>
           <option
             value="metric"
             selected={{eq this.measurementSystem "metric"}}
-          >Metric (cm/m/km)</option>
+          >{{i18n "discourse_size.measurement_system_metric"}}</option>
         </select>
       </div>
 
+      <hr />
+
       {{#if (not (eq this.characterType "freeform"))}}
-        <div class="control-group checkbox-group">
-          <label>
-            <Input @type="checkbox" @checked={{this.allowGrowth}} />
-            Allow others to grow this character
-          </label>
+        <div class="control-group blocking-items-group">
+          <label>{{i18n "discourse_size.blocking.block_items"}}</label>
+          <span class="instructions">{{i18n
+              "discourse_size.blocking.select_items_to_block"
+            }}</span>
+          <div class="bulk-buttons">
+            <DButton
+              @action={{this.blockAll}}
+              @label="discourse_size.blocking.block_all"
+              class="btn-small
+                {{if (eq this.blockingMode 'all') 'btn-primary'}}
+                {{if (not (eq this.blockingMode 'all')) 'btn-default'}}"
+            />
+            <DButton
+              @action={{this.blockNone}}
+              @label="discourse_size.blocking.block_none"
+              class="btn-small
+                {{if (eq this.blockingMode 'none') 'btn-primary'}}
+                {{if (not (eq this.blockingMode 'none')) 'btn-default'}}"
+            />
+            <DButton
+              @action={{this.blockAllGrowing}}
+              @label="discourse_size.blocking.block_all_growing"
+              class="btn-small
+                {{if (eq this.blockingMode 'growing') 'btn-primary'}}
+                {{if (not (eq this.blockingMode 'growing')) 'btn-default'}}"
+            />
+            <DButton
+              @action={{this.blockAllShrinking}}
+              @label="discourse_size.blocking.block_all_shrinking"
+              class="btn-small
+                {{if (eq this.blockingMode 'shrinking') 'btn-primary'}}
+                {{if (not (eq this.blockingMode 'shrinking')) 'btn-default'}}"
+            />
+          </div>
+
+          {{#if this.growingItems.length}}
+            <div class="blocking-section">
+              <span class="section-title">{{i18n
+                  "discourse_size.blocking.growing_items"
+                }}</span>
+              <div class="blocking-items-grid">
+                {{#each this.growingItems as |item|}}
+                  <label
+                    class="blocking-item-card
+                      {{if (this.isItemBlocked item.key) 'blocked'}}"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={{this.isItemBlocked item.key}}
+                      {{on "change" (fn this.toggleItemBlock item.key)}}
+                    />
+                    {{d-icon "angle-double-up" class="grow-icon"}}
+                    <span>{{item.name}}</span>
+                  </label>
+                {{/each}}
+              </div>
+            </div>
+          {{/if}}
+
+          {{#if this.shrinkingItems.length}}
+            <div class="blocking-section">
+              <span class="section-title">{{i18n
+                  "discourse_size.blocking.shrinking_items"
+                }}</span>
+              <div class="blocking-items-grid">
+                {{#each this.shrinkingItems as |item|}}
+                  <label
+                    class="blocking-item-card
+                      {{if (this.isItemBlocked item.key) 'blocked'}}"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={{this.isItemBlocked item.key}}
+                      {{on "change" (fn this.toggleItemBlock item.key)}}
+                    />
+                    {{d-icon "angle-double-down" class="shrink-icon"}}
+                    <span>{{item.name}}</span>
+                  </label>
+                {{/each}}
+              </div>
+            </div>
+          {{/if}}
         </div>
 
-        <div class="control-group checkbox-group">
-          <label>
-            <Input @type="checkbox" @checked={{this.allowShrink}} />
-            Allow others to shrink this character
-          </label>
+        <div class="control-group blocking-users-group">
+          <label>{{i18n "discourse_size.blocking.blocked_users_list"}}</label>
+          <div class="user-search-wrapper">
+            <EmailGroupUserChooser
+              @onChange={{this.onUserSelected}}
+              @options={{hash maximum=1}}
+              @placeholderKey="discourse_size.blocking.username_placeholder"
+            />
+          </div>
+
+          {{#if this.blockedUsers.length}}
+            <div class="blocked-users-list">
+              {{#each this.blockedUsers as |user|}}
+                <div class="blocked-user-item">
+                  <div class="user-info">
+                    {{avatar user imageSize="small"}}
+                    <span class="username">{{user.username}}</span>
+                  </div>
+                  <DButton
+                    @action={{fn this.unblockUser user.id}}
+                    @label="discourse_size.blocking.unblock_user"
+                    class="btn-flat btn-danger unblock-btn"
+                  />
+                </div>
+              {{/each}}
+            </div>
+          {{else}}
+            <div class="empty-notice">{{i18n
+                "discourse_size.blocking.no_blocked_users"
+              }}</div>
+          {{/if}}
         </div>
       {{/if}}
 
-      <div class="control-group checkbox-group">
-        <label>
-          <Input @type="checkbox" @checked={{this.showComparison}} />
-          Show size comparison text
-        </label>
-      </div>
+      <hr />
 
       <div class="control-group checkbox-group">
-        <label>
-          <Input @type="checkbox" @checked={{this.isMain}} />
-          Set as main character
-        </label>
-        <span class="instructions">
-          Your main character will be highlighted on top of the list and will
-          appear in your profile card and user summary.
-        </span>
+        <label>{{i18n "discourse_size.options.title"}}</label>
+
+        <div class="control-group checkbox-group">
+          <label>
+            <Input @type="checkbox" @checked={{this.showComparison}} />
+            {{i18n "discourse_size.options.show_comparison"}}
+          </label>
+        </div>
+
+        <div class="control-group checkbox-group">
+          <label>
+            <Input @type="checkbox" @checked={{this.isMain}} />
+            {{i18n "discourse_size.options.is_main"}}
+          </label>
+          <span class="instructions">
+            {{i18n "discourse_size.options.is_main_help"}}
+          </span>
+        </div>
       </div>
 
     </div>

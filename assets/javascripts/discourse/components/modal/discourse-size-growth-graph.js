@@ -1,22 +1,34 @@
 import Component from "@glimmer/component";
 import { tracked } from "@glimmer/tracking";
-import { action } from "@ember/object";
+import { action, notifyPropertyChange } from "@ember/object";
+import { i18n } from "discourse-i18n";
 import { formatSize } from "../../lib/size-formatter";
 import { ajax } from "discourse/lib/ajax";
 import { inject as service } from "@ember/service";
 
 export default class DiscourseSizeGrowthGraph extends Component {
   @tracked hoveredPoint = null;
-  @tracked _actions = null;
   @tracked _character = null;
   @service currentUser;
+  @service siteSettings;
 
   get character() {
     return this._character || this.args?.model?.character;
   }
 
+  set character(character) {
+    this._character = character;
+  }
+
   get actions() {
-    return this._actions || this.character?.actions || [];
+    return this.character?.actions || [];
+  }
+
+  get canManageCharacter() {
+    return (
+      this.currentUser?.admin ||
+      this.character?.user_id === this.currentUser?.id
+    );
   }
 
   get oldestFirstActions() {
@@ -27,6 +39,12 @@ export default class DiscourseSizeGrowthGraph extends Component {
   get newestFirstActions() {
     if (!this.args) return [];
     return this.actions;
+  }
+
+  get canSeeBlockedStatus() {
+    if (!this.currentUser) return false;
+    const char = this.character;
+    return this.currentUser.id === char?.user_id || this.currentUser.admin;
   }
 
   get history() {
@@ -46,7 +64,11 @@ export default class DiscourseSizeGrowthGraph extends Component {
 
     // 2. Action Points
     this.oldestFirstActions.forEach((action) => {
-      if (action.action_type === "grow" || action.action_type === "shrink") {
+      if (
+        action.action_type === "grow" ||
+        action.action_type === "shrink" ||
+        action.action_type === "set_size"
+      ) {
         cumulativeSize += parseFloat(action.size_change);
       }
       history.push({
@@ -56,6 +78,33 @@ export default class DiscourseSizeGrowthGraph extends Component {
         isProjection: false,
       });
     });
+
+    // 3. Target Point (Projection)
+    const currentSize = parseFloat(char.current_size);
+    const targetSize =
+      parseFloat(char.base_size) + parseFloat(char.target_offset);
+    if (Math.abs(targetSize - currentSize) > 0.1) {
+      // Calculate how long it will take to reach target
+      const rate =
+        char.growth_rate_override ||
+        this.siteSettings.discourse_size_default_max_growth_rate;
+      const multiplier = char.growth_speed_multiplier || 1.0;
+      const effectiveRate = rate * multiplier;
+
+      if (effectiveRate > 0) {
+        const diff = Math.abs(targetSize - currentSize);
+        const daysToTarget = diff / effectiveRate;
+        const targetDate = new Date();
+        targetDate.setTime(targetDate.getTime() + daysToTarget * 86400000);
+
+        history.push({
+          date: targetDate,
+          size: targetSize,
+          label: "Target",
+          isProjection: true,
+        });
+      }
+    }
 
     return history;
   }
@@ -97,10 +146,7 @@ export default class DiscourseSizeGrowthGraph extends Component {
         tooltipNameY: y - 45,
         tooltipSizeX: x + 10,
         tooltipSizeY: y - 25,
-        formattedSize: formatSize(
-          h.size,
-          this.character?.measurement_system
-        ),
+        formattedSize: formatSize(h.size, this.character?.measurement_system),
       };
     });
 
@@ -146,34 +192,44 @@ export default class DiscourseSizeGrowthGraph extends Component {
     const actions = this.actions;
     const byUser = {};
 
-    for (const a of actions) {
-      if (a.action_type === "reset" || a.action_type === "boost_speed") {
-        continue;
+    actions.forEach((action) => {
+      if (
+        action.action_type === "reset" ||
+        action.action_type === "boost_speed" ||
+        !action.size_change
+      ) {
+        return;
       }
-      const uid = a.user.id;
-      if (!byUser[uid]) {
-        byUser[uid] = {
-          user: a.user,
+      const userId = action.user_id || action.user?.id;
+      if (!userId) {
+        return;
+      }
+      if (!byUser[userId]) {
+        byUser[userId] = {
+          user: action.user,
+          totalImpactCm: 0,
           totalPoints: 0,
-          totalSizeCm: 0,
         };
       }
-      byUser[uid].totalPoints += a.points_spent || 0;
-      // absolute cm contributed (grow = positive, shrink = negative)
-      byUser[uid].totalSizeCm += a.size_change || 0;
-    }
+      byUser[userId].totalImpactCm += parseFloat(action.size_change || 0);
+      byUser[userId].totalPoints += parseFloat(action.points_spent || 0);
+    });
 
     return Object.values(byUser)
-      .sort((a, b) => b.totalPoints - a.totalPoints)
+      .sort((a, b) => b.totalImpactCm - a.totalImpactCm)
       .slice(0, 10)
       .map((entry) => ({
         ...entry,
+        isBlocked:
+          entry.user &&
+          Number(entry.user.id) !== Number(this.character.user_id) &&
+          this.character.blocked_user_ids
+            ?.map((id) => Number(id))
+            .includes(Number(entry.user.id)),
         formattedSize: formatSize(
-          Math.abs(entry.totalSizeCm),
+          entry.totalImpactCm,
           this.character?.measurement_system
         ),
-        totalPoints: Math.round(entry.totalPoints),
-        netEffect: entry.totalSizeCm >= 0 ? "grow" : "shrink",
       }));
   }
 
@@ -184,7 +240,12 @@ export default class DiscourseSizeGrowthGraph extends Component {
 
   @action
   async deleteAction(actionItem) {
-    if (!confirm("Are you sure you want to delete this activity entry?")) {
+    const key =
+      actionItem.item_key || actionItem.points_spent > 0
+        ? "discourse_size.delete_action_with_return_confirm"
+        : "discourse_size.delete_action_confirm";
+
+    if (!confirm(i18n(key))) {
       return;
     }
 
@@ -192,14 +253,73 @@ export default class DiscourseSizeGrowthGraph extends Component {
       const result = await ajax(`/size/actions/${actionItem.id}`, {
         type: "DELETE",
       });
-      this._actions = result.character.actions;
-      this._character = result.character;
-
-      if (this.args?.model?.onActionDeleted) {
-        this.args.model.onActionDeleted(result.character);
-      }
+      this.character.actions = this.character.actions.filter(
+        (action) => action.id !== actionItem.id
+      );
+      notifyPropertyChange(this, "history");
+      notifyPropertyChange(this, "graphData");
+      notifyPropertyChange(this, "actions");
+      notifyPropertyChange(this, "newestFirstActions");
+      notifyPropertyChange(this, "oldestFirstActions");
+      notifyPropertyChange(this, "topContributors");
     } catch (e) {
       alert("Error deleting action");
+    }
+  }
+
+  @action
+  async blockUser(user) {
+    if (
+      !confirm(
+        I18n.t("discourse_size.blocking.confirm_block_user", {
+          username: user.username,
+        })
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const result = await ajax(
+        `/size/characters/${this.character.id}/block_user`,
+        {
+          type: "POST",
+          data: { user_id: user.id },
+        }
+      );
+      this.character.blocked_user_ids.push(user.id);
+      notifyPropertyChange(this, "topContributors");
+    } catch (e) {
+      alert("Error blocking user");
+    }
+  }
+
+  @action
+  async unblockUser(user) {
+    if (
+      !confirm(
+        I18n.t("discourse_size.blocking.confirm_unblock_user", {
+          username: user.username,
+        })
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const result = await ajax(
+        `/size/characters/${this.character.id}/unblock_user`,
+        {
+          type: "POST",
+          data: { user_id: user.id },
+        }
+      );
+      this.character.blocked_user_ids = this.character.blocked_user_ids.filter(
+        (id) => id !== user.id
+      );
+      notifyPropertyChange(this, "topContributors");
+    } catch (e) {
+      alert("Error unblocking user");
     }
   }
 }

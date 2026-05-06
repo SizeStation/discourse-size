@@ -15,8 +15,13 @@ module DiscourseSize
 
       render json: {
         folders: folders.map { |f| folder_serializer(f) },
-        characters: characters.map { |c| character_serializer(c) }
+        characters: serialize_data(characters, DiscourseSizeCharacterSerializer)
       }
+    end
+
+    def show
+      character = DiscourseSizeCharacter.find(params[:id])
+      render json: { character: serialize_data(character, DiscourseSizeCharacterSerializer) }
     end
 
     def reorder
@@ -42,7 +47,7 @@ module DiscourseSize
         )
 
       if character.save
-        render json: { character: character_serializer(character) }
+        render json: { character: serialize_data(character, DiscourseSizeCharacterSerializer) }
       else
         render json: failed_json.merge(errors: character.errors.full_messages),
                status: :unprocessable_content
@@ -58,11 +63,15 @@ module DiscourseSize
       # character_type cannot be changed after creation
       p = character_params
       p.delete(:character_type)
+      
+      # Ensure arrays are present even if empty in request
+      p[:blocked_item_keys] ||= []
+      p[:blocked_user_ids] ||= []
 
       Rails.logger.warn "Updating character #{character.id} with params: #{p.inspect}"
       if character.update(p)
         Rails.logger.warn "Update succeeded. Gender: #{character.reload.gender}"
-        render json: { character: character_serializer(character) }
+        render json: { character: serialize_data(character, DiscourseSizeCharacterSerializer) }
       else
         Rails.logger.warn "Update failed: #{character.errors.full_messages}"
         render json: failed_json.merge(errors: character.errors.full_messages),
@@ -122,105 +131,6 @@ module DiscourseSize
       render json: success_json
     end
 
-    def grow
-      character = DiscourseSizeCharacter.find(params[:id])
-      points_cost = params[:amount].to_f
-
-      unless character.allow_growth || character.user_id == current_user.id || current_user.admin?
-        raise Discourse::InvalidAccess
-      end
-
-      if character.freeform?
-        points_cost = 0
-      end
-
-      points = DiscourseSize::PointsManager.get_points(current_user)
-      if points < points_cost
-        return(
-          render json: failed_json.merge(error: "Not enough points"), status: :unprocessable_content
-        )
-      end
-
-      # Compounding growth
-      rate = SiteSetting.discourse_size_percentage_per_point / 100.0
-      current_target_total = character.base_size + character.target_offset
-      new_target_total = current_target_total * ((1.0 + rate)**points_cost)
-      amount_cm = new_target_total - current_target_total
-
-      DiscourseSize::PointsManager.remove_points(current_user, points_cost)
-      character.update_size_target(amount_cm)
-
-      notification_id = DiscourseSize::NotificationManager.send_growth_notification(
-        current_user,
-        character,
-        "grow",
-        amount_cm
-      )
-
-      DiscourseSizeAction.create!(
-        character_id: character.id,
-        user_id: current_user.id,
-        action_type: "grow",
-        size_change: amount_cm,
-        points_spent: points_cost,
-        notification_id: notification_id
-      )
-
-      render json: {
-               character: character_serializer(character),
-               points: DiscourseSize::PointsManager.get_points(current_user),
-             }
-    end
-
-    def shrink
-      character = DiscourseSizeCharacter.find(params[:id])
-      points_cost = params[:amount].to_f.abs
-
-      unless character.allow_shrink || character.user_id == current_user.id || current_user.admin?
-        raise Discourse::InvalidAccess
-      end
-
-      if character.freeform?
-        points_cost = 0
-      end
-
-      points = DiscourseSize::PointsManager.get_points(current_user)
-      if points < points_cost
-        return(
-          render json: failed_json.merge(error: "Not enough points"), status: :unprocessable_content
-        )
-      end
-
-      # Compounding shrink
-      rate = SiteSetting.discourse_size_percentage_per_point / 100.0
-      current_target_total = character.base_size + character.target_offset
-      new_target_total = current_target_total * ((1.0 - rate)**points_cost)
-      amount_cm = new_target_total - current_target_total
-
-      DiscourseSize::PointsManager.remove_points(current_user, points_cost)
-      character.update_size_target(amount_cm)
-
-      notification_id = DiscourseSize::NotificationManager.send_growth_notification(
-        current_user,
-        character,
-        "shrink",
-        amount_cm
-      )
-
-      DiscourseSizeAction.create!(
-        character_id: character.id,
-        user_id: current_user.id,
-        action_type: "shrink",
-        size_change: amount_cm,
-        points_spent: points_cost,
-        notification_id: notification_id
-      )
-
-      render json: {
-               character: character_serializer(character),
-               points: DiscourseSize::PointsManager.get_points(current_user),
-             }
-    end
 
 
     def set_size
@@ -237,9 +147,15 @@ module DiscourseSize
       new_total_cm = 1e-18 if new_total_cm < 1e-18
       new_total_cm = DiscourseSizeCharacter::MAX_SIZE if new_total_cm > DiscourseSizeCharacter::MAX_SIZE
 
-      amount_cm = new_total_cm - character.current_size
-
-      character.update_size_target(amount_cm)
+      start_offset = character.target_offset
+      amount_cm = new_total_cm - (character.base_size + character.current_offset)
+      
+      character.sync_offset!
+      character.current_offset += amount_cm
+      character.target_offset += amount_cm
+      character.start_offset = character.current_offset
+      character.offset_updated_at = Time.now
+      character.save!
 
       DiscourseSizeAction.create!(
         character_id: character.id,
@@ -247,65 +163,61 @@ module DiscourseSize
         action_type: "set_size",
         size_change: amount_cm,
         points_spent: 0,
+        start_offset: start_offset,
+        end_offset: character.target_offset,
+        duration_minutes: 0,
+        start_time: Time.now,
+        end_time: Time.now
       )
 
       render json: {
-               character: character_serializer(character),
+               character: serialize_data(character, DiscourseSizeCharacterSerializer),
                points: DiscourseSize::PointsManager.get_points(current_user),
              }
     end
 
-    def boost_speed
-      character = DiscourseSizeCharacter.find(params[:id])
-      points_cost = params[:amount].to_f.abs
-
-      if character.freeform?
-        points_cost = 0
-      else
-        points = DiscourseSize::PointsManager.get_points(current_user)
-        if points < points_cost
-          return(
-            render json: failed_json.merge(error: "Not enough points"),
-                   status: :unprocessable_content
-          )
-        end
-      end
-
-      speed_bonus = points_cost * (SiteSetting.discourse_size_speed_percentage_per_point || 0.1)
-
-      character.sync_offset!
-      character.growth_rate_bought += speed_bonus
-      character.save!
-
-      if points_cost > 0
-        DiscourseSize::PointsManager.remove_points(current_user, points_cost)
-      end
-
-      DiscourseSizeAction.create!(
-        character_id: character.id,
-        user_id: current_user.id,
-        action_type: "boost_speed",
-        size_change: speed_bonus,
-        points_spent: points_cost,
-      )
-
-      render json: {
-               character: character_serializer(character),
-               points: DiscourseSize::PointsManager.get_points(current_user),
-             }
-    end
 
     def destroy_action
       action = DiscourseSizeAction.find(params[:id])
-      raise Discourse::InvalidAccess unless current_user.admin?
+      unless current_user.admin? || action.character.user_id == current_user.id
+        raise Discourse::InvalidAccess
+      end
 
       # Delete notification if it exists
       if action.respond_to?(:notification_id) && action.notification_id
         DiscourseSize::NotificationManager.delete_notification(action.notification_id)
       end
 
-      character = DiscourseSizeCharacter.find(action.character_id)
+      character = action.character
       character.sync_offset!
+
+      # Revert points
+      if action.points_spent > 0
+        DiscourseSize::PointsManager.add_points(
+          action.user,
+          action.points_spent,
+          source_type: "action_reverted",
+          description: "Reverted #{action.action_type} on #{character.name}"
+        )
+        # Notify user about points return
+        DiscourseSize::NotificationManager.send_item_returned_notification(
+          action.user,
+          "#{action.points_spent} coins",
+          character.name
+        )
+      end
+
+      # Revert item
+      if action.item_key
+        DiscourseSize::InventoryManager.return_item(action.user, action.item_key)
+        # Notify user about item return
+        item = DiscourseSizeShopItem.find_by(key: action.item_key)
+        DiscourseSize::NotificationManager.send_item_returned_notification(
+          action.user,
+          item&.name || action.item_key,
+          character.name
+        )
+      end
 
       case action.action_type
       when "grow", "shrink", "set_size"
@@ -323,34 +235,49 @@ module DiscourseSize
       action.destroy
 
       render json: {
-               character: character_serializer(character),
+               character: serialize_data(character.reload, DiscourseSizeCharacterSerializer),
              }
     end
 
+    def block_user
+      character = DiscourseSizeCharacter.find(params[:id])
+      raise Discourse::InvalidAccess unless character.user_id == current_user.id || current_user.admin?
+      
+      user_to_block = User.find(params[:user_id])
+      
+      # Owner cannot block themselves
+      if user_to_block.id == character.user_id
+        return render json: { character: serialize_data(character, DiscourseSizeCharacterSerializer) }
+      end
+
+      character.blocked_user_ids = (character.blocked_user_ids + [user_to_block.id]).uniq
+      character.save!
+      
+      render json: { character: serialize_data(character.reload, DiscourseSizeCharacterSerializer) }
+    end
+
+    def unblock_user
+      character = DiscourseSizeCharacter.find(params[:id])
+      raise Discourse::InvalidAccess unless character.user_id == current_user.id || current_user.admin?
+      
+      target_id = params[:user_id].to_i
+      character.blocked_user_ids = character.blocked_user_ids.map(&:to_i).reject { |id| id == target_id }
+      character.save!
+      
+      render json: { character: serialize_data(character.reload, DiscourseSizeCharacterSerializer) }
+    end
+
+    def update_blocked_items
+      character = DiscourseSizeCharacter.find(params[:id])
+      raise Discourse::InvalidAccess unless character.user_id == current_user.id || current_user.admin?
+      
+      character.blocked_item_keys = params[:blocked_item_keys] || []
+      character.save!
+      
+      render json: { character: serialize_data(character.reload, DiscourseSizeCharacterSerializer) }
+    end
+
     private
-
-    def biggest_character_id
-      @biggest_character_id ||=
-        DiscourseSizeCharacter
-          .order(Arel.sql("(base_size + current_offset) DESC"))
-          .limit(1)
-          .pluck(:id)
-          .first
-    end
-
-    def tiniest_character_id
-      @tiniest_character_id ||=
-        DiscourseSizeCharacter
-          .order(Arel.sql("(base_size + current_offset) ASC"))
-          .limit(1)
-          .pluck(:id)
-          .first
-    end
-
-    def multiple_characters?
-      return @multiple_characters if defined?(@multiple_characters)
-      @multiple_characters = DiscourseSizeCharacter.count > 1
-    end
 
     def character_params
       params.permit(
@@ -358,9 +285,8 @@ module DiscourseSize
         :picture,
         :info_post,
         :base_size,
-        :allow_growth,
-        :allow_shrink,
         :measurement_system,
+        :is_main,
         :character_type,
         :gender,
         :pronouns,
@@ -368,91 +294,9 @@ module DiscourseSize
         :species,
         :description,
         :show_comparison,
-        :is_main,
-        :folder_id,
-        :position,
+        blocked_item_keys: [],
+        blocked_user_ids: []
       )
-    end
-
-    def character_serializer(c)
-      c.sync_offset!
-
-      # Calculate rank (exclude freeform characters)
-      if c.game?
-        biggest_rank =
-          DiscourseSizeCharacter.where(character_type: 'game').where(
-            "(base_size + current_offset) > ?",
-            c.base_size + c.current_offset,
-          ).count + 1
-        tiniest_rank =
-          DiscourseSizeCharacter.where(character_type: 'game').where(
-            "(base_size + current_offset) < ?",
-            c.base_size + c.current_offset,
-          ).count + 1
-      else
-        biggest_rank = nil
-        tiniest_rank = nil
-      end
-
-      {
-        id: c.id,
-        user_id: c.user_id,
-        username: c.user.username,
-        name: c.name,
-        picture: c.picture,
-        info_post: c.info_post,
-        base_size: c.base_size,
-        current_offset: c.current_offset,
-        target_offset: c.target_offset,
-        start_offset: c.start_offset,
-        offset_updated_at: c.offset_updated_at,
-        current_size: c.current_size,
-        allow_growth: c.allow_growth,
-        allow_shrink: c.allow_shrink,
-        measurement_system: c.measurement_system,
-        is_main: c.is_main,
-        growth_rate_bought: c.growth_rate_bought,
-        is_biggest: multiple_characters? && c.game? && c.id == biggest_character_id,
-        is_tiniest: multiple_characters? && c.game? && c.id == tiniest_character_id,
-        biggest_rank: biggest_rank,
-        tiniest_rank: tiniest_rank,
-        growth_rate_override: c.growth_rate_override,
-        character_type: c.character_type,
-        gender: c.gender,
-        pronouns: c.pronouns,
-        age: c.age,
-        species: c.species,
-        description: c.description,
-        show_comparison: c.show_comparison,
-        folder_id: c.folder_id,
-        position: c.position,
-        actions:
-          c
-            .discourse_size_actions
-            .order(created_at: :desc)
-            .limit(20)
-            .map do |a|
-              {
-                id: a.id,
-                action_type: a.action_type,
-                size_change: a.size_change,
-                points_spent:
-                  (
-                    if DiscourseSizeAction.column_names.include?("points_spent")
-                      a.points_spent.to_f
-                    else
-                      0.0
-                    end
-                  ),
-                created_at: a.created_at,
-                user: {
-                  id: a.user.id,
-                  username: a.user.username,
-                  avatar_template: a.user.avatar_template,
-                },
-              }
-            end,
-      }
     end
 
     def folder_serializer(f)

@@ -4,11 +4,13 @@ import { tracked } from "@glimmer/tracking";
 import { inject as service } from "@ember/service";
 import { ajax } from "discourse/lib/ajax";
 import { formatSize } from "../lib/size-formatter";
+import DiscourseSizeUseItem from "./modal/discourse-size-use-item";
 
 export default class DiscourseSizeCharacterActions extends Component {
   @service siteSettings;
   @service currentUser;
 
+  @service modal;
   @tracked amountInput = 10;
   @tracked boostAmountInput = 10;
   @tracked freeformSizeInput = "";
@@ -20,6 +22,16 @@ export default class DiscourseSizeCharacterActions extends Component {
         this.args.character.current_size || this.args.character.base_size
       ).toString();
     }
+  }
+
+  @action
+  openInventoryModal() {
+    this.modal.show(DiscourseSizeUseItem, {
+      model: {
+        character: this.args.character,
+        onAction: this.args.onAction,
+      },
+    });
   }
 
   get isGame() {
@@ -34,65 +46,37 @@ export default class DiscourseSizeCharacterActions extends Component {
     return this.args.isCurrentUser || this.currentUser?.admin;
   }
 
-  get canGrow() {
-    return this.args.character.allow_growth || this.canEdit;
+  get isBlocked() {
+    if (!this.currentUser) return false;
+    const char = this.args.character;
+    if (!char) return false;
+
+    // Owner and admin are never blocked
+    if (this.currentUser.id === char.user_id || this.currentUser.admin) {
+      return false;
+    }
+
+    // Check if user is blocked
+    const currentUserId = Number(this.currentUser.id);
+    if (char.blocked_user_ids?.map((id) => Number(id)).includes(currentUserId)) {
+      return true;
+    }
+
+    // Check if all interactions are blocked
+    if (char.blocked_item_keys?.includes("__all__")) return true;
+
+    return false;
   }
 
-  get canShrink() {
-    return this.args.character.allow_shrink || this.canEdit;
-  }
-
-  @action
-  setAmount(event) {
-    this.amountInput = event.target.value;
-  }
-
-  @action
-  setBoostAmount(event) {
-    this.boostAmountInput = event.target.value;
+  get canSeeBlockedStatus() {
+    if (!this.currentUser) return false;
+    const char = this.args.character;
+    return this.currentUser.id === char?.user_id || this.currentUser.admin;
   }
 
   @action
   setFreeformSize(event) {
     this.freeformSizeInput = event.target.value;
-  }
-
-  @action
-  async grow() {
-    const amount = parseFloat(this.amountInput);
-    if (isNaN(amount) || amount <= 0) return;
-
-    try {
-      const result = await ajax(
-        `/size/characters/${this.args.character.id}/grow`,
-        {
-          type: "POST",
-          data: { amount },
-        }
-      );
-      this.args.onAction?.(result);
-    } catch (e) {
-      alert(e.jqXHR?.responseJSON?.error || "Error growing character");
-    }
-  }
-
-  @action
-  async shrink() {
-    const amount = parseFloat(this.amountInput);
-    if (isNaN(amount) || amount <= 0) return;
-
-    try {
-      const result = await ajax(
-        `/size/characters/${this.args.character.id}/shrink`,
-        {
-          type: "POST",
-          data: { amount },
-        }
-      );
-      this.args.onAction?.(result);
-    } catch (e) {
-      alert(e.jqXHR?.responseJSON?.error || "Error shrinking character");
-    }
   }
 
   @action
@@ -112,52 +96,5 @@ export default class DiscourseSizeCharacterActions extends Component {
     } catch (e) {
       alert(e.jqXHR?.responseJSON?.error || "Error setting size");
     }
-  }
-
-  @action
-  async boostSpeed() {
-    const amount = parseFloat(this.boostAmountInput);
-    if (isNaN(amount) || amount <= 0) return;
-
-    try {
-      const result = await ajax(
-        `/size/characters/${this.args.character.id}/boost_speed`,
-        {
-          type: "POST",
-          data: { amount },
-        }
-      );
-      this.args.onAction?.(result);
-    } catch (e) {
-      alert(e.jqXHR?.responseJSON?.error || "Error boosting speed");
-    }
-  }
-
-  get projectedGrowSize() {
-    const amount = parseFloat(this.amountInput) || 0;
-    const rate =
-      (this.siteSettings.discourse_size_percentage_per_point || 1) / 100.0;
-    const currentTargetTotal =
-      this.args.character.base_size + this.args.character.target_offset;
-    const newTargetTotal = currentTargetTotal * Math.pow(1.0 + rate, amount);
-    return formatSize(newTargetTotal, this.args.character.measurement_system);
-  }
-
-  get projectedShrinkSize() {
-    const amount = parseFloat(this.amountInput) || 0;
-    const rate =
-      (this.siteSettings.discourse_size_percentage_per_point || 1) / 100.0;
-    const currentTargetTotal =
-      this.args.character.base_size + this.args.character.target_offset;
-    const newTargetTotal = currentTargetTotal * Math.pow(1.0 - rate, amount);
-    return formatSize(newTargetTotal, this.args.character.measurement_system);
-  }
-
-  get projectedSpeedBoost() {
-    const amount = parseFloat(this.boostAmountInput) || 0;
-    const bonus =
-      amount *
-      (this.siteSettings.discourse_size_speed_percentage_per_point || 0.1);
-    return bonus.toFixed(2);
   }
 }

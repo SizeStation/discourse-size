@@ -1,0 +1,119 @@
+<div class="size-shop-container">
+  <div class="shop-header">
+    <div class="shop-title">
+      <h1>{{this.shopName}}</h1>
+    </div>
+    <div class="shop-meta">
+      {{#if this.currentUser.admin}}
+        <DButton
+          @icon="plus"
+          @label="discourse_size.shop.add_item"
+          @action={{this.addShopItem}}
+          class="btn-default add-item-btn"
+        />
+      {{/if}}
+      <DButton
+        @label="discourse_size.inventory.my_inventory"
+        @action={{this.showInventory}}
+        class="btn-default"
+      />
+      <DButton @action={{this.showPointHistory}} class="btn-primary">
+        <span>Balance:
+          {{this.currentPoints}}
+          {{i18n "discourse_size.admin_points"}}</span>
+      </DButton>
+    </div>
+  </div>
+
+  <div class="shop-grid">
+    {{#each this.items as |item|}}
+      <div
+        class="shop-item-card
+          {{if (gt item.price this.currentPoints) 'expensive'}}"
+      >
+        {{#if item.picture}}
+          <div class="item-image">
+            <img src={{item.picture}} alt={{item.name}} />
+          </div>
+        {{/if}}
+        <div class="item-info">
+          <h2 class="item-name">{{item.name}}</h2>
+          <div class="item-stats">
+            <span class="stat effect {{item.effect}}">
+              {{#if (eq item.effect "grow")}}
+                {{i18n "discourse_size.grow"}}
+              {{else}}
+                {{i18n "discourse_size.shrink"}}
+              {{/if}}
+            </span>
+            <span class="stat amount">
+              {{item.amount}}%
+              {{i18n "discourse_size.shop.stats.amount"}}
+            </span>
+            <span class="stat duration">
+              {{#if (gt item.duration_minutes 0)}}
+                {{i18n
+                  "discourse_size.shop.stats.duration_full"
+                  count=item.duration_minutes
+                }}
+              {{else}}
+                {{i18n "discourse_size.shop.stats.duration_instant"}}
+              {{/if}}
+            </span>
+            <span class="stat uses">
+              {{#if (eq item.uses 0)}}
+                {{i18n "discourse_size.inventory.infinite_uses"}}
+              {{else}}
+                {{i18n "discourse_size.inventory.uses" count=item.uses}}
+              {{/if}}
+            </span>
+            {{#if this.currentUser.admin}}
+              <span class="stat stock {{if (eq item.stock 0) 'out-of-stock'}}">
+                {{i18n "discourse_size.shop.stats.stock"}}:
+                {{if
+                  (eq item.stock -1)
+                  (i18n "discourse_size.shop.stats.infinite")
+                  item.stock
+                }}
+              </span>
+              {{#unless item.enabled}}
+                <span class="stat disabled-label">{{i18n
+                    "discourse_size.shop.stats.disabled"
+                  }}</span>
+              {{/unless}}
+            {{/if}}
+          </div>
+          <p class="item-description">{{item.description}}</p>
+        </div>
+        <div class="item-footer">
+          <span class="item-price">
+            <strong>{{item.price}}</strong>
+            Coins
+          </span>
+          <div class="actions">
+            {{#if this.currentUser.admin}}
+              <DButton
+                @icon="pencil"
+                @action={{fn this.editShopItem item}}
+                class="btn-default edit-btn"
+              />
+            {{/if}}
+            <DButton
+              @label="discourse_size.shop.purchase"
+              @action={{fn this.purchaseItem item}}
+              @disabled={{or
+                (gt item.price this.currentPoints)
+                (eq this.purchasing item.key)
+              }}
+              class="btn-primary purchase-btn"
+            />
+          </div>
+        </div>
+      </div>
+    {{else}}
+      <div class="empty-shop">
+        {{i18n "discourse_size.shop.empty"}}
+      </div>
+    {{/each}}
+  </div>
+</div>

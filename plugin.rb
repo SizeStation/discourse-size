@@ -15,6 +15,7 @@ end
 
 require_relative "lib/discourse_size/engine"
 require_relative "lib/discourse_size/points_manager"
+require_relative "lib/discourse_size/inventory_manager"
 require_relative "lib/discourse_size/notification_manager"
 
 register_svg_icon "paw"
@@ -23,17 +24,14 @@ register_svg_icon "angle-double-down"
 register_asset "stylesheets/discourse-size.scss"
 
 after_initialize do
-  require_relative "app/models/discourse_size_character"
-  require_relative "app/models/discourse_size_action"
-  require_relative "app/models/discourse_size_folder"
-
-  # This registers it both on the model and for the frontend
-  # register_notification_type is the modern way
   if respond_to?(:register_notification_type)
     register_notification_type(:discourse_size_notification, 801)
   else
     Notification.types[:discourse_size_notification] = 801
   end
+  require_relative "app/models/discourse_size_character"
+  require_relative "app/models/discourse_size_action"
+  require_relative "app/models/discourse_size_folder"
 
   # Points for inviting / being invited
   on(:invite_redeemed) do |invite|
@@ -43,6 +41,8 @@ after_initialize do
         DiscourseSize::PointsManager.add_points(
           invite.user,
           SiteSetting.discourse_size_points_per_invited,
+          source_type: "invite_reward",
+          description: "Joined via invite from #{invite.invited_by&.username}"
         )
       end
       # Points for the person who sent the invite
@@ -50,6 +50,8 @@ after_initialize do
         DiscourseSize::PointsManager.add_points(
           invite.invited_by,
           SiteSetting.discourse_size_points_per_invite,
+          source_type: "invite_reward",
+          description: "Invited #{invite.user&.username}"
         )
       end
     end
@@ -66,6 +68,7 @@ after_initialize do
         DiscourseSize::PointsManager.add_points(
           user,
           SiteSetting.discourse_size_points_per_daily_login,
+          source_type: "daily_login"
         )
       end
     end
@@ -85,6 +88,7 @@ after_initialize do
       DiscourseSize::PointsManager.add_points(
         current_user,
         SiteSetting.discourse_size_points_per_daily_login,
+        source_type: "daily_login"
       )
     end
   end
@@ -104,7 +108,12 @@ after_initialize do
             SiteSetting.discourse_size_points_per_reply
           end
         )
-      DiscourseSize::PointsManager.add_points(user, points)
+      DiscourseSize::PointsManager.add_points(
+        user, 
+        points, 
+        source_type: "post_reward",
+        description: post.is_first_post? ? "Created topic" : "Replied to post"
+      )
     end
   end
 
@@ -116,16 +125,20 @@ after_initialize do
       # Adding 1 point every single read could hit the DB hard.
       # But we'll do it as requested.
       if rand < 0.1 # 10% chance to give 10x points to reduce DB writes
-        DiscourseSize::PointsManager.add_points(user, SiteSetting.discourse_size_points_per_read)
+        DiscourseSize::PointsManager.add_points(
+          user, 
+          SiteSetting.discourse_size_points_per_read,
+          source_type: "read_reward"
+        )
       end
     end
   end
 
   add_to_serializer(:user_card, :discourse_size_main_character) do
+    return nil if !object&.id
     character = DiscourseSizeCharacter.find_by(user_id: object.id, is_main: true)
     if character
       character.sync_offset!
-      rate = character.growth_rate_override || SiteSetting.discourse_size_default_max_growth_rate
       {
         id: character.id,
         name: character.name,
@@ -137,7 +150,6 @@ after_initialize do
         measurement_system: character.measurement_system,
         is_growing: character.target_offset > character.current_offset,
         is_shrinking: character.target_offset < character.current_offset,
-        growth_rate_cm_per_day: rate,
         gender: character.gender,
         pronouns: character.pronouns,
         age: character.age,
@@ -152,10 +164,10 @@ after_initialize do
   end
 
   add_to_serializer(:user, :discourse_size_main_character) do
+    return nil if !object&.id
     character = DiscourseSizeCharacter.find_by(user_id: object.id, is_main: true)
     if character
       character.sync_offset!
-      rate = character.growth_rate_override || SiteSetting.discourse_size_default_max_growth_rate
       {
         id: character.id,
         name: character.name,
@@ -165,7 +177,6 @@ after_initialize do
         measurement_system: character.measurement_system,
         is_growing: character.target_offset > character.current_offset,
         is_shrinking: character.target_offset < character.current_offset,
-        growth_rate_cm_per_day: rate,
       }
     end
   end
@@ -177,10 +188,7 @@ after_initialize do
   Discourse::Application.routes.append do
     mount ::DiscourseSize::Engine, at: "/size"
     get "u/:username/characters" => "users#show", :constraints => { username: RouteFormat.username }
-    post "size/characters/:id/grow" => "characters#grow"
-    post "size/characters/:id/shrink" => "characters#shrink"
-    post "size/characters/:id/reset" => "characters#reset_size"
-    post "size/characters/:id/boost_speed" => "characters#boost_speed"
-    post "size/characters/:id/set_size" => "characters#set_size"
+    get "size/shop" => "discourse_size/shop#index"
+    get "size/leaderboard" => "discourse_size/leaderboard#index"
   end
 end

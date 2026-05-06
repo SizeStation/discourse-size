@@ -10,7 +10,6 @@ module DiscourseSize
       character = DiscourseSizeCharacter.find(params[:id])
 
       character.base_size = params[:base_size] if params[:base_size]
-      character.growth_rate_override = params[:growth_rate_override]
 
       if params[:current_size]
         new_size = params[:current_size].to_f
@@ -29,10 +28,37 @@ module DiscourseSize
     def update_points
       user = User.find(params[:user_id])
       new_points = params[:points].to_i
+      description = params[:description] || "Admin manual adjustment"
 
-      DiscourseSize::PointsManager.set_points(user, new_points)
+      DiscourseSize::PointsManager.set_points(user, new_points, description: description)
 
       render json: { points: new_points }
+    end
+
+    def user_inventory
+      user = User.find(params[:user_id])
+      inventory = DiscourseSizeInventory.where(user_id: user.id).order(created_at: :desc)
+      render json: { inventory: serialize_data(inventory, DiscourseSizeInventorySerializer) }
+    end
+
+    def add_inventory_item
+      user = User.find(params[:user_id])
+      item = DiscourseSizeShopItem.find_by(key: params[:item_key])
+      raise Discourse::NotFound unless item
+
+      inventory_item = DiscourseSizeInventory.create!(
+        user_id: user.id,
+        item_key: item.key,
+        uses_remaining: item.uses
+      )
+
+      render_serialized(inventory_item, DiscourseSizeInventorySerializer)
+    end
+
+    def remove_inventory_item
+      inventory_item = DiscourseSizeInventory.find(params[:id])
+      inventory_item.destroy!
+      render json: success_json
     end
 
     private
@@ -74,16 +100,12 @@ module DiscourseSize
         start_offset: c.start_offset,
         offset_updated_at: c.offset_updated_at,
         current_size: c.current_size,
-        allow_growth: c.allow_growth,
-        allow_shrink: c.allow_shrink,
         measurement_system: c.measurement_system,
         is_main: c.is_main,
-        growth_rate_bought: c.growth_rate_bought,
         is_biggest: false, # simplified for admin view
         is_tiniest: false,
         biggest_rank: biggest_rank,
         tiniest_rank: tiniest_rank,
-        growth_rate_override: c.growth_rate_override,
         character_type: c.character_type,
         gender: c.gender,
         pronouns: c.pronouns,
@@ -100,16 +122,14 @@ module DiscourseSize
               {
                 id: a.id,
                 action_type: a.action_type,
-                size_change: a.size_change,
-                points_spent:
-                  (
-                    if DiscourseSizeAction.column_names.include?("points_spent")
-                      a.points_spent.to_f
-                    else
-                      0.0
-                    end
-                  ),
                 created_at: a.created_at,
+                duration_minutes: a.duration_minutes,
+                start_time: a.start_time,
+                end_time: a.end_time,
+                size_change: a.size_change,
+                points_spent: a.points_spent.to_f,
+                start_offset: a.start_offset,
+                end_offset: a.end_offset,
                 user: {
                   id: a.user.id,
                   username: a.user.username,

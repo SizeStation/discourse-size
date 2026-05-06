@@ -1,29 +1,46 @@
 # frozen_string_literal: true
 
-module DiscourseSize
+module ::DiscourseSize
   class NotificationManager
-    def self.send_growth_notification(actor, character, action_type, amount_cm)
-      return if actor.id == character.user_id
+    def self.send_growth_notification(actor, character, action_type, amount_cm, item_name: nil)
+      return if !actor || !character || actor.id == character.user_id
 
-      # We'll use a custom notification type. 
-      # Since we don't have a specific type registered, we'll use 'custom' or just piggyback on another one.
-      # But best is to use a consistent data structure for the frontend to interpret.
-      
+      notification_type = Notification.types[:discourse_size_notification] || 801
+      return unless Notification.types.values.include?(notification_type)
+
       notification_data = {
         actor_username: actor.username,
         character_name: character.name,
         action_type: action_type, # 'grow' or 'shrink'
         amount_cm: amount_cm.abs,
-        measurement_system: character.measurement_system
+        measurement_system: character.measurement_system,
+        item_name: item_name
       }
 
       notification = Notification.create!(
-        notification_type: Notification.types[:discourse_size_notification] || Notification.types[:custom],
+        notification_type: notification_type,
         user_id: character.user_id,
         data: notification_data.to_json
       )
       
       notification.id
+    end
+
+    def self.send_item_returned_notification(user, item_name, character_name)
+      notification_type = Notification.types[:discourse_size_notification] || 801
+      return unless Notification.types.values.include?(notification_type)
+
+      notification_data = {
+        item_name: item_name,
+        character_name: character_name,
+        returned: true
+      }
+
+      Notification.create!(
+        notification_type: notification_type,
+        user_id: user.id,
+        data: notification_data.to_json
+      )
     end
 
     def self.delete_notification(notification_id)

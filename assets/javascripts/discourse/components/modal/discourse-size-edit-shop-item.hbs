@@ -1,0 +1,104 @@
+<DModal
+  @title={{if @model.item (i18n "discourse_size.shop.edit_item") (i18n "discourse_size.shop.add_item")}}
+  @closeModal={{@closeModal}}
+  class="discourse-size-edit-shop-item-modal"
+>
+  <:body>
+    <div class="edit-shop-item-form">
+      <div class="control-group">
+        <label>{{i18n "discourse_size.shop.fields.key"}}</label>
+        <Input @value={{this.itemData.key}} />
+      </div>
+
+      <div class="control-group">
+        <label>{{i18n "discourse_size.shop.fields.name"}}</label>
+        <Input @value={{this.itemData.name}} />
+      </div>
+
+      <div class="control-group">
+        <label>{{i18n "discourse_size.shop.fields.description"}}</label>
+        <Textarea
+          @value={{this.itemData.description}}
+          class="description-input"
+        />
+      </div>
+
+      <div class="row">
+        <div class="control-group half">
+          <label>{{i18n "discourse_size.shop.fields.price"}}</label>
+          <Input @type="number" @value={{this.itemData.price}} />
+        </div>
+        <div class="control-group half">
+          <label>{{i18n "discourse_size.shop.fields.stock"}}</label>
+          <Input @type="number" @value={{this.itemData.stock}} />
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="control-group half">
+          <label>{{i18n "discourse_size.shop.fields.effect"}}</label>
+          {{combo-box
+            content=this.effectOptions
+            value=this.itemData.effect
+            onChange=(fn this.updateValue "itemData.effect")
+          }}
+        </div>
+        <div class="control-group half">
+          <label>{{i18n "discourse_size.shop.fields.amount"}}</label>
+          <Input @type="number" @value={{this.itemData.amount}} />
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="control-group half">
+          <label>{{i18n "discourse_size.shop.fields.duration"}}</label>
+          <Input @type="number" @value={{this.itemData.duration_minutes}} />
+        </div>
+        <div class="control-group half">
+          <label>{{i18n "discourse_size.shop.fields.uses"}}</label>
+          <Input @type="number" @value={{this.itemData.uses}} />
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>{{i18n "discourse_size.shop.fields.picture"}}</label>
+        <div class="picture-upload-wrapper">
+          {{#if this.itemData.picture}}
+            <img src={{this.itemData.picture}} alt="Preview" class="upload-preview" />
+          {{/if}}
+          <div class="upload-controls">
+            <DButton
+              @action={{this.uploadImage}}
+              @label="discourse_size.upload_picture"
+              @icon="upload"
+              class="btn-default"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="control-group checkbox">
+        <label>
+          <Input @type="checkbox" @checked={{this.itemData.enabled}} />
+          {{i18n "discourse_size.shop.fields.enabled"}}
+        </label>
+      </div>
+    </div>
+  </:body>
+  <:footer>
+    <DButton
+      @label="discourse_size.save"
+      @action={{this.save}}
+      @disabled={{this.isSaving}}
+      class="btn-primary"
+    />
+    {{#if @model.item}}
+      <DButton
+        @label="discourse_size.shop.delete_item"
+        @action={{this.deleteItem}}
+        class="btn-danger"
+      />
+    {{/if}}
+    <DButton @label="discourse_size.cancel" @action={{@closeModal}} class="btn-flat" />
+  </:footer>
+</DModal>

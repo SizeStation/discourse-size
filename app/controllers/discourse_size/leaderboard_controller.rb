@@ -23,7 +23,10 @@ module DiscourseSize
           .order(Arel.sql("(base_size + current_offset) #{direction}"))
           .limit(limit)
 
-      render json: { characters: characters.map { |c| character_serializer(c) } }
+      respond_to do |format|
+        format.html { render "default/empty" }
+        format.json { render json: { characters: characters.map { |c| character_serializer(c) } } }
+      end
     end
 
     private
@@ -31,7 +34,7 @@ module DiscourseSize
     def character_serializer(c)
       c.sync_offset!
       target_size = c.base_size + c.target_offset
-      time_left = c.time_remaining_hours
+      seconds_left = c.time_remaining_seconds
 
       {
         id: c.id,
@@ -43,7 +46,7 @@ module DiscourseSize
         measurement_system: c.measurement_system,
         is_animating: (c.current_offset - c.target_offset).abs > 0.0001,
         is_growing: c.target_offset > c.current_offset,
-        time_remaining: (time_left && time_left > 0) ? format_duration(time_left) : nil,
+        time_remaining: (seconds_left && seconds_left > 0) ? format_duration(seconds_left) : nil,
         user: {
           id: c.user.id,
           username: c.user.username,
@@ -52,8 +55,7 @@ module DiscourseSize
       }
     end
 
-    def format_duration(hours)
-      seconds = hours * 3600
+    def format_duration(seconds)
       if seconds < 60
         "#{seconds.ceil}s"
       elsif seconds < 3600

@@ -1,11 +1,7 @@
 {{#if this.isCurrentUser}}
   <div class="user-characters-header">
     <h3>My Characters</h3>
-    <span class="user-points">
-      You have
-      <strong>{{this.user.discourse_size_points}}</strong>
-      size coins
-    </span>
+
     <div class="header-buttons">
       {{#if this.siteSettings.discourse_size_help_url}}
         <DButton
@@ -16,11 +12,16 @@
       {{/if}}
       {{#if this.currentUser.admin}}
         <DButton
-          @action={{this.adminEditPoints}}
-          @label="discourse_size.admin_points"
+          @action={{this.showAdminModal}}
+          @label="discourse_size.admin.title"
           class="btn-default"
         />
       {{/if}}
+      <DButton
+        @label="discourse_size.shop.visit_shop"
+        @href="/size/shop"
+        class="btn-default"
+      />
       <DButton
         @action={{this.createNewFolder}}
         @icon="plus"
@@ -31,13 +32,14 @@
         @action={{this.createNewCharacter}}
         @icon="plus"
         @label="discourse_size.create_character"
-        class="btn-primary"
+        class="btn-default"
       />
     </div>
   </div>
 {{else}}
   <div class="user-characters-header">
     <h3>{{this.user.username}}'s Characters</h3>
+
     <div class="header-buttons">
       {{#if this.siteSettings.discourse_size_help_url}}
         <DButton
@@ -46,10 +48,23 @@
           class="btn-default"
         />
       {{/if}}
+      <DButton
+        @label="discourse_size.shop.visit_shop"
+        @href="/size/shop"
+        class="btn-default"
+      />
+      {{#if this.currentUser}}
+        <DButton
+          @action={{this.openGiftingModal}}
+          @icon="gift"
+          @label="discourse_size.inventory.gift"
+          class="btn-default"
+        />
+      {{/if}}
       {{#if this.currentUser.admin}}
         <DButton
-          @action={{this.adminEditPoints}}
-          @label="discourse_size.admin_points"
+          @action={{this.showAdminModal}}
+          @label="discourse_size.admin.title"
           class="btn-default"
         />
       {{/if}}
@@ -79,11 +94,7 @@
     data-top-level="true"
   >
     {{#each this.combinedTopLevelList key="id" as |item|}}
-      <div
-        class="reorderable-item"
-        data-id={{item.id}}
-        data-type={{item.type}}
-      >
+      <div class="reorderable-item" data-id={{item.id}} data-type={{item.type}}>
         {{#if (eq item.type "character")}}
           <DiscourseSizeCharacterCard
             @character={{item}}
@@ -108,7 +119,10 @@
               @onReorder={{this.onCharacterReorder}}
               data-folder-id={{item.id}}
             >
-              {{#each (get this.organizedCharacters item.id) key="id" as |character|}}
+              {{#each
+                (get this.organizedCharacters item.id) key="id"
+                as |character|
+              }}
                 <div
                   class="reorderable-item"
                   data-id={{character.id}}

@@ -1,0 +1,70 @@
+<DModal
+  @title={{i18n "discourse_size.inventory.my_inventory"}}
+  @closeModal={{@closeModal}}
+  class="discourse-size-inventory-modal"
+>
+  <:body>
+    {{#if this.loading}}
+      <div class="loading-container">
+        {{loading-spinner size="small"}}
+      </div>
+    {{else}}
+      <div class="size-inventory-grid">
+        {{#each this.inventory as |item|}}
+          <div
+            class="size-inventory-card
+              {{if (eq this.args.model.selectedItemId item.id) 'selected'}}
+              {{unless this.isClickable 'no-click'}}"
+            role="button"
+            {{on "click" (fn this.selectItem item)}}
+          >
+            <div class="item-image">
+              {{#if item.details.picture}}
+                <img src={{item.details.picture}} alt={{item.details.name}} />
+              {{else}}
+                {{d-icon
+                  (if
+                    (eq item.details.effect "grow")
+                    "angle-double-up"
+                    "angle-double-down"
+                  )
+                }}
+              {{/if}}
+            </div>
+            <div class="item-details">
+              <div class="item-main-info">
+                <span class="item-name">{{item.details.name}}</span>
+                <span class="item-uses">
+                  {{#if (eq item.uses_remaining 999999)}}
+                    {{i18n "discourse_size.inventory.infinite_uses"}}
+                  {{else}}
+                    {{i18n
+                      "discourse_size.inventory.uses_out_of"
+                      count=item.uses_remaining
+                      total=item.details.uses
+                    }}
+                  {{/if}}
+                </span>
+              </div>
+              {{#if item.details.description}}
+                <span
+                  class="item-description"
+                >{{item.details.description}}</span>
+              {{/if}}
+            </div>
+          </div>
+        {{else}}
+          <div class="empty-inventory">
+            <div>{{i18n "discourse_size.inventory.empty"}}</div>
+            <DButton
+              @href="/size/shop"
+              @label="discourse_size.shop.go_to_shop"
+              class="btn-primary"
+              @action={{@closeModal}}
+            />
+          </div>
+        {{/each}}
+      </div>
+    {{/if}}
+  </:body>
+</DModal>

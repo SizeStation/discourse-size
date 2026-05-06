@@ -1,11 +1,15 @@
 import Controller from "@ember/controller";
-import { action, computed } from "@ember/object";
+import { action, computed, set } from "@ember/object";
 import { inject as service } from "@ember/service";
 import { ajax } from "discourse/lib/ajax";
 
 import DiscourseSizeEditCharacter from "../../../components/modal/discourse-size-edit-character";
 import DiscourseSizeEditFolder from "../../../components/modal/discourse-size-edit-folder";
-import DiscourseSizeAdminPoints from "../../../components/modal/discourse-size-admin-points";
+import DiscourseSizePointHistory from "../../../components/modal/discourse-size-point-history";
+
+import DiscourseSizeAdminUser from "../../../components/modal/discourse-size-admin-user";
+import DiscourseSizeInventory from "../../../components/modal/discourse-size-inventory";
+import I18n from "I18n";
 
 export default class UserCharactersIndexController extends Controller {
   @service currentUser;
@@ -17,16 +21,76 @@ export default class UserCharactersIndexController extends Controller {
   }
 
   @action
-  adminEditPoints() {
-    this.modal.show(DiscourseSizeAdminPoints, {
+  showPointHistory() {
+    this.modal.show(DiscourseSizePointHistory, {
       model: {
         user: this.user,
-        points: this.user.discourse_size_points,
-        onSave: (newPoints) => {
-          this.set("user.discourse_size_points", parseInt(newPoints, 10));
+        onSave: () => {
+          this.refreshCharacters();
         },
       },
     });
+  }
+
+  @action
+  showAdminModal() {
+    this.modal.show(DiscourseSizeAdminUser, {
+      model: {
+        user: this.user,
+        onSave: () => {
+          this.refreshCharacters();
+        },
+      },
+    });
+  }
+
+  @action
+  openGiftingModal() {
+    this.modal.show(DiscourseSizeInventory, {
+      model: {
+        user: this.user,
+        giftingMode: true,
+        onSelect: (item) => {
+          this.giftItemFlow(item);
+        },
+      },
+    });
+  }
+
+  async giftItemFlow(item) {
+    let username = this.user?.username;
+    if (!username || this.isCurrentUser) {
+      username = prompt(I18n.t("discourse_size.inventory.gift_prompt"));
+    }
+
+    if (!username) {
+      return;
+    }
+
+    if (
+      !confirm(
+        I18n.t("discourse_size.inventory.gift_confirm", {
+          item: item.details.name,
+          user: username,
+        })
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await ajax("/size/inventory/gift", {
+        type: "POST",
+        data: {
+          inventory_item_id: item.id,
+          username,
+        },
+      });
+      alert(I18n.t("discourse_size.inventory.gift_success", { username }));
+      this.modal.hide();
+    } catch (e) {
+      alert(e.jqXHR?.responseJSON?.message || "Error gifting item");
+    }
   }
 
   @action
@@ -108,22 +172,15 @@ export default class UserCharactersIndexController extends Controller {
       }
     }
 
-    // If it's a simple character update, try to update in-place to avoid full reload
-    if (result && result.character) {
-      const characters = this.get("characters") || [];
-      const index = characters.findIndex((c) => c.id === result.character.id);
-      if (index !== -1) {
-        const newCharacters = [...characters];
-        newCharacters[index] = result.character;
-        this.set("characters", newCharacters);
-        return;
-      }
-    }
 
     try {
       const res = await ajax(`/size/characters?user_id=${this.user.id}`);
-      this.set("characters", res.characters || []);
-      this.set("folders", res.folders || []);
+      this.setProperties({
+        characters: res.characters || [],
+        folders: res.folders || [],
+      });
+      this.notifyPropertyChange("characters");
+      this.notifyPropertyChange("folders");
     } catch (e) {
       console.error("Error refreshing characters", e);
     }
@@ -188,13 +245,13 @@ export default class UserCharactersIndexController extends Controller {
       if (item.type === "character") {
         const char = characters.find((c) => c.id == item.id);
         if (char) {
-          char.position = index;
-          char.folder_id = null;
+          set(char, "position", index);
+          set(char, "folder_id", null);
         }
       } else {
         const folder = folders.find((f) => f.id == item.id);
         if (folder) {
-          folder.position = index;
+          set(folder, "position", index);
         }
       }
     });
@@ -243,8 +300,8 @@ export default class UserCharactersIndexController extends Controller {
       mapping[id] = index;
       const char = characters.find((c) => c.id == id);
       if (char) {
-        char.position = index;
-        char.folder_id = folderId;
+        set(char, "position", index);
+        set(char, "folder_id", folderId);
       }
     });
 

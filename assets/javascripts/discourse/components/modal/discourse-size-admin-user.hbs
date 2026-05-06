@@ -1,0 +1,65 @@
+<DModal
+  @title={{i18n "discourse_size.admin.title"}}
+  @closeModal={{@closeModal}}
+  class="discourse-size-admin-user-modal"
+>
+  <:body>
+    <section class="admin-section points-management">
+      <h3>{{i18n "discourse_size.admin.manage_points"}}</h3>
+      <div class="control-group">
+        <label>{{i18n "discourse_size.admin.current_points"}}</label>
+        <Input @type="number" @value={{this.points}} class="points-input" />
+      </div>
+      <div class="control-group">
+        <label>{{i18n "discourse_size.admin.reason"}}</label>
+        <Input @value={{this.description}} placeholder="Admin manual adjustment..." />
+      </div>
+      <DButton
+        @label="discourse_size.admin.save_points"
+        @action={{this.savePoints}}
+        @disabled={{this.isSaving}}
+        class="btn-primary"
+      />
+    </section>
+
+    <hr />
+
+    <section class="admin-section inventory-management">
+      <h3>{{i18n "discourse_size.admin.manage_inventory"}}</h3>
+      {{#if this.loadingInventory}}
+        {{loading-spinner size="small"}}
+      {{else}}
+        <div class="add-item-controls">
+          {{combo-box
+            content=this.shopItems
+            value=this.selectedItemKey
+            onChange=(fn this.updateValue "selectedItemKey")
+            options=(hash nameProperty="name" valueProperty="key")
+          }}
+          <DButton
+            @icon="plus"
+            @label="discourse_size.admin.add_item"
+            @action={{this.addItem}}
+            class="btn-default"
+          />
+        </div>
+
+        <div class="user-inventory-list">
+          {{#each this.inventory as |item|}}
+            <div class="admin-inventory-item">
+              <span class="item-name">{{item.details.name}}</span>
+              <span class="item-uses">({{i18n "discourse_size.inventory.uses_left" count=item.uses_remaining}})</span>
+              <DButton
+                @icon="trash-can"
+                @action={{fn this.removeItem item}}
+                class="btn-danger btn-flat"
+              />
+            </div>
+          {{else}}
+            <p class="empty-msg">{{i18n "discourse_size.admin.no_items"}}</p>
+          {{/each}}
+        </div>
+      {{/if}}
+    </section>
+  </:body>
+</DModal>

@@ -1,0 +1,78 @@
+<DModal
+  @title={{this.title}}
+  @closeModal={{@closeModal}}
+  class="discourse-size-use-item-modal"
+>
+  <:body>
+    {{#if this.loading}}
+      <div class="loading-container">{{loading-spinner}}</div>
+    {{else}}
+      {{#if this.filteredInventory}}
+        <div class="size-inventory-grid">
+          {{#each this.filteredInventory as |item|}}
+            <div
+              class="size-inventory-card"
+              role="button"
+              {{on "click" (fn this.useItem item)}}
+            >
+              <div class="item-image">
+                {{#if item.details.picture}}
+                  <img src={{item.details.picture}} alt={{item.details.name}} />
+                {{else}}
+                  {{d-icon
+                    (if
+                      (eq item.details.effect "grow")
+                      "angle-double-up"
+                      "angle-double-down"
+                    )
+                  }}
+                {{/if}}
+              </div>
+              <div class="item-details">
+                <div class="item-main-info">
+                  <span class="item-name">{{item.details.name}}</span>
+                  <span class="item-uses">
+                    {{#if (eq item.uses_remaining 999999)}}
+                      {{i18n "discourse_size.inventory.infinite_uses"}}
+                    {{else}}
+                      {{i18n
+                        "discourse_size.inventory.uses_out_of"
+                        count=item.uses_remaining
+                        total=item.details.uses
+                      }}
+                    {{/if}}
+                  </span>
+                </div>
+                {{#if item.details.description}}
+                  <span
+                    class="item-description"
+                  >{{item.details.description}}</span>
+                {{/if}}
+              </div>
+            </div>
+          {{/each}}
+        </div>
+      {{else}}
+        <div class="empty-inventory-modal">
+          {{#if this.hasNoUsableItems}}
+            <div class="blocked-items-notice">
+              <p>{{i18n "discourse_size.inventory.all_items_blocked"}}</p>
+              <div class="blocked-items-preview">
+                <span class="label">{{i18n
+                    "discourse_size.inventory.blocked_items_title"
+                  }}</span>
+                <div class="blocked-item-tags">
+                  {{#each this.blockedInventoryNames as |name|}}
+                    <span class="blocked-item-tag">{{name}}</span>
+                  {{/each}}
+                </div>
+              </div>
+            </div>
+          {{else}}
+            <p>{{i18n "discourse_size.inventory.empty"}}</p>
+          {{/if}}
+        </div>
+      {{/if}}
+    {{/if}}
+  </:body>
+</DModal>

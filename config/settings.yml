@@ -2,10 +2,6 @@ plugins:
   discourse_size_enabled:
     default: true
     client: true
-  discourse_size_default_max_growth_rate:
-    default: 100
-    client: true
-    type: float
   discourse_size_min_base_size:
     default: 100
     client: true
@@ -35,11 +31,10 @@ plugins:
   discourse_size_help_url:
     default: ""
     client: true
-  discourse_size_percentage_per_point:
-    default: 1
+  discourse_size_shop_name:
+    default: "Size Shop"
     client: true
-    type: float
-  discourse_size_speed_percentage_per_point:
-    default: 0.1
+  discourse_size_shop_items:
+    default: "[]"
     client: true
-    type: float
+    type: textarea

@@ -16,8 +16,6 @@ export default class DiscourseSizeEditCharacter extends Component {
   @tracked description = "";
   @tracked baseSize = 170.0;
   @tracked measurementSystem = "imperial";
-  @tracked allowGrowth = true;
-  @tracked allowShrink = true;
   @tracked showComparison = true;
   @tracked isSaving = false;
   @tracked infoPostId = null;
@@ -26,6 +24,11 @@ export default class DiscourseSizeEditCharacter extends Component {
   @tracked characterType = "game";
   @tracked sizeUnit = "cm";
   @tracked displaySize = 170.0;
+  @tracked blockedItemKeys = [];
+  @tracked blockedUserIds = [];
+  @tracked availableItems = [];
+  @tracked blockedUsers = [];
+  @tracked blockUsername = "";
 
   @service currentUser;
   @service siteSettings;
@@ -43,10 +46,18 @@ export default class DiscourseSizeEditCharacter extends Component {
     this.description = char.description || "";
     this.baseSize = char.base_size || 170.0;
     this.measurementSystem = char.measurement_system || "imperial";
-    this.allowShrink = char.allow_shrink !== false;
     this.isMain = char.is_main || false;
     this.characterType = char.character_type || "game";
     this.showComparison = char.show_comparison !== false;
+    this.blockedItemKeys = char.blocked_item_keys || [];
+    this.blockedUserIds = (char.blocked_user_ids || []).map((id) =>
+      parseInt(id, 10)
+    );
+    this.blockedUsers = char.blocked_users || [];
+
+    if (this.characterType === "game") {
+      this.fetchAvailableItems();
+    }
 
     const unit = getBestUnit(this.baseSize);
     this.sizeUnit = unit.id;
@@ -58,8 +69,6 @@ export default class DiscourseSizeEditCharacter extends Component {
 
   get isDirty() {
     const char = this.args?.model?.character || {};
-    const initialAllowGrowth = char.allow_growth !== false;
-    const initialAllowShrink = char.allow_shrink !== false;
     const initialShowComparison = char.show_comparison !== false;
 
     return (
@@ -70,10 +79,11 @@ export default class DiscourseSizeEditCharacter extends Component {
       this.pronouns !== (char.pronouns || "") ||
       this.age !== (char.age || "") ||
       this.species !== (char.species || "") ||
+      this.species !== (char.species || "") ||
       this.description !== (char.description || "") ||
       this.measurementSystem !== (char.measurement_system || "imperial") ||
-      this.allowGrowth !== initialAllowGrowth ||
-      this.allowShrink !== initialAllowShrink ||
+      JSON.stringify(this.blockedItemKeys) !== JSON.stringify(char.blocked_item_keys || []) ||
+      JSON.stringify(this.blockedUserIds) !== JSON.stringify(char.blocked_user_ids || []) ||
       this.showComparison !== initialShowComparison ||
       this.isMain !== (char.is_main || false) ||
       this.characterType !== (char.character_type || "game") ||
@@ -245,8 +255,8 @@ export default class DiscourseSizeEditCharacter extends Component {
       info_post: this.infoPost,
       base_size: valCm,
       measurement_system: this.measurementSystem,
-      allow_growth: this.allowGrowth,
-      allow_shrink: this.allowShrink,
+      blocked_item_keys: this.blockedItemKeys,
+      blocked_user_ids: this.blockedUserIds,
       character_type: this.characterType,
       gender: this.gender,
       pronouns: this.pronouns,
@@ -321,5 +331,143 @@ export default class DiscourseSizeEditCharacter extends Component {
     } catch (e) {
       alert("Error deleting character");
     }
+  }
+
+  async fetchAvailableItems() {
+    try {
+      const result = await ajax("/size/shop");
+      this.availableItems = result.items || [];
+    } catch (e) {
+      console.error("Error fetching shop items", e);
+    }
+  }
+
+
+  get blockingMode() {
+    if (this.blockedItemKeys.includes("__all__")) return "all";
+    if (this.blockedItemKeys.includes("__all_growing__")) return "growing";
+    if (this.blockedItemKeys.includes("__all_shrinking__")) return "shrinking";
+    if (this.blockedItemKeys.length === 0) return "none";
+    return "custom";
+  }
+
+  @action
+  isItemBlocked(key) {
+    if (this.blockedItemKeys.includes("__all__")) return true;
+    const item = this.availableItems.find((i) => i.key === key);
+    if (item) {
+      if (
+        item.effect === "grow" &&
+        this.blockedItemKeys.includes("__all_growing__")
+      ) {
+        return true;
+      }
+      if (
+        item.effect === "shrink" &&
+        this.blockedItemKeys.includes("__all_shrinking__")
+      ) {
+        return true;
+      }
+    }
+    return this.blockedItemKeys.includes(key);
+  }
+
+  @action
+  toggleItemBlock(key) {
+    let newKeys = [...this.blockedItemKeys];
+
+    // If we were in a special mode, "explode" it to individual keys first
+    if (newKeys.includes("__all__")) {
+      newKeys = this.availableItems.map((i) => i.key);
+    } else if (newKeys.includes("__all_growing__")) {
+      newKeys = this.availableItems
+        .filter((i) => i.effect === "grow")
+        .map((i) => i.key);
+    } else if (newKeys.includes("__all_shrinking__")) {
+      newKeys = this.availableItems
+        .filter((i) => i.effect === "shrink")
+        .map((i) => i.key);
+    }
+
+    if (newKeys.includes(key)) {
+      newKeys = newKeys.filter((k) => k !== key);
+    } else {
+      newKeys.push(key);
+    }
+
+    this.blockedItemKeys = newKeys;
+  }
+
+  @action
+  blockAll() {
+    this.blockedItemKeys = ["__all__"];
+  }
+
+  @action
+  blockNone() {
+    this.blockedItemKeys = [];
+  }
+
+  @action
+  blockAllGrowing() {
+    this.blockedItemKeys = ["__all_growing__"];
+  }
+
+  @action
+  blockAllShrinking() {
+    this.blockedItemKeys = ["__all_shrinking__"];
+  }
+
+  @action
+  unblockUser(userId) {
+    const idToMatch = parseInt(userId, 10);
+    this.blockedUserIds = this.blockedUserIds.filter(
+      (id) => parseInt(id, 10) !== idToMatch
+    );
+    this.blockedUsers = this.blockedUsers.filter(
+      (u) => parseInt(u.id, 10) !== idToMatch
+    );
+  }
+
+  @action
+  onUserSelected(users) {
+    if (!users || users.length === 0) return;
+
+    // EmailGroupUserChooser gives us a list of usernames
+    // But we need to resolve them to objects with id and username
+    // Since it's a search field, we'll fetch the user data
+    users.forEach(async (username) => {
+      try {
+        const user = await ajax(`/u/${username}.json`);
+        if (user && user.user) {
+          const userId = parseInt(user.user.id, 10);
+          if (!this.blockedUserIds.includes(userId)) {
+            this.blockedUserIds = [...this.blockedUserIds, userId];
+            this.blockedUsers = [
+              ...this.blockedUsers,
+              {
+                id: userId,
+                username: user.user.username,
+                avatar_template: user.user.avatar_template,
+              },
+            ];
+          }
+        }
+      } catch (e) {
+        console.error("Could not find user:", username);
+      }
+    });
+  }
+
+  get growingItems() {
+    return this.availableItems.filter((i) => i.effect === "grow");
+  }
+
+  get shrinkingItems() {
+    return this.availableItems.filter((i) => i.effect === "shrink");
+  }
+
+  get otherItems() {
+    return this.availableItems.filter((i) => i.effect !== "grow" && i.effect !== "shrink");
   }
 }

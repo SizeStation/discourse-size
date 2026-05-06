@@ -8,15 +8,11 @@
   {{did-insert this.setupEvents}}
   data-folder-id={{@folder.id}}
 >
-  <div
-    class="folder-header"
-    {{on "click" this.toggle}}
-    style={{if
-      @folder.hex_color
-      (concat "background-color: " @folder.hex_color)
-    }}
-  >
-    <div class="folder-title">
+  <div class="folder-header" {{on "click" this.toggle}}>
+    <div
+      class="folder-title"
+      style={{if @folder.hex_color (concat "color: " @folder.hex_color)}}
+    >
       {{d-icon (if this.collapsed "chevron-right" "chevron-down")}}
       <span class="folder-name">{{@folder.name}} ({{@characterCount}})</span>
     </div>

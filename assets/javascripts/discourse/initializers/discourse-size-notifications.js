@@ -1,6 +1,6 @@
 import { withPluginApi } from "discourse/lib/plugin-api";
 import { userPath } from "discourse/lib/url";
-import { i18n } from "discourse-i18n";
+import I18n from "I18n";
 import { formatSize } from "../lib/size-formatter";
 
 export default {
@@ -24,8 +24,14 @@ export default {
                 return data || {};
               }
 
+              get shouldRender() {
+                const data = this.notificationData;
+                // Only render if it's our notification data structure
+                return data && (data.character_name || data.returned);
+              }
+
               get linkTitle() {
-                return i18n("discourse_size.notifications.title");
+                return I18n.t("js.discourse_size.notifications.title");
               }
 
               get linkHref() {
@@ -33,17 +39,36 @@ export default {
               }
 
               get icon() {
-                return this.notificationData.action_type === "grow"
+                const data = this.notificationData;
+                if (data.returned) {
+                  return "undo";
+                }
+                return data.action_type === "grow"
                   ? "angle-double-up"
                   : "angle-double-down";
               }
 
               get label() {
-                return this.notificationData.actor_username || "Someone";
+                const data = this.notificationData;
+                if (data.returned) {
+                  return "System";
+                }
+                return data.actor_username || "Someone";
               }
 
               get description() {
                 const data = this.notificationData;
+                if (!this.shouldRender) {
+                  return "";
+                }
+
+                if (data.returned) {
+                  return I18n.t("js.discourse_size.notifications.item_returned", {
+                    item_name: data.item_name,
+                    character_name: data.character_name,
+                  });
+                }
+
                 const actionType = data.action_type || "grow";
                 const amount = data.amount_cm || 0;
                 const formattedAmount = formatSize(
@@ -51,7 +76,7 @@ export default {
                   data.measurement_system
                 );
 
-                return i18n(`discourse_size.notifications.${actionType}`, {
+                return I18n.t(`js.discourse_size.notifications.${actionType}`, {
                   username: data.actor_username || "Someone",
                   character_name: data.character_name || "your character",
                   amount: formattedAmount,

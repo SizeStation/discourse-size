@@ -20,12 +20,7 @@
         </h2>
 
         <div class="owner-actions">
-          {{#if
-            (and
-              this.currentUser.admin
-              (not (eq @character.character_type "freeform"))
-            )
-          }}
+          {{#if this.currentUser.admin}}
             <DButton
               @action={{this.adminEdit}}
               @label="discourse_size.admin_edit"
@@ -38,6 +33,15 @@
               @action={{fn @onUpdate @character}}
               @label="discourse_size.edit"
               class="btn-default"
+            />
+          {{/if}}
+
+          {{#if this.showActions}}
+            <DiscourseSizeCharacterActions
+              @character={{@character}}
+              @userPoints={{@userPoints}}
+              @onAction={{@onAction}}
+              @isCurrentUser={{@isCurrentUser}}
             />
           {{/if}}
 
@@ -145,17 +149,6 @@
     </div>
   {{/if}}
 
-  {{#if this.canGrowOrShrink}}
-    <div class="character-actions">
-      <DiscourseSizeCharacterActions
-        @character={{@character}}
-        @userPoints={{@userPoints}}
-        @onAction={{@onAction}}
-        @isCurrentUser={{@isCurrentUser}}
-      />
-    </div>
-  {{/if}}
-
   {{#if @character.actions.length}}
     <div class="character-activity">
       <div class="activity-header">
@@ -179,7 +172,24 @@
               ago</span>
             &mdash;
             <a href="/u/{{action.user.username}}">{{action.user.username}}</a>
-            {{#if (eq action.action_type "grow")}}
+            {{#if action.item_name}}
+              used
+              <a href="/size/shop" class="item-link">{{action.item_name}}</a>
+              to
+              {{#if (eq action.action_type "grow")}}
+                grow
+              {{else if (eq action.action_type "shrink")}}
+                shrink
+              {{else}}
+                {{action.action_type}}
+              {{/if}}
+              {{@character.name}}
+              by
+              {{format-size
+                (abs action.size_change)
+                @character.measurement_system
+              }}
+            {{else if (eq action.action_type "grow")}}
               grew
               {{@character.name}}
               by

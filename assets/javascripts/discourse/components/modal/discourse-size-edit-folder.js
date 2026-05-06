@@ -5,11 +5,16 @@ import { ajax } from "discourse/lib/ajax";
 
 export default class DiscourseSizeEditFolder extends Component {
   @tracked name = this.args.model.folder?.name || "";
-  @tracked hexColor = this.args.model.folder?.hex_color || "#f4f4f4";
+  @tracked hexColor = this.args.model.folder?.hex_color || "";
   @tracked isSaving = false;
 
   get title() {
     return this.args.model.isNew ? "Create Folder" : "Edit Folder";
+  }
+
+  @action
+  clearColor() {
+    this.hexColor = "";
   }
 
   @action

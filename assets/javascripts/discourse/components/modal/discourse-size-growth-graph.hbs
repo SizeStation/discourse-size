@@ -127,17 +127,41 @@
               <li class="contributor-row">
                 <a href="/u/{{entry.user.username}}" class="contributor-user">
                   {{avatar entry.user imageSize="small"}}
-                  <span
-                    class="contributor-username"
-                  >{{entry.user.username}}</span>
+                  <span class="contributor-username">
+                    {{entry.user.username}}
+                    {{#if (and entry.isBlocked this.canSeeBlockedStatus)}}
+                      <span class="blocked-badge">{{i18n
+                          "discourse_size.blocking.blocked"
+                        }}</span>
+                    {{/if}}
+                  </span>
                 </a>
-                <span class="contributor-stats">
-                  <span class="contributor-points">{{entry.totalPoints}}
-                    coins</span>
-                  <span class="contributor-size">Caused them to
-                    {{entry.netEffect}}
-                    {{entry.formattedSize}}</span>
-                </span>
+                <div class="contributor-actions">
+                  <span class="contributor-stats">
+                    <span class="contributor-size">
+                      {{i18n "discourse_size.size_impact"}}
+                      {{entry.formattedSize}}</span>
+                  </span>
+                  {{#if this.canManageCharacter}}
+                    {{#if (not-eq entry.user.id this.currentUser.id)}}
+                      {{#if entry.isBlocked}}
+                        <DButton
+                          @action={{fn this.unblockUser entry.user}}
+                          @icon="check"
+                          @title="discourse_size.blocking.unblock_user"
+                          class="btn-success"
+                        />
+                      {{else}}
+                        <DButton
+                          @action={{fn this.blockUser entry.user}}
+                          @icon="ban"
+                          @title="discourse_size.blocking.block_user"
+                          class="btn-danger"
+                        />
+                      {{/if}}
+                    {{/if}}
+                  {{/if}}
+                </div>
               </li>
             {{/each}}
           </ol>
@@ -155,11 +179,22 @@
                   class="activity-user-link"
                 >
                   {{avatar action.user imageSize="small"}}
-                  <span class="username">{{action.user.username}}</span>
+                  <span class="username">
+                    {{action.user.username}}
+                  </span>
                 </a>
               </div>
               <div class="activity-details">
-                <span class="type">{{action.action_type}}</span>
+                <span class="type">
+                  {{#if action.item_name}}
+                    <a
+                      href="/size/shop"
+                      class="item-link"
+                    >{{action.item_name}}</a>
+                  {{else}}
+                    {{action.action_type}}
+                  {{/if}}
+                </span>
                 <span class="amount">
                   {{#if (eq action.action_type "boost_speed")}}
                     +{{action.size_change}}% / day
@@ -184,7 +219,7 @@
                     class="btn-danger btn-small delete-action-btn"
                     @title="discourse_size.delete_action"
                   >
-                    Delete
+                    Reject
                   </DButton>
                 {{/if}}
               </div>
