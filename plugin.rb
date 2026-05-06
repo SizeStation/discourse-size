@@ -25,9 +25,9 @@ register_asset "stylesheets/discourse-size.scss"
 
 after_initialize do
   if respond_to?(:register_notification_type)
-    register_notification_type(:discourse_size_notification, 801)
+    register_notification_type(:discourse_size_notification, 2600)
   else
-    Notification.types[:discourse_size_notification] = 801
+    Notification.types[:discourse_size_notification] = 2600
   end
   require_relative "app/models/discourse_size_character"
   require_relative "app/models/discourse_size_action"

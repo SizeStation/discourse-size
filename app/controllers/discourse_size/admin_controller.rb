@@ -57,8 +57,13 @@ module DiscourseSize
     end
 
     def add_inventory_item
-      user = User.find(params[:user_id])
-      item = DiscourseSizeShopItem.find_by(key: params[:item_key])
+      user = User.find_by(id: params[:user_id])
+      raise Discourse::NotFound unless user
+
+      item_key = params[:item_key]
+      item = DiscourseSizeShopItem.find_by(key: item_key)
+      item ||= DiscourseSizeShopItem.find_by(id: item_key) if item_key.to_i > 0
+      
       raise Discourse::NotFound unless item
 
       inventory_item = DiscourseSizeInventory.create!(

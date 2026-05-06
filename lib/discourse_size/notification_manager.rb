@@ -5,7 +5,7 @@ module ::DiscourseSize
     def self.send_growth_notification(actor, character, action_type, amount_cm, item_name: nil)
       return if !actor || !character || actor.id == character.user_id
 
-      notification_type = Notification.types[:discourse_size_notification] || 801
+      notification_type = Notification.types[:discourse_size_notification] || 2600
       return if Notification.types.values.exclude?(notification_type)
 
       notification_data = {
@@ -27,7 +27,7 @@ module ::DiscourseSize
     end
 
     def self.send_item_returned_notification(user, item_name, character_name)
-      notification_type = Notification.types[:discourse_size_notification] || 801
+      notification_type = Notification.types[:discourse_size_notification] || 2600
       return if Notification.types.values.exclude?(notification_type)
 
       notification_data = {
@@ -44,7 +44,7 @@ module ::DiscourseSize
     end
 
     def self.send_gift_notification(sender, target_user, item_name)
-      notification_type = Notification.types[:discourse_size_notification] || 801
+      notification_type = Notification.types[:discourse_size_notification] || 2600
       return if Notification.types.values.exclude?(notification_type)
 
       notification_data = {
