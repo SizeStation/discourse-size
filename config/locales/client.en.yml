@@ -57,6 +57,11 @@ en:
         grow: "%{username} made %{character_name} grow by %{amount}."
         shrink: "%{username} made %{character_name} shrink by %{amount}."
         item_returned: "%{character_name} has returned a %{item_name} to your inventory."
+        gift_received: "%{username} has gifted you %{item_name}!"
+        gift_received_title: "Gift received!"
+        gift_received_label: "Gift received"
+        item_returned_label: "Item returned"
+        item_used_label: "Item used on character"
       shop:
         visit_shop: "Visit Shop"
         go_to_shop: "Go to Shop"

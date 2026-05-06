@@ -75,27 +75,31 @@ after_initialize do
   end
 
   # Points for opening the site (for users already logged in)
-  add_to_class(:application_controller, :check_discourse_size_daily_points) do
-    return unless SiteSetting.discourse_size_enabled && current_user
-    return if @discourse_size_checked_daily_points
-    @discourse_size_checked_daily_points = true
+  module DiscourseSizeApplicationControllerExtension
+    def self.prepended(base)
+      base.before_action :check_discourse_size_daily_points
+    end
 
-    last_login_date = current_user.custom_fields["discourse_size_last_daily_login_date"]
-    today = Date.today.to_s
-    if last_login_date != today
-      current_user.custom_fields["discourse_size_last_daily_login_date"] = today
-      current_user.save_custom_fields(true)
-      DiscourseSize::PointsManager.add_points(
-        current_user,
-        SiteSetting.discourse_size_points_per_daily_login,
-        source_type: "daily_login"
-      )
+    def check_discourse_size_daily_points
+      return unless SiteSetting.discourse_size_enabled && current_user
+      return if @discourse_size_checked_daily_points
+      @discourse_size_checked_daily_points = true
+
+      last_login_date = current_user.custom_fields["discourse_size_last_daily_login_date"]
+      today = Date.today.to_s
+      if last_login_date != today
+        current_user.custom_fields["discourse_size_last_daily_login_date"] = today
+        current_user.save_custom_fields(true)
+        DiscourseSize::PointsManager.add_points(
+          current_user,
+          SiteSetting.discourse_size_points_per_daily_login,
+          source_type: "daily_login"
+        )
+      end
     end
   end
 
-  class ::ApplicationController
-    before_action :check_discourse_size_daily_points
-  end
+  ApplicationController.prepend(DiscourseSizeApplicationControllerExtension)
 
   # Points for posting a reply / new thread
   on(:post_created) do |post, opts, user|

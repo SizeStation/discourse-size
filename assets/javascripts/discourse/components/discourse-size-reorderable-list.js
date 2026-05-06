@@ -9,9 +9,13 @@ export default class DiscourseSizeReorderableList extends Component {
     }
 
     if (!window.Sortable) {
-      const existingScript = document.querySelector('script[src*="sortablejs"]');
+      const existingScript = document.querySelector(
+        'script[src*="sortablejs"]'
+      );
       if (existingScript) {
-        existingScript.addEventListener("load", () => this.initSortable(element));
+        existingScript.addEventListener("load", () =>
+          this.initSortable(element)
+        );
         return;
       }
 

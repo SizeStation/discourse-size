@@ -27,10 +27,17 @@ export default {
               get shouldRender() {
                 const data = this.notificationData;
                 // Only render if it's our notification data structure
-                return data && (data.character_name || data.returned);
+                return (
+                  data &&
+                  (data.character_name || data.returned || data.gift_received)
+                );
               }
 
               get linkTitle() {
+                const data = this.notificationData;
+                if (data.gift_received) {
+                  return I18n.t("js.discourse_size.notifications.gift_received_title");
+                }
                 return I18n.t("js.discourse_size.notifications.title");
               }
 
@@ -43,6 +50,9 @@ export default {
                 if (data.returned) {
                   return "undo";
                 }
+                if (data.gift_received) {
+                  return "gift";
+                }
                 return data.action_type === "grow"
                   ? "angle-double-up"
                   : "angle-double-down";
@@ -51,9 +61,16 @@ export default {
               get label() {
                 const data = this.notificationData;
                 if (data.returned) {
-                  return "System";
+                  return I18n.t(
+                    "js.discourse_size.notifications.item_returned_label"
+                  );
                 }
-                return data.actor_username || "Someone";
+                if (data.gift_received) {
+                  return I18n.t(
+                    "js.discourse_size.notifications.gift_received_label"
+                  );
+                }
+                return I18n.t("js.discourse_size.notifications.item_used_label");
               }
 
               get description() {
@@ -63,10 +80,23 @@ export default {
                 }
 
                 if (data.returned) {
-                  return I18n.t("js.discourse_size.notifications.item_returned", {
-                    item_name: data.item_name,
-                    character_name: data.character_name,
-                  });
+                  return I18n.t(
+                    "js.discourse_size.notifications.item_returned",
+                    {
+                      item_name: data.item_name,
+                      character_name: data.character_name,
+                    }
+                  );
+                }
+
+                if (data.gift_received) {
+                  return I18n.t(
+                    "js.discourse_size.notifications.gift_received",
+                    {
+                      username: data.actor_username || "Someone",
+                      item_name: data.item_name,
+                    }
+                  );
                 }
 
                 const actionType = data.action_type || "grow";

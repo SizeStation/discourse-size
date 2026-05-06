@@ -102,9 +102,7 @@ export default class DiscourseSizeEditShopItem extends Component {
 
   @action
   async deleteItem() {
-    if (
-      !confirm(I18n.t("discourse_size.shop.delete_confirm"))
-    ) {
+    if (!confirm(I18n.t("discourse_size.shop.delete_confirm"))) {
       return;
     }
 

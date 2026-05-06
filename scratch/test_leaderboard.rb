@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 
 # Test script for character time remaining calculation
 character = DiscourseSizeCharacter.where(character_type: "game").first

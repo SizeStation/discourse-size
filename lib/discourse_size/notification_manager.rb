@@ -6,7 +6,7 @@ module ::DiscourseSize
       return if !actor || !character || actor.id == character.user_id
 
       notification_type = Notification.types[:discourse_size_notification] || 801
-      return unless Notification.types.values.include?(notification_type)
+      return if Notification.types.values.exclude?(notification_type)
 
       notification_data = {
         actor_username: actor.username,
@@ -28,7 +28,7 @@ module ::DiscourseSize
 
     def self.send_item_returned_notification(user, item_name, character_name)
       notification_type = Notification.types[:discourse_size_notification] || 801
-      return unless Notification.types.values.include?(notification_type)
+      return if Notification.types.values.exclude?(notification_type)
 
       notification_data = {
         item_name: item_name,
@@ -39,6 +39,23 @@ module ::DiscourseSize
       Notification.create!(
         notification_type: notification_type,
         user_id: user.id,
+        data: notification_data.to_json
+      )
+    end
+
+    def self.send_gift_notification(sender, target_user, item_name)
+      notification_type = Notification.types[:discourse_size_notification] || 801
+      return if Notification.types.values.exclude?(notification_type)
+
+      notification_data = {
+        actor_username: sender.username,
+        item_name: item_name,
+        gift_received: true
+      }
+
+      Notification.create!(
+        notification_type: notification_type,
+        user_id: target_user.id,
         data: notification_data.to_json
       )
     end

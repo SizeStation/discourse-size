@@ -130,13 +130,13 @@ export default class DiscourseSizeCharacterDetails extends Component {
   get isAnimating() {
     const c = this.args.character;
     if (!c) return false;
-    
+
     const now = this._currentTime;
     const lastAction = c.actions
       .slice()
       .filter((a) => a.end_time)
       .sort((a, b) => new Date(b.end_time) - new Date(a.end_time))[0];
-      
+
     if (!lastAction) return false;
     return new Date(lastAction.end_time) > now;
   }
@@ -168,17 +168,20 @@ export default class DiscourseSizeCharacterDetails extends Component {
   get progressPercent() {
     const c = this.args.character;
     if (!c) return 0;
-    
+
     const now = this._currentTime;
     const activeAction = this._activeActionAt(now);
     if (!activeAction) return 0;
-    
+
     const startT = new Date(activeAction.start_time);
     const endT = new Date(activeAction.end_time);
     const total = endT - startT;
     if (total <= 0) return 100;
-    
-    return Math.min(100, Math.max(0, Math.round(((now - startT) / total) * 100)));
+
+    return Math.min(
+      100,
+      Math.max(0, Math.round(((now - startT) / total) * 100))
+    );
   }
 
   get targetSizeCm() {
@@ -197,13 +200,23 @@ export default class DiscourseSizeCharacterDetails extends Component {
 
   @action
   async blockUser(user) {
-    if (!confirm(I18n.t("discourse_size.blocking.confirm_block_user", { username: user.username }))) return;
+    if (
+      !confirm(
+        I18n.t("discourse_size.blocking.confirm_block_user", {
+          username: user.username,
+        })
+      )
+    )
+      return;
 
     try {
-      const result = await ajax(`/size/characters/${this.args.character.id}/block_user`, {
-        type: "POST",
-        data: { user_id: user.id },
-      });
+      const result = await ajax(
+        `/size/characters/${this.args.character.id}/block_user`,
+        {
+          type: "POST",
+          data: { user_id: user.id },
+        }
+      );
       if (result.character) this.args.onAction?.(result.character);
     } catch (e) {
       alert("Error blocking user");
@@ -212,13 +225,23 @@ export default class DiscourseSizeCharacterDetails extends Component {
 
   @action
   async unblockUser(user) {
-    if (!confirm(I18n.t("discourse_size.blocking.confirm_unblock_user", { username: user.username }))) return;
+    if (
+      !confirm(
+        I18n.t("discourse_size.blocking.confirm_unblock_user", {
+          username: user.username,
+        })
+      )
+    )
+      return;
 
     try {
-      const result = await ajax(`/size/characters/${this.args.character.id}/unblock_user`, {
-        type: "POST",
-        data: { user_id: user.id },
-      });
+      const result = await ajax(
+        `/size/characters/${this.args.character.id}/unblock_user`,
+        {
+          type: "POST",
+          data: { user_id: user.id },
+        }
+      );
       if (result.character) this.args.onAction?.(result.character);
     } catch (e) {
       alert("Error unblocking user");
@@ -230,7 +253,9 @@ export default class DiscourseSizeCharacterDetails extends Component {
     if (!confirm(I18n.t("discourse_size.point_history.confirm_delete"))) return;
 
     try {
-      const result = await ajax(`/size/actions/${actionEntry.id}`, { type: "DELETE" });
+      const result = await ajax(`/size/actions/${actionEntry.id}`, {
+        type: "DELETE",
+      });
       if (result.character) this.args.onAction?.(result.character);
     } catch (e) {
       alert("Error deleting action");
@@ -240,7 +265,9 @@ export default class DiscourseSizeCharacterDetails extends Component {
   @action
   async setMain() {
     try {
-      await ajax(`/size/characters/${this.args.character.id}/set_main`, { type: "POST" });
+      await ajax(`/size/characters/${this.args.character.id}/set_main`, {
+        type: "POST",
+      });
       this.args.onAction?.();
     } catch (e) {
       alert("Error setting main character");

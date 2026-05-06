@@ -58,7 +58,9 @@ export default class DiscourseSizeCharacterActions extends Component {
 
     // Check if user is blocked
     const currentUserId = Number(this.currentUser.id);
-    if (char.blocked_user_ids?.map((id) => Number(id)).includes(currentUserId)) {
+    if (
+      char.blocked_user_ids?.map((id) => Number(id)).includes(currentUserId)
+    ) {
       return true;
     }
 

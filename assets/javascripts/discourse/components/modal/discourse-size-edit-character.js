@@ -82,8 +82,10 @@ export default class DiscourseSizeEditCharacter extends Component {
       this.species !== (char.species || "") ||
       this.description !== (char.description || "") ||
       this.measurementSystem !== (char.measurement_system || "imperial") ||
-      JSON.stringify(this.blockedItemKeys) !== JSON.stringify(char.blocked_item_keys || []) ||
-      JSON.stringify(this.blockedUserIds) !== JSON.stringify(char.blocked_user_ids || []) ||
+      JSON.stringify(this.blockedItemKeys) !==
+        JSON.stringify(char.blocked_item_keys || []) ||
+      JSON.stringify(this.blockedUserIds) !==
+        JSON.stringify(char.blocked_user_ids || []) ||
       this.showComparison !== initialShowComparison ||
       this.isMain !== (char.is_main || false) ||
       this.characterType !== (char.character_type || "game") ||
@@ -95,7 +97,9 @@ export default class DiscourseSizeEditCharacter extends Component {
   @action
   close() {
     if (this.isDirty) {
-      if (!confirm("You have unsaved changes. Are you sure you want to exit?")) {
+      if (
+        !confirm("You have unsaved changes. Are you sure you want to exit?")
+      ) {
         return;
       }
     }
@@ -311,7 +315,9 @@ export default class DiscourseSizeEditCharacter extends Component {
 
   get canSetMain() {
     return (
-      !this.args?.model?.isNew && this.args?.model?.character?.id && !this.isMain
+      !this.args?.model?.isNew &&
+      this.args?.model?.character?.id &&
+      !this.isMain
     );
   }
 
@@ -341,7 +347,6 @@ export default class DiscourseSizeEditCharacter extends Component {
       console.error("Error fetching shop items", e);
     }
   }
-
 
   get blockingMode() {
     if (this.blockedItemKeys.includes("__all__")) return "all";
@@ -468,6 +473,8 @@ export default class DiscourseSizeEditCharacter extends Component {
   }
 
   get otherItems() {
-    return this.availableItems.filter((i) => i.effect !== "grow" && i.effect !== "shrink");
+    return this.availableItems.filter(
+      (i) => i.effect !== "grow" && i.effect !== "shrink"
+    );
   }
 }

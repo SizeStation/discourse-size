@@ -30,7 +30,7 @@ module DiscourseSize
           character: serialize_data(result[:character], DiscourseSizeCharacterSerializer)
         }
       else
-        render json: { failed: true, message: result[:error] }, status: 422
+        render json: { failed: true, message: result[:error] }, status: :unprocessable_content
       end
     end
     def gift
@@ -39,7 +39,7 @@ module DiscourseSize
       if result[:success]
         render json: success_json
       else
-        render json: { failed: true, message: result[:error] }, status: 422
+        render json: { failed: true, message: result[:error] }, status: :unprocessable_content
       end
     end
   end

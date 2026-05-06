@@ -5,8 +5,8 @@ class DiscourseSizeCharacter < ActiveRecord::Base
   belongs_to :discourse_size_folder, foreign_key: "folder_id", optional: true
   before_validation :trim_fields
   before_save :ensure_single_main, if: :is_main?
-  before_create :set_default_position
   before_save :set_folder_position, if: :will_save_change_to_folder_id?
+  before_create :set_default_position
 
   self.ignored_columns = %w[allow_growth allow_shrink growth_speed_multiplier]
 

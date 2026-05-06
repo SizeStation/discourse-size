@@ -17,8 +17,12 @@ export default class DiscourseSizeInventory extends Component {
 
   async fetchInventory() {
     try {
+      const userId = this.args.model.giftingMode
+        ? this.currentUser.id
+        : this.args.model.user.id;
+
       const result = await ajax("/size/inventory", {
-        data: { user_id: this.args.model.user.id },
+        data: { user_id: userId },
       });
       this.inventory = result.inventory;
     } catch (e) {

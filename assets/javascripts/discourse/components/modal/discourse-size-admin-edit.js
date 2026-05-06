@@ -17,7 +17,9 @@ export default class DiscourseSizeAdminEdit extends Component {
     this.originalCurrentSize = char.current_size;
     const unit = getBestUnit(this.currentSize);
     this.sizeUnit = unit.id;
-    this.displaySize = parseFloat((this.currentSize / unit.factor).toPrecision(5));
+    this.displaySize = parseFloat(
+      (this.currentSize / unit.factor).toPrecision(5)
+    );
   }
 
   get units() {
@@ -28,7 +30,6 @@ export default class DiscourseSizeAdminEdit extends Component {
   onUnitChange(unitId) {
     this.sizeUnit = unitId;
   }
-
 
   @action
   async save() {
@@ -44,7 +45,6 @@ export default class DiscourseSizeAdminEdit extends Component {
     ) {
       data.current_size = currentSizeInCm;
     }
-
 
     try {
       await ajax(`/size/admin/characters/${this.args?.model?.character?.id}`, {

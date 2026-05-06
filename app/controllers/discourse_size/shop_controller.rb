@@ -45,7 +45,7 @@ module DiscourseSize
       item = DiscourseSizeShopItem.enabled.find_by(key: item_key)
       
       if !item || !item.in_stock?
-        return render json: { failed: true, message: "Item is out of stock or disabled." }, status: 422
+        return render json: { failed: true, message: "Item is out of stock or disabled." }, status: :unprocessable_content
       end
 
       result = ::DiscourseSize::InventoryManager.purchase(current_user, item_key)
@@ -58,7 +58,7 @@ module DiscourseSize
           current_points: ::DiscourseSize::PointsManager.get_points(current_user)
         }
       else
-        render json: { failed: true, message: result[:error] }, status: 422
+        render json: { failed: true, message: result[:error] }, status: :unprocessable_content
       end
     end
 

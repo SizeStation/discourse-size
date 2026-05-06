@@ -146,8 +146,13 @@ module ::DiscourseSize
       inventory_item = DiscourseSizeInventory.find_by(id: inventory_item_id, user_id: sender.id)
       return { error: "Item not in inventory" } unless inventory_item
       
+      item_name = inventory_item.item_details&.name || "an item"
+
       # Transfer ownership
       inventory_item.update!(user_id: target_user.id)
+      
+      # Send notification
+      NotificationManager.send_gift_notification(sender, target_user, item_name)
       
       { success: true }
     end

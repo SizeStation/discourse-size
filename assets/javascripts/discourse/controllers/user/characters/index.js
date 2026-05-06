@@ -86,9 +86,9 @@ export default class UserCharactersIndexController extends Controller {
           username,
         },
       });
-      alert(I18n.t("discourse_size.inventory.gift_success", { username }));
-      this.modal.hide();
+      this.modal.close();
     } catch (e) {
+      console.error(e);
       alert(e.jqXHR?.responseJSON?.message || "Error gifting item");
     }
   }
@@ -171,7 +171,6 @@ export default class UserCharactersIndexController extends Controller {
         this.currentUser.set("discourse_size_points", result.points);
       }
     }
-
 
     try {
       const res = await ajax(`/size/characters?user_id=${this.user.id}`);
