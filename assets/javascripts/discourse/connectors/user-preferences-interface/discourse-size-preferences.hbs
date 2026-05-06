@@ -1,0 +1,22 @@
+<div class="control-group discourse-size-preferences">
+  <label class="control-label">{{i18n "discourse_size.preferences.title"}}</label>
+  <div class="controls">
+    <div class="preference-row">
+      <label class="control-label">{{i18n "discourse_size.preferences.measurement_system"}}</label>
+      {{combo-box
+        content=this.measurementOptions
+        value=this.measurementSystem
+        onChange=this.onChangeMeasurement
+      }}
+    </div>
+
+    <label class="checkbox-label">
+      <Input
+        @type="checkbox"
+        @checked={{this.hideRewardNotice}}
+        {{on "change" (action this.onChangeHideReward value="target.checked")}}
+      />
+      {{i18n "discourse_size.preferences.hide_reward_notice"}}
+    </label>
+  </div>
+</div>

@@ -3,6 +3,9 @@
 class DiscourseSizeAction < ActiveRecord::Base
   belongs_to :character, class_name: "DiscourseSizeCharacter"
   belongs_to :user
+  
+  belongs_to :parent_action, class_name: "DiscourseSizeAction", optional: true
+  has_one :child_action, class_name: "DiscourseSizeAction", foreign_key: :parent_action_id, dependent: :destroy
 
   validates :character_id, presence: true
   validates :user_id, presence: true

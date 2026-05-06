@@ -9,6 +9,11 @@ import {
   getComparison,
   getGrowthComparison,
 } from "../lib/size-formatter";
+import {
+  calculateSize,
+  isAnimating,
+  getTimeRemaining,
+} from "../lib/size-calculator";
 
 export default class DiscourseSizeCharacterDetails extends Component {
   @service siteSettings;
@@ -24,7 +29,7 @@ export default class DiscourseSizeCharacterDetails extends Component {
       if (this.isAnimating) {
         this._currentTime = new Date();
       }
-    }, 100);
+    }, 33);
   }
 
   willDestroy() {
@@ -32,61 +37,14 @@ export default class DiscourseSizeCharacterDetails extends Component {
     if (this._timer) clearInterval(this._timer);
   }
 
-  _activeActionAt(time) {
-    const c = this.args.character;
-    if (!c || !Array.isArray(c.actions)) return null;
-
-    return c.actions.find((a) => {
-      if (!a.start_time || !a.end_time) return false;
-      const start = new Date(a.start_time);
-      const end = new Date(a.end_time);
-      return time >= start && time < end;
-    });
-  }
-
   get calculatedSizeCm() {
-    const c = this.args.character;
-    if (!c) return 0;
-
-    const now = this._currentTime;
-    const activeAction = this._activeActionAt(now);
-
-    if (activeAction) {
-      const startT = new Date(activeAction.start_time);
-      const endT = new Date(activeAction.end_time);
-      const totalDuration = endT.getTime() - startT.getTime();
-
-      if (totalDuration > 0) {
-        const elapsed = now.getTime() - startT.getTime();
-        const progress = elapsed / totalDuration;
-
-        const startOff = parseFloat(activeAction.start_offset);
-        const endOff = parseFloat(activeAction.end_offset);
-
-        const currentOffset = startOff + (endOff - startOff) * progress;
-        return parseFloat(c.base_size) + currentOffset;
-      } else {
-        return parseFloat(c.base_size) + parseFloat(activeAction.end_offset);
-      }
-    }
-
-    const nextAction = c.actions
-      .slice()
-      .filter((a) => a.start_time && new Date(a.start_time) > now)
-      .sort((a, b) => new Date(a.start_time) - new Date(b.start_time))[0];
-
-    if (nextAction) {
-      return parseFloat(c.base_size) + parseFloat(nextAction.start_offset);
-    }
-
-    return parseFloat(c.base_size) + parseFloat(c.target_offset);
+    return calculateSize(this.args.character, this._currentTime);
   }
 
   get formattedSize() {
-    return formatSize(
-      this.calculatedSizeCm,
-      this.args.character.measurement_system
-    );
+    const system =
+      this.currentUser?.discourse_size_measurement_system || "imperial";
+    return formatSize(this.calculatedSizeCm, system);
   }
 
   get comparisonText() {
@@ -128,51 +86,30 @@ export default class DiscourseSizeCharacterDetails extends Component {
   }
 
   get isAnimating() {
-    const c = this.args.character;
-    if (!c) return false;
-
-    const now = this._currentTime;
-    const lastAction = c.actions
-      .slice()
-      .filter((a) => a.end_time)
-      .sort((a, b) => new Date(b.end_time) - new Date(a.end_time))[0];
-
-    if (!lastAction) return false;
-    return new Date(lastAction.end_time) > now;
+    return isAnimating(this.args.character, this._currentTime);
   }
 
   get timeRemaining() {
+    return getTimeRemaining(this.args.character, this._currentTime);
+  }
+
+  get activeAction() {
     const c = this.args.character;
-    if (!c) return null;
-
+    if (!c || !c.actions) return null;
     const now = this._currentTime;
-    const lastAction = c.actions
-      .slice()
-      .filter((a) => a.end_time)
-      .sort((a, b) => new Date(b.end_time) - new Date(a.end_time))[0];
-
-    if (!lastAction || new Date(lastAction.end_time) <= now) return null;
-
-    const seconds = Math.floor((new Date(lastAction.end_time) - now) / 1000);
-    if (seconds <= 0) return null;
-
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-
-    if (h > 0) return `${h}h ${m}m ${s}s`;
-    if (m > 0) return `${m}m ${s}s`;
-    return `${s}s`;
+    return (c.actions || []).find((a) => {
+      if (!a.start_time || !a.end_time) return false;
+      const start = new Date(a.start_time);
+      const end = new Date(a.end_time);
+      return now >= start && now < end;
+    });
   }
 
   get progressPercent() {
-    const c = this.args.character;
-    if (!c) return 0;
-
-    const now = this._currentTime;
-    const activeAction = this._activeActionAt(now);
+    const activeAction = this.activeAction;
     if (!activeAction) return 0;
 
+    const now = this._currentTime;
     const startT = new Date(activeAction.start_time);
     const endT = new Date(activeAction.end_time);
     const total = endT - startT;
@@ -192,10 +129,9 @@ export default class DiscourseSizeCharacterDetails extends Component {
   }
 
   get formattedTargetSize() {
-    return formatSize(
-      this.targetSizeCm,
-      this.args.character.measurement_system
-    );
+    const system =
+      this.currentUser?.discourse_size_measurement_system || "imperial";
+    return formatSize(this.targetSizeCm, system);
   }
 
   @action

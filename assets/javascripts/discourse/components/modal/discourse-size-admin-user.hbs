@@ -61,5 +61,41 @@
         </div>
       {{/if}}
     </section>
+
+    <hr />
+    <section class="admin-section reward-management">
+      <h3>{{i18n "discourse_size.admin.daily_reward_section"}}</h3>
+      <DButton
+        @label="discourse_size.admin.clear_daily_reward"
+        @action={{this.clearDailyReward}}
+        class="btn-default"
+      />
+    </section>
+
+    <hr />
+
+    <section class="admin-section point-history">
+      <h3>{{i18n "discourse_size.point_history.title"}}</h3>
+      {{#if this.loadingHistory}}
+        {{loading-spinner size="small"}}
+      {{else}}
+        <div class="admin-point-history-list">
+          {{#each this.history as |entry|}}
+            <div class="history-entry">
+              <span class="date">{{format-date entry.created_at}}</span>
+              <span class="change {{if (gt entry.amount 0) 'positive' 'negative'}}">
+                {{if (gt entry.amount 0) "+"}}{{entry.amount}}
+              </span>
+              <span class="source">{{i18n (concat "discourse_size.point_history.sources." entry.source_type)}}</span>
+              {{#if entry.description}}
+                <span class="reason">({{entry.description}})</span>
+              {{/if}}
+            </div>
+          {{else}}
+            <p class="empty-msg">{{i18n "discourse_size.point_history.no_history"}}</p>
+          {{/each}}
+        </div>
+      {{/if}}
+    </section>
   </:body>
 </DModal>

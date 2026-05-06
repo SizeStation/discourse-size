@@ -15,15 +15,7 @@ module DiscourseSize
       history = DiscourseSizePointHistory.where(user_id: user.id).order(created_at: :desc).limit(100)
       
       render json: { 
-        history: history.map { |h| 
-          {
-            id: h.id,
-            amount: h.amount,
-            source_type: h.source_type,
-            description: h.description,
-            created_at: h.created_at
-          }
-        },
+        history: serialize_data(history, DiscourseSizePointHistorySerializer),
         current_points: PointsManager.get_points(user)
       }
     end

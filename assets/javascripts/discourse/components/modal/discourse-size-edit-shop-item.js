@@ -17,6 +17,11 @@ export default class DiscourseSizeEditShopItem extends Component {
     picture: "",
     stock: -1,
     enabled: true,
+    item_type: "item",
+    color: "",
+    self_effect: null,
+    self_amount: 0,
+    can_only_use_on_others: false,
   };
   @tracked isSaving = false;
 
@@ -24,7 +29,17 @@ export default class DiscourseSizeEditShopItem extends Component {
     super(...arguments);
     if (this.args.model.item) {
       this.itemData = { ...this.args.model.item };
+      if (this.itemData.self_effect === "") {
+        this.itemData.self_effect = null;
+      }
     }
+  }
+
+  get itemTypeOptions() {
+    return [
+      { id: "item", name: "Shop Item" },
+      { id: "header", name: "Section Header" },
+    ];
   }
 
   get effectOptions() {
@@ -34,11 +49,21 @@ export default class DiscourseSizeEditShopItem extends Component {
     ];
   }
 
+  get selfEffectOptions() {
+    return [
+      { id: null, name: "None" },
+      { id: "grow", name: "Grow Self" },
+      { id: "shrink", name: "Shrink Self" },
+    ];
+  }
+
   @action
   updateValue(path, value) {
     const parts = path.split(".");
     if (parts.length === 1) {
       this[path] = value;
+    } else if (parts[0] === "itemData") {
+      this.itemData = { ...this.itemData, [parts[1]]: value };
     } else {
       let current = this;
       for (let i = 0; i < parts.length - 1; i++) {
@@ -80,7 +105,7 @@ export default class DiscourseSizeEditShopItem extends Component {
   @action
   async save() {
     this.isSaving = true;
-    const isNew = !this.args.model.item;
+    const isNew = !this.args.model.item?.id;
     const url = isNew
       ? "/size/admin/shop_items"
       : `/size/admin/shop_items/${this.args.model.item.id}`;

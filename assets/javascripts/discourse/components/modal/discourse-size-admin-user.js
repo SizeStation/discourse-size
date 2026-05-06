@@ -12,14 +12,17 @@ export default class DiscourseSizeAdminUser extends Component {
   @tracked description = "";
   @tracked isSaving = false;
   @tracked inventory = [];
+  @tracked history = [];
   @tracked shopItems = [];
   @tracked loadingInventory = true;
+  @tracked loadingHistory = true;
   @tracked selectedItemKey = null;
 
   constructor() {
     super(...arguments);
     this.points = this.args.model.user.discourse_size_points || 0;
     this.fetchData();
+    this.fetchHistory();
   }
 
   @action
@@ -40,6 +43,19 @@ export default class DiscourseSizeAdminUser extends Component {
       // Error
     } finally {
       this.loadingInventory = false;
+    }
+  }
+
+  async fetchHistory() {
+    try {
+      const result = await ajax(
+        `/size/admin/users/${this.args.model.user.id}/point_history`
+      );
+      this.history = result.history;
+    } catch (e) {
+      // Error
+    } finally {
+      this.loadingHistory = false;
     }
   }
 
@@ -86,6 +102,22 @@ export default class DiscourseSizeAdminUser extends Component {
         { type: "DELETE" }
       );
       this.fetchData();
+    } catch (e) {
+      alert(I18n.t("discourse_size.error_generic"));
+    }
+  }
+
+  @action
+  async clearDailyReward() {
+    if (!confirm(I18n.t("discourse_size.admin.clear_reward_confirm"))) return;
+    try {
+      await ajax(
+        `/size/admin/users/${this.args.model.user.id}/clear_daily_reward`,
+        {
+          type: "POST",
+        }
+      );
+      alert(I18n.t("discourse_size.admin.clear_reward_success"));
     } catch (e) {
       alert(I18n.t("discourse_size.error_generic"));
     }

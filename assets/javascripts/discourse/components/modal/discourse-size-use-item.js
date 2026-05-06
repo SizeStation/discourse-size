@@ -23,7 +23,14 @@ export default class DiscourseSizeUseItem extends Component {
   }
 
   get filteredInventory() {
-    return this.inventory.filter((item) => !this.isBlocked(item));
+    const char = this.args.model.character;
+    const isOwnCharacter = char && char.user_id === this.currentUser.id;
+    
+    return this.inventory.filter((item) => {
+      if (this.isBlocked(item)) return false;
+      if (isOwnCharacter && item.details.can_only_use_on_others) return false;
+      return true;
+    });
   }
 
   get blockedInventoryNames() {
@@ -34,10 +41,14 @@ export default class DiscourseSizeUseItem extends Component {
   }
 
   get hasNoUsableItems() {
+    const char = this.args.model.character;
+    const isOwnCharacter = char && char.user_id === this.currentUser.id;
+    const usable = this.filteredInventory;
+    
     return (
       !this.loading &&
       this.inventory.length > 0 &&
-      this.filteredInventory.length === 0
+      usable.length === 0
     );
   }
 
@@ -78,13 +89,36 @@ export default class DiscourseSizeUseItem extends Component {
 
   @action
   async useItem(item) {
-    if (
-      !confirm(
-        I18n.t("discourse_size.inventory.use_confirm", {
-          name: item.details.name,
-        })
-      )
-    ) {
+    const char = this.args.model.character;
+    const isOwnCharacter = char && char.user_id === this.currentUser.id;
+    
+    let confirmMsg = I18n.t("discourse_size.inventory.use_confirm", {
+      name: item.details.name,
+    });
+
+    if (item.details.self_effect && item.details.self_amount) {
+      if (isOwnCharacter) {
+        confirmMsg +=
+          "\n\n" + I18n.t("discourse_size.inventory.self_effect_skipped_own_character_warning");
+      } else {
+        const mainChar = this.currentUser.discourseSizeMainCharacter;
+        if (mainChar) {
+          confirmMsg +=
+            "\n\n" +
+            I18n.t("discourse_size.inventory.self_effect_warning", {
+              character_name: mainChar.name,
+              effect: item.details.self_effect,
+              amount: item.details.self_amount,
+            });
+        } else {
+          confirmMsg +=
+            "\n\n" +
+            I18n.t("discourse_size.inventory.self_effect_no_main_warning");
+        }
+      }
+    }
+
+    if (!confirm(confirmMsg)) {
       return;
     }
 

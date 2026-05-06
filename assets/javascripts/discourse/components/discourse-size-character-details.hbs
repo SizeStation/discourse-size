@@ -131,38 +131,83 @@
               {{i18n "discourse_size.activity.ago"}}</span>
             <span class="activity-text">
               <strong>
-                {{action.user.username}}
+                <LinkTo
+                  @route="user.index"
+                  @model={{action.user.username}}
+                >{{action.user.username}}</LinkTo>
                 {{#if (and action.is_user_blocked this.canSeeBlockedStatus)}}
                   <span class="blocked-badge">{{i18n
                       "discourse_size.blocking.blocked"
                     }}</span>
                 {{/if}}
               </strong>
-              {{#if (eq action.action_type "grow")}}
-                {{i18n
-                  "discourse_size.activity.grow"
-                  character=@character.name
-                  amount=(format-size
-                    (abs action.size_change) @character.measurement_system
-                  )
+
+              {{#if action.parent_action_id}}
+                {{i18n "discourse_size.activity.used"}}
+                <LinkTo @route="size-shop" class="item-link">{{action.item_name}}</LinkTo>
+                {{#if (eq action.parent_action_type "grow")}}
+                  {{i18n "discourse_size.activity.to_grow"}}
+                {{else}}
+                  {{i18n "discourse_size.activity.to_shrink"}}
+                {{/if}}
+                <LinkTo
+                  @route="user.characters.index"
+                  @model={{action.target_owner_username}}
+                >{{action.target_character_name}}</LinkTo>
+                {{i18n "discourse_size.activity.by"}}
+                {{format-size
+                  (abs action.parent_size_change)
+                  @character.measurement_system
+                }},
+                {{i18n "discourse_size.activity.causing"}}
+                <LinkTo
+                  @route="user.characters.index"
+                  @model={{action.character_owner_username}}
+                >{{@character.name}}</LinkTo>
+                {{i18n "discourse_size.activity.to"}}
+                {{action.action_type}}
+                {{i18n "discourse_size.activity.by"}}
+                {{format-size
+                  (abs action.size_change)
+                  @character.measurement_system
                 }}
-              {{else if (eq action.action_type "shrink")}}
-                {{i18n
-                  "discourse_size.activity.shrink"
-                  character=@character.name
-                  amount=(format-size
-                    (abs action.size_change) @character.measurement_system
-                  )
-                }}
+              {{else if (or (eq action.action_type "grow") (eq action.action_type "shrink"))}}
+                {{#if action.item_name}}
+                  {{i18n "discourse_size.activity.used"}}
+                  <LinkTo @route="size-shop" class="item-link">{{action.item_name}}</LinkTo>
+                  {{i18n (concat "discourse_size.activity.to_" action.action_type)}}
+                {{else}}
+                  {{i18n (concat "discourse_size.activity." (if (eq action.action_type "grow") "grew" "shrunk"))}}
+                {{/if}}
+                <LinkTo
+                  @route="user.characters.index"
+                  @model={{action.character_owner_username}}
+                >{{@character.name}}</LinkTo>
+                {{i18n "discourse_size.activity.by"}}
+                {{format-size
+                  (abs action.size_change)
+                  @character.measurement_system
+                }}{{#if action.child_action_id}},
+                  {{i18n "discourse_size.activity.causing"}}
+                  <LinkTo
+                    @route="user.characters.index"
+                    @model={{action.child_character_owner_username}}
+                  >{{action.child_character_name}}</LinkTo>
+                  {{i18n "discourse_size.activity.to"}}
+                  {{action.child_action_type}}
+                  {{i18n "discourse_size.activity.by"}}
+                  {{format-size
+                    (abs action.child_size_change)
+                    @character.measurement_system
+                  }}
+                {{/if}}
               {{else if (eq action.action_type "reset")}}
                 {{i18n "discourse_size.activity.reset" character=@character.name}}
               {{else if (eq action.action_type "set_size")}}
-                {{i18n
-                  "discourse_size.activity.set_size"
-                  character=@character.name
-                  amount=(format-size
-                    @character.current_size @character.measurement_system
-                  )
+                {{i18n "discourse_size.activity.set_size_to"}}
+                {{format-size
+                  @character.current_size
+                  @character.measurement_system
                 }}
               {{else}}
                 {{i18n
@@ -191,12 +236,14 @@
                     />
                   {{/if}}
                 {{/unless}}
-                <DButton
-                  @action={{fn this.deleteAction action}}
-                  @icon="trash-alt"
-                  @title="discourse_size.delete_action"
-                  class="btn-flat delete-action-btn"
-                />
+                {{#unless action.parent_action_id}}
+                  <DButton
+                    @action={{fn this.deleteAction action}}
+                    @icon="trash-alt"
+                    @title="discourse_size.delete_action"
+                    class="btn-flat delete-action-btn"
+                  />
+                {{/unless}}
               </div>
             {{/if}}
           </div>

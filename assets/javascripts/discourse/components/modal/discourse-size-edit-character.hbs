@@ -171,24 +171,7 @@
         {{/if}}
       </div>
 
-      <div class="control-group">
-        <label>{{i18n "discourse_size.fields.measurement_system"}}</label>
-        <span class="instructions">{{i18n
-            "discourse_size.fields.measurement_system_help"
-          }}</span>
-        <select
-          onchange={{action (mut this.measurementSystem) value="target.value"}}
-        >
-          <option
-            value="imperial"
-            selected={{eq this.measurementSystem "imperial"}}
-          >{{i18n "discourse_size.measurement_system_imperial"}}</option>
-          <option
-            value="metric"
-            selected={{eq this.measurementSystem "metric"}}
-          >{{i18n "discourse_size.measurement_system_metric"}}</option>
-        </select>
-      </div>
+
 
       <hr />
 

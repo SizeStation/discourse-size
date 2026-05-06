@@ -8,17 +8,12 @@
           @href={{this.siteSettings.discourse_size_help_url}}
           @label="discourse_size.help"
           class="btn-default"
-        />
-      {{/if}}
-      {{#if this.currentUser.admin}}
-        <DButton
-          @action={{this.showAdminModal}}
-          @label="discourse_size.admin.title"
-          class="btn-default"
+          @icon="circle-question"
         />
       {{/if}}
       <DButton
         @label="discourse_size.shop.visit_shop"
+        @icon="discourse-other-tab"
         @href="/size/shop"
         class="btn-default"
       />
@@ -34,6 +29,13 @@
         @label="discourse_size.create_character"
         class="btn-default"
       />
+      {{#if this.currentUser.admin}}
+        <DButton
+          @action={{this.showAdminModal}}
+          @label="discourse_size.admin.title"
+          class="btn-default"
+        />
+      {{/if}}
     </div>
   </div>
 {{else}}
@@ -46,10 +48,12 @@
           @href={{this.siteSettings.discourse_size_help_url}}
           @label="discourse_size.help"
           class="btn-default"
+          @icon="circle-question"
         />
       {{/if}}
       <DButton
         @label="discourse_size.shop.visit_shop"
+        @icon="discourse-other-tab"
         @href="/size/shop"
         class="btn-default"
       />

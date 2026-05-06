@@ -728,6 +728,7 @@ function smartFixed(val, system = "metric") {
 }
 
 export function formatSize(sizeCm, system = "metric") {
+  // We'll handle the default in the helper or component
   const parsedSize = parseFloat(sizeCm);
   if (isNaN(parsedSize) || parsedSize === 0) return "0 cm";
   const absSize = Math.abs(parsedSize);

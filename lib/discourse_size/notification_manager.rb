@@ -13,7 +13,7 @@ module ::DiscourseSize
         character_name: character.name,
         action_type: action_type, # 'grow' or 'shrink'
         amount_cm: amount_cm.abs,
-        measurement_system: character.measurement_system,
+        measurement_system: DiscourseSizeUserSetting.for_user(character.user).measurement_system,
         item_name: item_name
       }
 

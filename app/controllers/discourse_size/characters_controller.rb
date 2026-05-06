@@ -15,7 +15,7 @@ module DiscourseSize
 
       render json: {
         folders: folders.map { |f| folder_serializer(f) },
-        characters: serialize_data(characters, DiscourseSizeCharacterSerializer)
+        characters: serialize_data(characters, ::DiscourseSizeCharacterSerializer)
       }
     end
 
@@ -68,12 +68,9 @@ module DiscourseSize
       p[:blocked_item_keys] ||= []
       p[:blocked_user_ids] ||= []
 
-      Rails.logger.warn "Updating character #{character.id} with params: #{p.inspect}"
       if character.update(p)
-        Rails.logger.warn "Update succeeded. Gender: #{character.reload.gender}"
         render json: { character: serialize_data(character, DiscourseSizeCharacterSerializer) }
       else
-        Rails.logger.warn "Update failed: #{character.errors.full_messages}"
         render json: failed_json.merge(errors: character.errors.full_messages),
                status: :unprocessable_content
       end
@@ -131,8 +128,6 @@ module DiscourseSize
       render json: success_json
     end
 
-
-
     def set_size
       character = DiscourseSizeCharacter.find(params[:id])
       unless character.freeform? || current_user.admin?
@@ -147,13 +142,16 @@ module DiscourseSize
       new_total_cm = 1e-18 if new_total_cm < 1e-18
       new_total_cm = DiscourseSizeCharacter::MAX_SIZE if new_total_cm > DiscourseSizeCharacter::MAX_SIZE
 
-      start_offset = character.target_offset
-      amount_cm = new_total_cm - (character.base_size + character.current_offset)
-      
-      character.sync_offset!
-      character.current_offset += amount_cm
-      character.target_offset += amount_cm
-      character.start_offset = character.current_offset
+      # Stop all pending growth/shrinking
+      character.discourse_size_actions.where(action_type: ["grow", "shrink"]).where("end_time > ?", Time.now).destroy_all
+
+      old_target_offset = character.target_offset
+      new_offset = new_total_cm - character.base_size
+      size_change = new_offset - old_target_offset
+
+      character.current_offset = new_offset
+      character.target_offset = new_offset
+      character.start_offset = new_offset
       character.offset_updated_at = Time.now
       character.save!
 
@@ -161,10 +159,10 @@ module DiscourseSize
         character_id: character.id,
         user_id: current_user.id,
         action_type: "set_size",
-        size_change: amount_cm,
+        size_change: size_change,
         points_spent: 0,
-        start_offset: start_offset,
-        end_offset: character.target_offset,
+        start_offset: old_target_offset,
+        end_offset: new_offset,
         duration_minutes: 0,
         start_time: Time.now,
         end_time: Time.now
@@ -176,11 +174,15 @@ module DiscourseSize
              }
     end
 
-
     def destroy_action
       action = DiscourseSizeAction.find(params[:id])
       unless current_user.admin? || action.character.user_id == current_user.id
         raise Discourse::InvalidAccess
+      end
+
+      # Cannot delete linked self-effect actions individually
+      if action.parent_action_id.present? && !current_user.admin?
+        return render json: { failed: true, message: "This activity entry is linked to another character's interaction and cannot be deleted individually." }, status: :unprocessable_content
       end
 
       # Delete notification if it exists
@@ -191,8 +193,8 @@ module DiscourseSize
       character = action.character
       character.sync_offset!
 
-      # Revert points
-      if action.points_spent > 0
+      # Revert points (only for parent actions)
+      if action.points_spent > 0 && action.parent_action_id.blank?
         DiscourseSize::PointsManager.add_points(
           action.user,
           action.points_spent,
@@ -207,8 +209,8 @@ module DiscourseSize
         )
       end
 
-      # Revert item
-      if action.item_key
+      # Revert item (only for parent actions)
+      if action.item_key && action.parent_action_id.blank?
         DiscourseSize::InventoryManager.return_item(action.user, action.item_key)
         # Notify user about item return
         item = DiscourseSizeShopItem.find_by(key: action.item_key)
@@ -221,18 +223,28 @@ module DiscourseSize
 
       case action.action_type
       when "grow", "shrink", "set_size"
-        # Revert the size change immediately
+        # We delete the action and then let the character recalculate its target
+        # Based on all REMAINING grow/shrink/set_size actions.
         character.target_offset -= action.size_change
-        character.current_offset -= action.size_change
-        character.start_offset = character.current_offset
-        character.offset_updated_at = Time.now
       when "boost_speed"
-        # Revert the speed boost
         character.growth_rate_bought -= action.size_change
       end
 
+      # Handle linked child action state sync
+      child = action.child_action
+      
+      action.destroy # This will also destroy the child action via dependent: :destroy
+      
+      character.sync_offset!
       character.save!
-      action.destroy
+
+      # If there was a child action, we must also sync the child character's state
+      if child
+        child_char = child.character
+        child_char.target_offset -= child.size_change
+        child_char.sync_offset!
+        child_char.save!
+      end
 
       render json: {
                character: serialize_data(character.reload, DiscourseSizeCharacterSerializer),
@@ -285,7 +297,6 @@ module DiscourseSize
         :picture,
         :info_post,
         :base_size,
-        :measurement_system,
         :is_main,
         :character_type,
         :gender,

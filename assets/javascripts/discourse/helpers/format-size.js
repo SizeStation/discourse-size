@@ -1,12 +1,13 @@
-import { registerRawHelper } from "discourse-common/lib/helpers";
+import Helper from "@ember/component/helper";
+import { inject as service } from "@ember/service";
 import { formatSize } from "../lib/size-formatter";
 
-// In Discourse, helpers are often registered like this or as Gjs
-// But for standard plugins, we use registerRawHelper or a class-based helper.
-// I'll use a standard Ember helper if possible.
+export default class FormatSize extends Helper {
+  @service currentUser;
 
-import { helper } from "@ember/component/helper";
-
-export default helper(function ([size, system]) {
-  return formatSize(size, system);
-});
+  compute([size, system]) {
+    const defaultSystem =
+      this.currentUser?.discourse_size_measurement_system || "imperial";
+    return formatSize(size, system || defaultSystem);
+  }
+}

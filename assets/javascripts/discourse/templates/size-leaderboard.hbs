@@ -23,6 +23,7 @@
           <th>Character</th>
           <th>Owner</th>
           <th>Size</th>
+          <th>Trend</th>
         </tr>
       </thead>
       <tbody>
@@ -56,10 +57,7 @@
             <td class="lb-size-column">
               <div class="lb-size-wrapper">
                 <div class="lb-current-size">
-                  {{format-size
-                    character.current_size
-                    character.measurement_system
-                  }}
+                  {{format-size character.current_size}}
                 </div>
                 {{#if character.is_animating}}
                   <div
@@ -87,14 +85,28 @@
                     </span>
                     <span class="lb-target-size">
                       Target:
-                      {{format-size
-                        character.target_size
-                        character.measurement_system
-                      }}
+                      {{format-size character.target_size}}
                     </span>
                   </div>
                 {{/if}}
               </div>
+            </td>
+            <td class="lb-trend-column">
+              {{#if (not (eq character.trend_diff 0))}}
+                <div
+                  class="lb-trend-wrapper
+                    {{if (gt character.trend_diff 0) 'climbing' 'descending'}}"
+                >
+                  {{#if (gt character.trend_diff 0)}}
+                    {{d-icon "arrow-up"}}
+                  {{else}}
+                    {{d-icon "arrow-down"}}
+                  {{/if}}
+                  <span class="trend-percent">
+                    {{abs character.trend_percent}}%
+                  </span>
+                </div>
+              {{/if}}
             </td>
           </tr>
         {{else}}

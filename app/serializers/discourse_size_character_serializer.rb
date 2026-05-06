@@ -35,21 +35,10 @@ class DiscourseSizeCharacterSerializer < ApplicationSerializer
   has_many :actions, serializer: DiscourseSizeActionSerializer, embed: :objects
 
   def actions
-    # We need all pending actions for growth calculation, plus some recent ones for display
-    is_growing = object.target_offset > object.current_offset
-    is_shrinking = object.target_offset < object.current_offset
-    
-    pending_query = object.discourse_size_actions.where(action_type: ["grow", "shrink"])
-    if is_growing
-      pending_query = pending_query.where("end_offset > ?", object.current_offset)
-    elsif is_shrinking
-      pending_query = pending_query.where("end_offset < ?", object.current_offset)
-    else
-      pending_query = pending_query.none
-    end
-
+    # We need all pending actions for animation, plus some recent ones for display
+    now = Time.now
+    pending_actions = object.discourse_size_actions.where("end_time > ?", now).to_a
     recent_actions = object.discourse_size_actions.order(created_at: :desc).limit(10).to_a
-    pending_actions = pending_query.order(created_at: :asc).to_a
     
     (pending_actions + recent_actions).uniq(&:id).sort_by(&:created_at).reverse
   end
@@ -91,5 +80,9 @@ class DiscourseSizeCharacterSerializer < ApplicationSerializer
     User.where(id: object.blocked_user_ids).map do |user|
       BasicUserSerializer.new(user, scope: scope, root: false).as_json
     end
+  end
+
+  def measurement_system
+    DiscourseSizeUserSetting.for_user(object.user).measurement_system
   end
 end

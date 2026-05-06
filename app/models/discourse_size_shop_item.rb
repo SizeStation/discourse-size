@@ -3,11 +3,28 @@
 class DiscourseSizeShopItem < ActiveRecord::Base
   validates :key, presence: true, uniqueness: true
   validates :name, presence: true
-  validates :price, numericality: { greater_than_or_equal_to: 0 }
-  validates :effect, inclusion: { in: %w[grow shrink] }
-  validates :amount, numericality: { greater_than: 0 }
-  validates :uses, numericality: { greater_than: 0 }
-  validates :duration_minutes, numericality: { greater_than_or_equal_to: 0 }
+  validates :price, numericality: { greater_than_or_equal_to: 0 }, if: :item?
+  validates :effect, inclusion: { in: %w[grow shrink] }, if: :item?
+  validates :amount, numericality: { greater_than: 0 }, if: :item?
+  validates :uses, numericality: { greater_than: 0 }, if: :item?
+  validates :duration_minutes, numericality: { greater_than_or_equal_to: 0 }, if: :item?
+
+  default_scope { order(:position, :id) }
+
+  before_validation :set_header_defaults, if: :header?
+
+  def set_header_defaults
+    self.effect ||= "grow" # Required by DB but ignored for headers
+    self.amount ||= 0      # Required by DB but ignored for headers
+  end
+
+  def item?
+    item_type == "item"
+  end
+
+  def header?
+    item_type == "header"
+  end
 
   def duration_minutes
     has_attribute?(:duration_minutes) ? read_attribute(:duration_minutes) : 60
@@ -27,6 +44,10 @@ class DiscourseSizeShopItem < ActiveRecord::Base
   def decrement_stock!
     return if stock == -1
     update!(stock: stock - 1)
+  end
+
+  def increment_purchase_count!
+    update_columns(purchase_count: purchase_count + 1)
   end
 end
 

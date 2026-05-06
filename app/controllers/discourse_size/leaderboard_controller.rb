@@ -35,15 +35,22 @@ module DiscourseSize
       c.sync_offset!
       target_size = c.base_size + c.target_offset
       seconds_left = c.time_remaining_seconds
+      
+      trend_hours = SiteSetting.discourse_size_leaderboard_trend_hours
+      past_size = c.size_at(trend_hours.hours.ago)
+      current = c.current_size
+      diff = current - past_size
+      percent_change = past_size > 0 ? (diff / past_size * 100).round(2) : 0
 
       {
         id: c.id,
         user_id: c.user_id,
         name: c.name,
         picture: c.picture,
-        current_size: c.current_size,
+        current_size: current,
         target_size: target_size,
-        measurement_system: c.measurement_system,
+        trend_diff: diff.round(2),
+        trend_percent: percent_change,
         is_animating: (c.current_offset - c.target_offset).abs > 0.0001,
         is_growing: c.target_offset > c.current_offset,
         time_remaining: (seconds_left && seconds_left > 0) ? format_duration(seconds_left) : nil,

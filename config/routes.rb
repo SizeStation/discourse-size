@@ -23,6 +23,7 @@ DiscourseSize::Engine.routes.draw do
   get "leaderboard" => "leaderboard#index"
   get "shop" => "shop#index"
   post "shop/purchase" => "shop#purchase"
+  post "shop/save_settings" => "shop#save_settings"
   get "inventory" => "inventory#index"
   post "inventory/use" => "inventory#use"
   post "inventory/gift" => "inventory#gift"
@@ -33,10 +34,13 @@ DiscourseSize::Engine.routes.draw do
   put "admin/characters/:id" => "admin#update_character"
   put "admin/users/:user_id/points" => "admin#update_points"
   get "admin/users/:user_id/inventory" => "admin#user_inventory"
+  get "admin/users/:user_id/point_history" => "admin#user_point_history"
   post "admin/users/:user_id/inventory" => "admin#add_inventory_item"
   delete "admin/users/:user_id/inventory/:id" => "admin#remove_inventory_item"
+  post "admin/users/:user_id/clear_daily_reward" => "admin#clear_daily_reward"
 
   post "admin/shop_items" => "shop#create"
   put "admin/shop_items/:id" => "shop#update"
   delete "admin/shop_items/:id" => "shop#destroy"
+  post "admin/shop_items/reorder" => "shop#reorder"
 end

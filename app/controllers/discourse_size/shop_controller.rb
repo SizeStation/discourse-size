@@ -52,6 +52,7 @@ module DiscourseSize
       
       if result[:success]
         item.decrement_stock!
+        item.increment_purchase_count!
         render json: { 
           success: true, 
           inventory_item: serialize_data(result[:inventory_item], DiscourseSizeInventorySerializer),
@@ -62,10 +63,58 @@ module DiscourseSize
       end
     end
 
+    def claim_reward
+      last_reward_date = current_user.custom_fields["discourse_size_last_daily_reward_date"]
+      today = Date.today.to_s
+      
+      if last_reward_date == today
+        return render json: { failed: true, message: "Reward already collected today." }, status: :unprocessable_content
+      end
+
+      amount = SiteSetting.discourse_size_daily_reward_amount
+      current_user.custom_fields["discourse_size_last_daily_reward_date"] = today
+      current_user.save_custom_fields(true)
+      
+      ::DiscourseSize::PointsManager.add_points(
+        current_user,
+        amount,
+        source_type: "daily_reward",
+        description: "Daily reward collection"
+      )
+
+      render json: { 
+        success: true, 
+        amount: amount,
+        current_points: ::DiscourseSize::PointsManager.get_points(current_user)
+      }
+    end
+
+    def dismiss_reward_notice
+      current_user.custom_fields["discourse_size_dismissed_reward_notice_date"] = Date.today.to_s
+      current_user.save_custom_fields(true)
+      render json: success_json
+    end
+
+    def reorder
+      params[:ids].each_with_index do |id, index|
+        DiscourseSizeShopItem.where(id: id).update_all(position: index)
+      end
+      render json: success_json
+    end
+
+    def save_settings
+      settings = DiscourseSizeUserSetting.for_user(current_user)
+      settings.update!(
+        measurement_system: params[:measurement_system],
+        hide_reward_notice: params[:hide_reward_notice]
+      )
+      render json: success_json
+    end
+
     private
 
     def shop_item_params
-      params.permit(:key, :name, :description, :price, :effect, :amount, :duration_minutes, :uses, :picture, :stock, :enabled)
+      params.permit(:key, :name, :description, :price, :effect, :amount, :duration_minutes, :uses, :picture, :stock, :enabled, :item_type, :color, :self_effect, :self_amount, :can_only_use_on_others)
     end
   end
 end

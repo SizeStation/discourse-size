@@ -22,8 +22,11 @@ plugins:
   discourse_size_points_per_topic:
     default: 10
     type: integer
-  discourse_size_points_per_daily_login:
+  discourse_size_daily_reward_amount:
     default: 10
+    type: integer
+  discourse_size_leaderboard_trend_hours:
+    default: 24
     type: integer
   discourse_size_points_per_read:
     default: 1

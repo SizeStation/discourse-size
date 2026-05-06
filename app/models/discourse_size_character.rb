@@ -8,7 +8,7 @@ class DiscourseSizeCharacter < ActiveRecord::Base
   before_save :set_folder_position, if: :will_save_change_to_folder_id?
   before_create :set_default_position
 
-  self.ignored_columns = %w[allow_growth allow_shrink growth_speed_multiplier]
+  self.ignored_columns = %w[allow_growth allow_shrink growth_speed_multiplier measurement_system]
 
   def set_default_position
     return if position.present?
@@ -82,51 +82,15 @@ class DiscourseSizeCharacter < ActiveRecord::Base
   end
 
   def current_size
-    base_size + current_calculated_offset
+    DiscourseSize::SizeCalculator.calculate_size(self)
   end
 
   def current_calculated_offset
-    return current_offset if target_offset == current_offset || offset_updated_at.nil?
-    
-    now = Time.now
-    # Find the action that is currently active
-    active_action = discourse_size_actions.where(action_type: ["grow", "shrink"])
-      .where("start_time <= ? AND end_time > ?", now, now)
-      .first
-    
-    if active_action
-      # Linear interpolation within the action duration
-      start_t = active_action.start_time
-      end_t = active_action.end_time
-      total_duration = end_t - start_t
-      
-      if total_duration > 0
-        elapsed = now - start_t
-        progress = elapsed / total_duration
-        
-        start_off = active_action.start_offset
-        end_off = active_action.end_offset
-        
-        return start_off + (end_off - start_off) * progress
-      else
-        return active_action.end_offset
-      end
-    end
+    DiscourseSize::SizeCalculator.calculate_offset(self)
+  end
 
-    # If no active action, check if we are in between actions or after all actions
-    next_action = discourse_size_actions.where(action_type: ["grow", "shrink"])
-      .where("start_time > ?", now)
-      .order(start_time: :asc)
-      .first
-      
-    if next_action
-      # We are waiting for the next action to start.
-      # The size should be the end of the previous segment (start of next)
-      return next_action.start_offset
-    end
-    
-    # Otherwise, all actions are complete
-    target_offset
+  def size_at(time)
+    DiscourseSize::SizeCalculator.calculate_size(self, time)
   end
 
   def time_remaining_seconds
@@ -154,23 +118,18 @@ class DiscourseSizeCharacter < ActiveRecord::Base
     return false if user.nil?
     return false if user.id == user_id # Owner is never blocked
 
-    # Check user block
-    return true if blocked_user_ids.include?(user.id)
-    
-    # Check global/bulk blocks
-    return true if blocked_item_keys.include?("__all__")
-
-    # If it's a shop item, action_type is determined by the item's effect
-    if item_key
-      return true if blocked_item_keys.include?(item_key)
-      item = DiscourseSizeShopItem.find_by(key: item_key)
-      if item
-        return true if item.effect == "grow" && blocked_item_keys.include?("__all_growing__")
-        return true if item.effect == "shrink" && blocked_item_keys.include?("__all_shrinking__")
-      end
+    if blocked_user_ids.include?(user.id)
+      return true
     end
 
-    # Check direct action blocks
+    if blocked_item_keys.include?("__all__")
+      return true
+    end
+
+    if item_key.present? && blocked_item_keys.include?(item_key)
+      return true
+    end
+
     if action_type == "grow"
       return true if blocked_item_keys.include?("__all_growing__")
       return true if blocked_item_keys.include?("__direct_grow__")
@@ -180,6 +139,99 @@ class DiscourseSizeCharacter < ActiveRecord::Base
     end
 
     false
+  end
+
+  def add_queued_action(action_type:, size_change:, duration_minutes:, user_id:, item_key: nil, parent_action_id: nil)
+    # 1. Sync current state to have a clean starting point
+    sync_offset!
+    
+    remaining_change = size_change
+    
+    # 2. Find pending opposite actions to cancel out (including the currently active one)
+    opposite_type = (action_type == "grow" ? "shrink" : "grow")
+    pending_opposite = discourse_size_actions.where(action_type: opposite_type)
+                                             .where("end_time > ?", Time.now)
+                                             .order(start_time: :asc)
+    
+    pending_opposite.each do |opp|
+      break if remaining_change.abs < 1e-6
+      
+      opp_change = opp.size_change
+      # How much can we cancel?
+      cancel_amount = [remaining_change.abs, opp_change.abs].min
+      
+      # Direction matters for sign
+      cancel_delta = (remaining_change > 0 ? cancel_amount : -cancel_amount)
+      
+      remaining_change -= cancel_delta
+      opp.size_change -= (-cancel_delta) # subtract in opposite direction
+      
+      if opp.size_change.abs < 1e-6
+        opp.destroy
+      else
+        # Adjust duration proportionally to the remaining size change
+        ratio = opp.size_change.abs / opp_change.abs
+        opp.duration_minutes = (opp.duration_minutes * ratio)
+        opp.save!
+      end
+    end
+    
+    # 3. If we still have remaining_change, add it as a new action at the end of the queue
+    if remaining_change.abs > 1e-6
+      # We create it temporarily; recalculate_pending_actions! will fix its times/offsets
+      DiscourseSizeAction.create!(
+        character_id: id,
+        user_id: user_id,
+        action_type: (remaining_change > 0 ? "grow" : "shrink"),
+        size_change: remaining_change,
+        points_spent: 0,
+        item_key: item_key,
+        start_offset: target_offset,
+        end_offset: target_offset + remaining_change,
+        duration_minutes: (duration_minutes * (remaining_change.abs / size_change.abs)).to_f,
+        start_time: Time.now,
+        end_time: Time.now + 1.second, # Placeholder
+        parent_action_id: parent_action_id
+      )
+    end
+    
+    # 4. Final re-stack to ensure all times and offsets are perfectly continuous
+    recalculate_pending_actions!
+  end
+
+  def recalculate_pending_actions!
+    # Sync current interpolated offset to start the chain from exactly where we are
+    sync_offset!
+    
+    current_chain_offset = self.current_offset
+    current_chain_time = Time.now
+    
+    # All actions that haven't finished yet
+    pending = discourse_size_actions.where(action_type: ["grow", "shrink", "set_size"])
+                                     .where("end_time > ?", current_chain_time)
+                                     .order(start_time: :asc)
+    
+    pending.each do |action|
+      action.start_offset = current_chain_offset
+      action.end_offset = action.start_offset + action.size_change
+      
+      # Make them sequential starting from now
+      action.start_time = current_chain_time
+      action.end_time = action.start_time + action.duration_minutes.minutes
+      
+      # If it's a set_size or duration is 0, it happens instantly
+      if action.duration_minutes <= 0
+        action.end_time = action.start_time
+      end
+
+      action.save!
+      
+      current_chain_offset = action.end_offset
+      current_chain_time = action.end_time
+    end
+    
+    self.target_offset = current_chain_offset
+    save!
   end
 
   private

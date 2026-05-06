@@ -13,6 +13,12 @@ class DiscourseSizeShopItemSerializer < ApplicationSerializer
              :picture,
              :stock,
              :enabled,
+             :item_type,
+             :color,
+             :purchase_count,
+             :self_effect,
+             :self_amount,
+             :can_only_use_on_others,
              :owned_count
 
   def owned_count

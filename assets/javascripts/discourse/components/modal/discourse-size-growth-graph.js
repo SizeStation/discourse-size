@@ -240,6 +240,11 @@ export default class DiscourseSizeGrowthGraph extends Component {
 
   @action
   async deleteAction(actionItem) {
+    if (actionItem.parent_action_id && !this.currentUser.admin) {
+      alert(i18n("discourse_size.activity.self_effect_delete_error"));
+      return;
+    }
+
     const key =
       actionItem.item_key || actionItem.points_spent > 0
         ? "discourse_size.delete_action_with_return_confirm"
@@ -253,6 +258,10 @@ export default class DiscourseSizeGrowthGraph extends Component {
       const result = await ajax(`/size/actions/${actionItem.id}`, {
         type: "DELETE",
       });
+      if (result.character) {
+        this.args.model.onActionDeleted?.(result.character);
+      }
+      
       this.character.actions = this.character.actions.filter(
         (action) => action.id !== actionItem.id
       );

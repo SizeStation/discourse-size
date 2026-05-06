@@ -3,3 +3,17 @@ en:
     discourse_size_notification:
       grow: "%{username} used %{item_name} on %{character_name}! (Grow %{amount})"
       shrink: "%{username} used %{item_name} on %{character_name}! (Shrink %{amount})"
+  site_settings:
+    discourse_size_enabled: "Enable the Discourse Size plugin"
+    discourse_size_min_base_size: "Minimum base size for new characters (game mode)"
+    discourse_size_max_base_size: "Maximum base size for new characters (game mode)"
+    discourse_size_points_per_invite: "Points rewarded for a successful invite"
+    discourse_size_points_per_invited: "Points rewarded to the invited user"
+    discourse_size_points_per_reply: "Points rewarded for a reply"
+    discourse_size_points_per_topic: "Points rewarded for a new topic"
+    discourse_size_daily_reward_amount: "Points rewarded for manual daily collection in the shop"
+    discourse_size_leaderboard_trend_hours: "Time period (hours) to calculate climbers/descenders on the leaderboard"
+    discourse_size_points_per_read: "Points rewarded for reading a post (10% chance)"
+    discourse_size_help_url: "URL for the 'How does this work?' link"
+    discourse_size_shop_name: "Name of the size shop"
+    discourse_size_shop_items: "JSON list of shop items"

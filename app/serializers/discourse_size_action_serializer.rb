@@ -14,9 +14,82 @@ class DiscourseSizeActionSerializer < ApplicationSerializer
              :start_time,
              :end_time,
              :start_offset,
-             :end_offset
+             :end_offset,
+             :parent_action_id,
+             :target_character_name,
+             :target_character_id,
+             :target_owner_username,
+             :character_owner_username,
+             :character_id,
+             :child_action_id,
+             :child_character_name,
+             :child_character_id,
+             :child_character_owner_username,
+             :child_size_change,
+             :child_action_type,
+             :parent_size_change,
+             :parent_action_type
   
   has_one :user, serializer: UserNameSerializer, embed: :objects
+
+  def character_owner_username
+    object.character&.user&.username
+  end
+
+  def character_id
+    object.character_id
+  end
+
+  def child_action
+    @child_action ||= DiscourseSizeAction.find_by(parent_action_id: object.id)
+  end
+
+  def child_action_id
+    child_action&.id
+  end
+
+  def child_character_name
+    child_action&.character&.name
+  end
+
+  def child_character_id
+    child_action&.character_id
+  end
+
+  def child_character_owner_username
+    child_action&.character&.user&.username
+  end
+
+  def child_size_change
+    child_action&.size_change.to_f
+  end
+
+  def child_action_type
+    child_action&.action_type
+  end
+
+  def parent_size_change
+    object.parent_action&.size_change.to_f
+  end
+
+  def parent_action_type
+    object.parent_action&.action_type
+  end
+
+  def target_character_name
+    return nil unless object.parent_action_id
+    object.parent_action&.character&.name
+  end
+
+  def target_character_id
+    return nil unless object.parent_action_id
+    object.parent_action&.character_id
+  end
+
+  def target_owner_username
+    return nil unless object.parent_action_id
+    object.parent_action&.character&.user&.username
+  end
 
   def points_spent
     object.points_spent.to_f

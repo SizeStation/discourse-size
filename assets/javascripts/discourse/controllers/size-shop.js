@@ -30,6 +30,22 @@ export default class SizeShopController extends Controller {
   }
 
   @action
+  addSectionHeader() {
+    this.modal.show(DiscourseSizeEditShopItem, {
+      model: {
+        item: {
+          item_type: "header",
+          name: "New Section",
+          key: "section-" + Date.now(),
+        },
+        onSave: () => {
+          this.router.refresh();
+        },
+      },
+    });
+  }
+
+  @action
   editShopItem(item) {
     this.modal.show(DiscourseSizeEditShopItem, {
       model: {
@@ -77,6 +93,27 @@ export default class SizeShopController extends Controller {
   }
 
   @action
+  async claimDailyReward() {
+    try {
+      const result = await ajax("/size/shop/claim_reward", {
+        type: "POST",
+      });
+
+      if (result.success) {
+        this.currentPoints = result.current_points;
+        this.currentUser.set("discourse_size_can_claim_daily_reward", false);
+        alert(
+          I18n.t("discourse_size.shop.reward_claimed", {
+            amount: result.amount,
+          })
+        );
+      }
+    } catch (e) {
+      alert(e.jqXHR?.responseJSON?.message || "Error claiming reward");
+    }
+  }
+
+  @action
   showInventory() {
     this.modal.show(DiscourseSizeInventory, {
       model: {
@@ -95,5 +132,29 @@ export default class SizeShopController extends Controller {
         user: this.currentUser,
       },
     });
+  }
+
+  @action
+  async reorderItems(evt) {
+    const { oldIndex, newIndex } = evt;
+    if (oldIndex === newIndex) {
+      return;
+    }
+
+    const newItems = [...this.items];
+    const [movedItem] = newItems.splice(oldIndex, 1);
+    newItems.splice(newIndex, 0, movedItem);
+
+    this.items = newItems;
+    const ids = newItems.map((i) => i.id);
+
+    try {
+      await ajax("/size/admin/shop_items/reorder", {
+        type: "POST",
+        data: { ids },
+      });
+    } catch (e) {
+      // Failed to save order
+    }
   }
 }
