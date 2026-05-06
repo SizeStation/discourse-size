@@ -3,14 +3,19 @@
 module DiscourseSize
   class SizeCalculator
     def self.calculate_offset(character, time = Time.now)
-      # Find all growth/shrink actions
-      actions = character.discourse_size_actions.where(action_type: ["grow", "shrink", "set_size"])
+      # Find all growth/shrink actions with valid times
+      actions = character.discourse_size_actions
+                 .where(action_type: ["grow", "shrink", "set_size"])
+                 .where.not(start_time: nil)
+                 .where.not(end_time: nil)
                  .order(start_time: :asc)
       
       return character.current_offset if actions.empty?
 
       # Find the active action at this specific time
-      active_action = actions.find { |a| a.start_time <= time && a.end_time > time }
+      active_action = actions.find do |a|
+        a.start_time && a.end_time && a.start_time <= time && a.end_time > time
+      end
       
       if active_action
         total_duration = active_action.end_time - active_action.start_time
