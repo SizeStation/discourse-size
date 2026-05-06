@@ -203,3 +203,44 @@ class DiscourseSizeCharacter < ActiveRecord::Base
       .update_all(is_main: false)
   end
 end
+
+# == Schema Information
+#
+# Table name: discourse_size_characters
+#
+#  id                   :bigint           not null, primary key
+#  age                  :string
+#  base_size            :float            not null
+#  blocked_item_keys    :jsonb            not null
+#  blocked_user_ids     :jsonb            not null
+#  character_type       :string           default("game"), not null
+#  current_offset       :float            default(0.0), not null
+#  description          :text
+#  gender               :string
+#  growth_rate_bought   :float            default(0.0), not null
+#  growth_rate_override :float
+#  info_post            :string
+#  is_main              :boolean          default(FALSE), not null
+#  measurement_system   :string           default("imperial"), not null
+#  name                 :string           not null
+#  offset_updated_at    :datetime         not null
+#  picture              :string
+#  position             :integer          default(0), not null
+#  pronouns             :string
+#  show_comparison      :boolean          default(TRUE), not null
+#  species              :string
+#  start_offset         :float            default(0.0), not null
+#  target_offset        :float            default(0.0), not null
+#  created_at           :datetime         not null
+#  updated_at           :datetime         not null
+#  folder_id            :integer
+#  user_id              :integer          not null
+#
+# Indexes
+#
+#  index_discourse_size_characters_on_blocked_item_keys    (blocked_item_keys) USING gin
+#  index_discourse_size_characters_on_blocked_user_ids     (blocked_user_ids) USING gin
+#  index_discourse_size_characters_on_folder_id            (folder_id)
+#  index_discourse_size_characters_on_user_id              (user_id)
+#  index_discourse_size_characters_on_user_id_and_is_main  (user_id,is_main) UNIQUE WHERE (is_main = true)
+#

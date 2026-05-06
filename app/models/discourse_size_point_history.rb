@@ -18,3 +18,20 @@ class DiscourseSizePointHistory < ActiveRecord::Base
   # - post_reward
   # - read_reward
 end
+
+# == Schema Information
+#
+# Table name: discourse_size_point_history
+#
+#  id          :bigint           not null, primary key
+#  amount      :float            not null
+#  description :text
+#  source_type :string           not null
+#  created_at  :datetime         not null
+#  updated_at  :datetime         not null
+#  user_id     :integer          not null
+#
+# Indexes
+#
+#  index_discourse_size_point_history_on_user_id  (user_id)
+#
