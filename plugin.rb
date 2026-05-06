@@ -197,4 +197,12 @@ after_initialize do
     post "size/shop/claim_reward" => "discourse_size/shop#claim_reward"
     post "size/shop/dismiss_reward_notice" => "discourse_size/shop#dismiss_reward_notice"
   end
+
+  if Rails.env.test?
+    begin
+      FileUtils.mkdir_p(Rails.root.join("public/uploads"))
+    rescue
+      # Ignore errors if we can't create the directory
+    end
+  end
 end

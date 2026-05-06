@@ -35,7 +35,7 @@ en:
       description: "Description"
       delete_action: "Delete activity entry"
       delete_action_confirm: "Are you sure you want to delete this activity entry?"
-      delete_action_with_return_confirm: "Are you sure you want to delete this activity entry? The used item/points will be returned to the user."
+      delete_action_with_return_confirm: "Are you sure you want to delete this activity entry? The used item will be returned to the user."
       create_folder: "Create Folder"
       delete_folder: "Delete Folder"
       create: "Create"
