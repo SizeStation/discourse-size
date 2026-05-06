@@ -93,9 +93,11 @@ end
 #  updated_at       :datetime         not null
 #  character_id     :integer          not null
 #  notification_id  :integer
+#  parent_action_id :bigint
 #  user_id          :integer          not null
 #
 # Indexes
 #
-#  index_discourse_size_actions_on_character_id  (character_id)
+#  index_discourse_size_actions_on_character_id      (character_id)
+#  index_discourse_size_actions_on_parent_action_id  (parent_action_id)
 #

@@ -88,27 +88,6 @@ after_initialize do
     end
   end
 
-  # Points for when a user is created via an invite link (fallback)
-  on(:user_created) do |user|
-    if SiteSetting.discourse_size_enabled && user.invited_by_id
-      inviter = User.find_by(id: user.invited_by_id)
-      if inviter
-        DiscourseSize::PointsManager.add_points(
-          user,
-          SiteSetting.discourse_size_points_per_invited,
-          source_type: "invite_reward",
-          description: "Joined via invite from #{inviter.username}"
-        )
-        DiscourseSize::PointsManager.add_points(
-          inviter,
-          SiteSetting.discourse_size_points_per_invite,
-          source_type: "invite_reward",
-          description: "Invited #{user.username}"
-        )
-      end
-    end
-  end
-
   # Points for posting a reply / new thread
   on(:post_created) do |post, opts, user|
     if SiteSetting.discourse_size_enabled && user

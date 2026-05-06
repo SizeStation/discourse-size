@@ -55,23 +55,31 @@ end
 #
 # Table name: discourse_size_shop_items
 #
-#  id               :bigint           not null, primary key
-#  amount           :float            not null
-#  description      :text
-#  duration_minutes :integer          default(60), not null
-#  effect           :string           not null
-#  enabled          :boolean          default(TRUE), not null
-#  key              :string           not null
-#  name             :string           not null
-#  picture          :string
-#  price            :integer          default(0), not null
-#  speed            :float            default(1.0), not null
-#  stock            :integer          default(-1), not null
-#  uses             :integer          default(1), not null
-#  created_at       :datetime         not null
-#  updated_at       :datetime         not null
+#  id                     :bigint           not null, primary key
+#  amount                 :float
+#  can_only_use_on_others :boolean          default(FALSE), not null
+#  color                  :string
+#  description            :text
+#  duration_minutes       :integer          default(60), not null
+#  effect                 :string
+#  enabled                :boolean          default(TRUE), not null
+#  item_type              :string           default("item"), not null
+#  key                    :string           not null
+#  name                   :string           not null
+#  picture                :string
+#  position               :integer          default(0), not null
+#  price                  :integer          default(0), not null
+#  purchase_count         :integer          default(0), not null
+#  self_amount            :float
+#  self_effect            :string
+#  speed                  :float            default(1.0), not null
+#  stock                  :integer          default(-1), not null
+#  uses                   :integer          default(1), not null
+#  created_at             :datetime         not null
+#  updated_at             :datetime         not null
 #
 # Indexes
 #
-#  index_discourse_size_shop_items_on_key  (key) UNIQUE
+#  index_discourse_size_shop_items_on_key       (key) UNIQUE
+#  index_discourse_size_shop_items_on_position  (position)
 #

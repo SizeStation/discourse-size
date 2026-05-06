@@ -273,7 +273,6 @@ end
 #  growth_rate_override :float
 #  info_post            :string
 #  is_main              :boolean          default(FALSE), not null
-#  measurement_system   :string           default("imperial"), not null
 #  name                 :string           not null
 #  offset_updated_at    :datetime         not null
 #  picture              :string
