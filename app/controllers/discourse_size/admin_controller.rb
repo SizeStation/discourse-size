@@ -8,16 +8,31 @@ module DiscourseSize
 
     def update_character
       character = DiscourseSizeCharacter.find(params[:id])
+      character.sync_offset!
 
-      character.base_size = params[:base_size] if params[:base_size]
+      if params[:base_size]
+        character.base_size = params[:base_size].to_f
+      end
 
       if params[:current_size]
         new_size = params[:current_size].to_f
         new_offset = new_size - character.base_size
+        delta = new_offset - character.current_offset
+
         character.current_offset = new_offset
-        character.target_offset = new_offset
-        character.start_offset = new_offset
+        character.target_offset += delta
+        character.start_offset += delta
         character.offset_updated_at = Time.now
+
+        # Shift all grow/shrink actions to reflect the jump
+        character.discourse_size_actions.where(action_type: ["grow", "shrink"]).each do |action|
+          if action.start_offset && action.end_offset
+            action.update_columns(
+              start_offset: action.start_offset + delta,
+              end_offset: action.end_offset + delta
+            )
+          end
+        end
       end
 
       character.save!
