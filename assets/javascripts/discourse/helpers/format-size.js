@@ -7,7 +7,8 @@ export default class FormatSize extends Helper {
 
   compute([size, system]) {
     const defaultSystem =
-      this.currentUser?.discourse_size_measurement_system || "imperial";
+      this.currentUser?.discourse_size_settings?.measurement_system ||
+      "imperial";
     return formatSize(size, system || defaultSystem);
   }
 }

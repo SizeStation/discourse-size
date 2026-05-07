@@ -15,7 +15,6 @@ export default class DiscourseSizeEditCharacter extends Component {
   @tracked species = "";
   @tracked description = "";
   @tracked baseSize = 170.0;
-  @tracked measurementSystem = "imperial";
   @tracked showComparison = true;
   @tracked isSaving = false;
   @tracked infoPostId = null;
@@ -45,7 +44,6 @@ export default class DiscourseSizeEditCharacter extends Component {
     this.species = char.species || "";
     this.description = char.description || "";
     this.baseSize = char.base_size || 170.0;
-    this.measurementSystem = char.measurement_system || "imperial";
     this.isMain = char.is_main || false;
     this.characterType = char.character_type || "game";
     this.showComparison = char.show_comparison !== false;
@@ -81,7 +79,6 @@ export default class DiscourseSizeEditCharacter extends Component {
       this.species !== (char.species || "") ||
       this.species !== (char.species || "") ||
       this.description !== (char.description || "") ||
-      this.measurementSystem !== (char.measurement_system || "imperial") ||
       JSON.stringify(this.blockedItemKeys) !==
         JSON.stringify(char.blocked_item_keys || []) ||
       JSON.stringify(this.blockedUserIds) !==
@@ -258,7 +255,7 @@ export default class DiscourseSizeEditCharacter extends Component {
       picture: this.picture,
       info_post: this.infoPost,
       base_size: valCm,
-      measurement_system: this.measurementSystem,
+      base_size: valCm,
       blocked_item_keys: this.blockedItemKeys,
       blocked_user_ids: this.blockedUserIds,
       character_type: this.characterType,

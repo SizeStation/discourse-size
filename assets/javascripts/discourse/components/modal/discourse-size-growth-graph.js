@@ -20,6 +20,14 @@ export default class DiscourseSizeGrowthGraph extends Component {
     this._character = character;
   }
 
+  get preferredSystem() {
+    return (
+      this.currentUser?.discourse_size_settings?.measurement_system ||
+      this.character?.measurement_system ||
+      "imperial"
+    );
+  }
+
   get actions() {
     return this.character?.actions || [];
   }
@@ -146,7 +154,7 @@ export default class DiscourseSizeGrowthGraph extends Component {
         tooltipNameY: y - 45,
         tooltipSizeX: x + 10,
         tooltipSizeY: y - 25,
-        formattedSize: formatSize(h.size, this.character?.measurement_system),
+        formattedSize: formatSize(h.size, this.preferredSystem),
       };
     });
 
@@ -177,14 +185,14 @@ export default class DiscourseSizeGrowthGraph extends Component {
   get formattedMinSize() {
     return formatSize(
       this.graphData?.minSize || 0,
-      this.character?.measurement_system
+      this.preferredSystem
     );
   }
 
   get formattedMaxSize() {
     return formatSize(
       this.graphData?.maxSize || 0,
-      this.character?.measurement_system
+      this.preferredSystem
     );
   }
 
@@ -228,7 +236,7 @@ export default class DiscourseSizeGrowthGraph extends Component {
             .includes(Number(entry.user.id)),
         formattedSize: formatSize(
           entry.totalImpactCm,
-          this.character?.measurement_system
+          this.preferredSystem
         ),
       }));
   }

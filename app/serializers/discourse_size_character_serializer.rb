@@ -83,6 +83,7 @@ class DiscourseSizeCharacterSerializer < ApplicationSerializer
   end
 
   def measurement_system
-    DiscourseSizeUserSetting.for_user(object.user).measurement_system
+    viewing_user = scope.user || object.user
+    DiscourseSizeUserSetting.for_user(viewing_user).measurement_system
   end
 end

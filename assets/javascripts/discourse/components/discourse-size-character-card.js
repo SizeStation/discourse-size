@@ -159,10 +159,16 @@ export default class DiscourseSizeCharacterCard extends Component {
     return calculateSize(this.args?.character, this._currentTime);
   }
 
+  get preferredSystem() {
+    return (
+      this.currentUser?.discourse_size_settings?.measurement_system ||
+      this.args?.character?.measurement_system ||
+      "imperial"
+    );
+  }
+
   get formattedSize() {
-    const system =
-      this.currentUser?.discourse_size_measurement_system || "imperial";
-    return formatSize(this.calculatedSizeCm, system);
+    return formatSize(this.calculatedSizeCm, this.preferredSystem);
   }
 
   get targetSizeCm() {
@@ -180,14 +186,10 @@ export default class DiscourseSizeCharacterCard extends Component {
   }
 
   get formattedTargetSize() {
-    const system =
-      this.currentUser?.discourse_size_measurement_system || "imperial";
-    return formatSize(this.targetSizeCm, system);
+    return formatSize(this.targetSizeCm, this.preferredSystem);
   }
 
   get formattedStartSize() {
-    const system =
-      this.currentUser?.discourse_size_measurement_system || "imperial";
     const active = this.activeAction;
     const startOffset = active
       ? parseFloat(active.start_offset)
@@ -195,7 +197,7 @@ export default class DiscourseSizeCharacterCard extends Component {
 
     return formatSize(
       parseFloat(this.args?.character?.base_size) + startOffset,
-      system
+      this.preferredSystem
     );
   }
 
