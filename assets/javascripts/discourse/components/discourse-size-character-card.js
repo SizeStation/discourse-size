@@ -22,15 +22,109 @@ export default class DiscourseSizeCharacterCard extends Component {
   @service siteSettings;
 
   @tracked _currentTime = new Date();
+  @tracked floatingWords = [];
+  @tracked thrownItem = null;
+  @tracked _lastActionId = null;
   _timer = null;
+  _wordTimer = 0;
+
+  GROW_WORDS = ["stretches", "grows", "swells", "bigger", "expands"];
+  SHRINK_WORDS = ["dwindles", "shrinks", "smaller"];
 
   constructor() {
     super(...arguments);
+
+    // Initialize actions
+    const actions = this.args?.character?.actions || [];
+    this._lastActionId = actions[0]?.id;
+
     this._timer = setInterval(() => {
+      const now = new Date();
       if (this.isAnimating) {
-        this._currentTime = new Date();
+        this._currentTime = now;
+        this._tickWords(now);
       }
-    }, 33); // ~30fps for smooth animation
+      this._checkForNewActions();
+    }, 100);
+  }
+
+  _checkForNewActions() {
+    const actions = this.args?.character?.actions || [];
+    const latestAction = actions[0];
+    const latestId = latestAction?.id;
+
+    if (latestId && latestId !== this._lastActionId) {
+      // New action detected!
+      if (
+        latestAction.item_picture &&
+        (latestAction.action_type === "grow" ||
+          latestAction.action_type === "shrink")
+      ) {
+        const createdAt = new Date(latestAction.created_at);
+        if (Date.now() - createdAt.getTime() < 15000) {
+          this._triggerThrowAnimation(latestAction);
+        }
+      }
+      this._lastActionId = latestId;
+    }
+  }
+
+  _triggerThrowAnimation(action) {
+    this.thrownItem = {
+      picture: action.item_picture,
+      startX:
+        (Math.random() > 0.5 ? 1 : -1) * (300 + Math.random() * 100) + "px",
+      startY:
+        (Math.random() > 0.5 ? 1 : -1) * (300 + Math.random() * 100) + "px",
+    };
+
+    setTimeout(() => {
+      this.thrownItem = null;
+    }, 1200);
+  }
+
+  _tickWords(now) {
+    if (now - this._wordTimer > 600 + Math.random() * 900) {
+      this._wordTimer = now;
+      this._spawnWord();
+    }
+  }
+
+  _spawnWord() {
+    if (!this.activeActionType) return;
+
+    const isGrow = this.activeActionType === "grow";
+    const wordList = isGrow ? this.GROW_WORDS : this.SHRINK_WORDS;
+    const rawText = wordList[Math.floor(Math.random() * wordList.length)];
+    const text = `*${rawText.toLowerCase()}*`;
+
+    const newWord = {
+      id: Math.random().toString(36).substr(2, 9),
+      text,
+      type: this.activeActionType,
+      style: this._getRandomWordStyle(),
+    };
+
+    this.floatingWords = [...this.floatingWords, newWord];
+
+    // Remove after animation (matches CSS duration)
+    setTimeout(() => {
+      this.floatingWords = this.floatingWords.filter(
+        (w) => w.id !== newWord.id
+      );
+    }, 2000);
+  }
+
+  _getRandomWordStyle() {
+    // Keep it on the picture area
+    const top = 15 + Math.random() * 70;
+    const left = 15 + Math.random() * 70;
+    const rotate = (Math.random() - 0.5) * 30;
+
+    const tx = (Math.random() - 0.5) * 60 + "px";
+    const ty = (Math.random() - 0.5) * 60 + "px";
+
+    return `top: ${top}%; left: ${left}%; --rot: ${rotate}deg; --tx: ${tx}; --ty: ${ty};`;
   }
 
   willDestroy() {
@@ -95,8 +189,10 @@ export default class DiscourseSizeCharacterCard extends Component {
     const system =
       this.currentUser?.discourse_size_measurement_system || "imperial";
     const active = this.activeAction;
-    const startOffset = active ? parseFloat(active.start_offset) : parseFloat(this.args?.character?.start_offset);
-    
+    const startOffset = active
+      ? parseFloat(active.start_offset)
+      : parseFloat(this.args?.character?.start_offset);
+
     return formatSize(
       parseFloat(this.args?.character?.base_size) + startOffset,
       system
@@ -174,7 +270,7 @@ export default class DiscourseSizeCharacterCard extends Component {
         const baseSize = parseFloat(c.base_size) || 0;
         const endOffset = parseFloat(a.end_offset) || 0;
         const targetSize = baseSize + endOffset;
-        
+
         return `${a.item_name || I18n.t("discourse_size.unknown")} (${formatSize(
           targetSize,
           system
@@ -218,14 +314,15 @@ export default class DiscourseSizeCharacterCard extends Component {
 
   @action
   async adminEdit() {
-    const AdminEditModal = (await import("./modal/discourse-size-admin-edit")).default;
+    const AdminEditModal = (await import("./modal/discourse-size-admin-edit"))
+      .default;
     this.modal.show(AdminEditModal, {
       model: {
         character: this.args?.character,
         onSave: (updatedChar) => {
           this.args?.onAction?.(updatedChar);
-        }
-      }
+        },
+      },
     });
   }
 }

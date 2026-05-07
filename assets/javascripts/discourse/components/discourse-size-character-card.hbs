@@ -2,11 +2,25 @@
   <div class="character-header-layout">
     {{#if @character.picture}}
       <div class="character-picture-wrapper">
+        <div class="ping-effect {{if (eq this.activeActionType 'grow') 'growing'}} {{if (eq this.activeActionType 'shrink') 'shrinking'}}" style={{html-safe (concat "background-image: url(" @character.picture ");")}}></div>
+        
         <img
           src={{@character.picture}}
           alt={{@character.name}}
           class="character-picture"
         />
+
+        {{#each this.floatingWords as |word|}}
+          <span class="floating-word {{word.type}}" style={{html-safe word.style}}>
+            {{word.text}}
+          </span>
+        {{/each}}
+
+        {{#if this.thrownItem}}
+          <div class="thrown-item-effect" style={{html-safe (concat "--startX: " this.thrownItem.startX "; --startY: " this.thrownItem.startY ";")}}>
+            <img src={{this.thrownItem.picture}} alt="" />
+          </div>
+        {{/if}}
       </div>
     {{/if}}
 

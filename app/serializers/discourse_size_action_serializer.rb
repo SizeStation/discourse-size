@@ -126,4 +126,9 @@ class DiscourseSizeActionSerializer < ApplicationSerializer
     return false if object.character.blocked_user_ids.blank?
     object.character.blocked_user_ids.map(&:to_i).include?(object.user_id.to_i)
   end
+
+  def item_picture
+    return nil unless object.item_key
+    DiscourseSizeShopItem.find_by(key: object.item_key)&.picture
+  end
 end

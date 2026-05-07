@@ -116,6 +116,105 @@
   }
 }
 
+// ─── Character Growth Animations ──────────────────────────────────────────────
+@keyframes pingGrow {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+
+@keyframes pingShrink {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(0.6); opacity: 0; }
+}
+
+@keyframes floatWordGrow {
+  0% { transform: translate(-50%, -50%) scale(0.8) rotate(var(--rot)); opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { transform: translate(var(--tx), var(--ty)) scale(1.2) rotate(var(--rot)); opacity: 0; }
+}
+
+@keyframes floatWordShrink {
+  0% { transform: translate(-50%, -50%) scale(1.2) rotate(var(--rot)); opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { transform: translate(var(--tx), var(--ty)) scale(0.8) rotate(var(--rot)); opacity: 0; }
+}
+
+@keyframes throwItem {
+  0% { transform: translate(var(--startX), var(--startY)) scale(0.1) rotate(0deg); opacity: 0; }
+  30% { opacity: 1; transform: translate(calc(var(--startX) * 0.5), calc(var(--startY) * 0.5)) scale(1) rotate(180deg); }
+  100% { transform: translate(0, 0) scale(2) rotate(360deg); opacity: 0; }
+}
+
+.character-picture-wrapper {
+  position: relative;
+  
+  .ping-effect {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 4;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    opacity: 0;
+    
+    &.growing {
+      animation: pingGrow 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+    }
+    
+    &.shrinking {
+      animation: pingShrink 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+    }
+  }
+}
+
+.floating-word {
+  position: absolute;
+  pointer-events: none;
+  font-weight: normal;
+  text-transform: lowercase;
+  z-index: 100;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
+  font-size: 1.1rem;
+  font-style: italic;
+  color: var(--primary); /* Use theme primary color (usually dark/light grey/black) */
+
+  &.grow {
+    animation: floatWordGrow 2s forwards ease-out;
+  }
+
+  &.shrink {
+    animation: floatWordShrink 2s forwards ease-in;
+  }
+}
+
+.thrown-item-effect {
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  top: 50%;
+  left: 50%;
+  margin-top: -40px;
+  margin-left: -40px;
+  z-index: 110;
+  pointer-events: none;
+  animation: throwItem 0.8s forwards ease-out;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.9));
+  }
+}
+
 .user-characters-header {
   display: flex;
   justify-content: space-between;
@@ -320,14 +419,16 @@
     width: 200px;
     height: 200px;
     border-radius: 12px;
-    overflow: hidden;
+    overflow: visible;
     box-shadow: 0 4px 10px rgb(0, 0, 0, 0.1);
+    position: relative;
 
     .character-picture {
       width: 200px;
       height: 200px;
       object-fit: cover;
       transition: none;
+      border-radius: inherit;
     }
   }
 

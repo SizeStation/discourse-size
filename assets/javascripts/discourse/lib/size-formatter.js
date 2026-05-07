@@ -595,7 +595,11 @@ export function getGrowthComparison(character, currentSize) {
   if (!character || !currentSize) return null;
 
   const c = character;
-  const isMoving = c.target_offset !== c.current_offset;
+  const isMoving =
+    Math.abs(c.target_offset - c.current_offset) > 0.0001 ||
+    (Array.isArray(c.actions) &&
+      c.actions.some((a) => new Date(a.end_time) > Date.now()));
+
   if (!isMoving) return null;
 
   const isGrowing = c.target_offset > c.current_offset;
@@ -622,18 +626,46 @@ export function getGrowthComparison(character, currentSize) {
   }
 
   // How long have they been moving?
-  // Use the most recent growth/shrink action's created_at — that's when this movement started.
-  // 'boost_speed' actions shouldn't reset the timer.
+  // We want the start of the current UNINTERRUPTED chain of growth/shrink actions.
   let durationText = "";
-  const movementAction =
-    Array.isArray(c.actions) &&
-    c.actions.find((a) => ["grow", "shrink"].includes(a.action_type));
+  if (Array.isArray(c.actions) && c.actions.length > 0) {
+    // Actions are sorted by created_at DESC (newest first)
+    // Find the newest pending or active action to start our search
+    const allActions = [...c.actions].reverse(); // Oldest first
+    const activeOrPendingIndex = allActions.findIndex(
+      (a) =>
+        ["grow", "shrink"].includes(a.action_type) &&
+        new Date(a.end_time) > Date.now()
+    );
 
-  if (movementAction && movementAction.created_at) {
-    const elapsed =
-      (Date.now() - new Date(movementAction.created_at).getTime()) / 1000;
-    if (elapsed > 5) {
-      durationText = ` for ${formatDuration(elapsed)}`;
+    if (activeOrPendingIndex !== -1) {
+      let sessionStartAction = allActions[activeOrPendingIndex];
+
+      // Look backwards for contiguous actions to find the real start of this session
+      for (let i = activeOrPendingIndex - 1; i >= 0; i--) {
+        const current = allActions[i + 1];
+        const prev = allActions[i];
+
+        // Check if they are contiguous (allow small gap of 10 seconds)
+        const gap = Math.abs(
+          new Date(current.start_time) - new Date(prev.end_time)
+        );
+        if (
+          gap < 10000 &&
+          ["grow", "shrink"].includes(prev.action_type) &&
+          prev.created_at
+        ) {
+          sessionStartAction = prev;
+        } else {
+          break;
+        }
+      }
+
+      const elapsed =
+        (Date.now() - new Date(sessionStartAction.created_at).getTime()) / 1000;
+      if (elapsed > 5) {
+        durationText = ` for ${formatDuration(elapsed)}`;
+      }
     }
   }
 
