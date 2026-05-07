@@ -118,38 +118,80 @@
 
 // ─── Character Growth Animations ──────────────────────────────────────────────
 @keyframes pingGrow {
-  0% { transform: scale(1); opacity: 0.8; }
-  100% { transform: scale(1.4); opacity: 0; }
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
 }
 
 @keyframes pingShrink {
-  0% { transform: scale(1); opacity: 0.8; }
-  100% { transform: scale(0.6); opacity: 0; }
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
 }
 
 @keyframes floatWordGrow {
-  0% { transform: translate(-50%, -50%) scale(0.8) rotate(var(--rot)); opacity: 0; }
-  20% { opacity: 1; }
-  80% { opacity: 1; }
-  100% { transform: translate(var(--tx), var(--ty)) scale(1.2) rotate(var(--rot)); opacity: 0; }
+  0% {
+    transform: translate(-50%, -50%) scale(0.8) rotate(var(--rot));
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--tx), var(--ty)) scale(1.2) rotate(var(--rot));
+    opacity: 0;
+  }
 }
 
 @keyframes floatWordShrink {
-  0% { transform: translate(-50%, -50%) scale(1.2) rotate(var(--rot)); opacity: 0; }
-  20% { opacity: 1; }
-  80% { opacity: 1; }
-  100% { transform: translate(var(--tx), var(--ty)) scale(0.8) rotate(var(--rot)); opacity: 0; }
+  0% {
+    transform: translate(-50%, -50%) scale(1.2) rotate(var(--rot));
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--tx), var(--ty)) scale(0.8) rotate(var(--rot));
+    opacity: 0;
+  }
 }
 
 @keyframes throwItem {
-  0% { transform: translate(var(--startX), var(--startY)) scale(0.1) rotate(0deg); opacity: 0; }
-  30% { opacity: 1; transform: translate(calc(var(--startX) * 0.5), calc(var(--startY) * 0.5)) scale(1) rotate(180deg); }
-  100% { transform: translate(0, 0) scale(2) rotate(360deg); opacity: 0; }
+  0% {
+    transform: translate(var(--startX), var(--startY)) scale(0.1) rotate(0deg);
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+    transform: translate(calc(var(--startX) * 0.5), calc(var(--startY) * 0.5))
+      scale(1) rotate(180deg);
+  }
+  100% {
+    transform: translate(0, 0) scale(2) rotate(360deg);
+    opacity: 0;
+  }
 }
 
 .character-picture-wrapper {
   position: relative;
-  
+
   .ping-effect {
     position: absolute;
     top: 0;
@@ -163,11 +205,11 @@
     background-position: center;
     background-repeat: no-repeat;
     opacity: 0;
-    
+
     &.growing {
       animation: pingGrow 2s cubic-bezier(0, 0, 0.2, 1) infinite;
     }
-    
+
     &.shrinking {
       animation: pingShrink 2s cubic-bezier(0, 0, 0.2, 1) infinite;
     }
@@ -184,7 +226,9 @@
   white-space: nowrap;
   font-size: 1.1rem;
   font-style: italic;
-  color: var(--primary); /* Use theme primary color (usually dark/light grey/black) */
+  color: var(--primary);
+  -webkit-text-stroke: 4px #fff; /* White outline for readability */
+  paint-order: stroke fill;
 
   &.grow {
     animation: floatWordGrow 2s forwards ease-out;
