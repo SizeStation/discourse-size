@@ -1,0 +1,13 @@
+<div class="user-character-show">
+  <div class="back-link">
+    <LinkTo @route="user.characters.index">
+      {{d-icon "arrow-left"}} {{i18n "discourse_size.back_to_characters"}}
+    </LinkTo>
+  </div>
+  
+  <DiscourseSizeCharacterCard
+    @character={{this.model.character}}
+    @isCurrentUser={{this.isCurrentUser}}
+    @onAction={{this.refreshModel}}
+  />
+</div>

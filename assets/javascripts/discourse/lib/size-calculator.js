@@ -75,14 +75,19 @@ export function isAnimating(character, time = new Date()) {
 export function getTimeRemaining(character, time = new Date()) {
   if (!character || !character.actions) return null;
   
-  const lastAction = character.actions
-    .slice()
-    .filter((a) => a.end_time)
-    .sort((a, b) => new Date(b.end_time) - new Date(a.end_time))[0];
+  const actions = character.actions
+    .filter(a => a.start_time && a.end_time)
+    .sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
 
-  if (!lastAction || new Date(lastAction.end_time) <= time) return null;
+  const activeAction = actions.find(a => {
+    const start = new Date(a.start_time);
+    const end = new Date(a.end_time);
+    return time >= start && time < end;
+  });
 
-  const seconds = Math.floor((new Date(lastAction.end_time) - time) / 1000);
+  if (!activeAction) return null;
+
+  const seconds = Math.floor((new Date(activeAction.end_time) - time) / 1000);
   if (seconds <= 0) return null;
 
   const h = Math.floor(seconds / 3600);

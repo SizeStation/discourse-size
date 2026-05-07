@@ -94,15 +94,13 @@ class DiscourseSizeCharacter < ActiveRecord::Base
   end
 
   def time_remaining_seconds
-    return 0 if (target_offset - current_offset).abs < 0.0001
-    
-    last_action = discourse_size_actions.where(action_type: ["grow", "shrink"]).order(end_time: :desc).first
-    return 0 if last_action&.end_time.nil?
-    
     now = Time.now
-    return 0 if last_action.end_time <= now
+    active_action = discourse_size_actions.where(action_type: ["grow", "shrink"])
+                                         .where("start_time <= ? AND end_time > ?", now, now)
+                                         .first
+    return 0 unless active_action
     
-    (last_action.end_time - now).to_i
+    (active_action.end_time - now).to_i
   end
 
   def sync_offset!
@@ -142,60 +140,23 @@ class DiscourseSizeCharacter < ActiveRecord::Base
   end
 
   def add_queued_action(action_type:, size_change:, duration_minutes:, user_id:, item_key: nil, parent_action_id: nil)
-    # 1. Sync current state to have a clean starting point
     sync_offset!
     
-    remaining_change = size_change
+    DiscourseSizeAction.create!(
+      character_id: id,
+      user_id: user_id,
+      action_type: action_type,
+      size_change: size_change,
+      points_spent: 0,
+      item_key: item_key,
+      start_offset: target_offset,
+      end_offset: target_offset + size_change,
+      duration_minutes: duration_minutes.to_f,
+      start_time: Time.now,
+      end_time: Time.now + 1.second, # Placeholder
+      parent_action_id: parent_action_id
+    )
     
-    # 2. Find pending opposite actions to cancel out (including the currently active one)
-    opposite_type = (action_type == "grow" ? "shrink" : "grow")
-    pending_opposite = discourse_size_actions.where(action_type: opposite_type)
-                                             .where("end_time > ?", Time.now)
-                                             .order(start_time: :asc)
-    
-    pending_opposite.each do |opp|
-      break if remaining_change.abs < 1e-6
-      
-      opp_change = opp.size_change
-      # How much can we cancel?
-      cancel_amount = [remaining_change.abs, opp_change.abs].min
-      
-      # Direction matters for sign
-      cancel_delta = (remaining_change > 0 ? cancel_amount : -cancel_amount)
-      
-      remaining_change -= cancel_delta
-      opp.size_change -= (-cancel_delta) # subtract in opposite direction
-      
-      if opp.size_change.abs < 1e-6
-        opp.destroy
-      else
-        # Adjust duration proportionally to the remaining size change
-        ratio = opp.size_change.abs / opp_change.abs
-        opp.duration_minutes = (opp.duration_minutes * ratio)
-        opp.save!
-      end
-    end
-    
-    # 3. If we still have remaining_change, add it as a new action at the end of the queue
-    if remaining_change.abs > 1e-6
-      # We create it temporarily; recalculate_pending_actions! will fix its times/offsets
-      DiscourseSizeAction.create!(
-        character_id: id,
-        user_id: user_id,
-        action_type: (remaining_change > 0 ? "grow" : "shrink"),
-        size_change: remaining_change,
-        points_spent: 0,
-        item_key: item_key,
-        start_offset: target_offset,
-        end_offset: target_offset + remaining_change,
-        duration_minutes: (duration_minutes * (remaining_change.abs / size_change.abs)).to_f,
-        start_time: Time.now,
-        end_time: Time.now + 1.second, # Placeholder
-        parent_action_id: parent_action_id
-      )
-    end
-    
-    # 4. Final re-stack to ensure all times and offsets are perfectly continuous
     recalculate_pending_actions!
   end
 
@@ -209,17 +170,27 @@ class DiscourseSizeCharacter < ActiveRecord::Base
     # All actions that haven't finished yet
     pending = discourse_size_actions.where(action_type: ["grow", "shrink", "set_size"])
                                      .where("end_time > ?", current_chain_time)
-                                     .order(start_time: :asc)
+                                     .order(created_at: :asc)
     
+    first_action = true
     pending.each do |action|
-      action.start_offset = current_chain_offset
-      action.end_offset = action.start_offset + action.size_change
+      # Only the FIRST action in the queue can be considered "in-progress"
+      # This prevents new actions (which might have a placeholder start_time of now)
+      # from overlapping with the truly active one.
+      if first_action && action.start_time && action.start_time <= Time.now
+        # We preserve the start point of the active action to avoid jumping
+        action.end_offset = action.start_offset + action.size_change
+        action.end_time = action.start_time + action.duration_minutes.minutes
+        first_action = false
+      else
+        # Future actions are stacked sequentially
+        action.start_offset = current_chain_offset
+        action.end_offset = action.start_offset + action.size_change
+        action.start_time = current_chain_time
+        action.end_time = action.start_time + action.duration_minutes.minutes
+      end
       
-      # Make them sequential starting from now
-      action.start_time = current_chain_time
-      action.end_time = action.start_time + action.duration_minutes.minutes
-      
-      # If it's a set_size or duration is 0, it happens instantly
+      # Instant actions
       if action.duration_minutes <= 0
         action.end_time = action.start_time
       end

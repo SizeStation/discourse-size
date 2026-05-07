@@ -222,29 +222,19 @@ module DiscourseSize
       end
 
       case action.action_type
-      when "grow", "shrink", "set_size"
-        # We delete the action and then let the character recalculate its target
-        # Based on all REMAINING grow/shrink/set_size actions.
-        character.target_offset -= action.size_change
       when "boost_speed"
         character.growth_rate_bought -= action.size_change
       end
 
       # Handle linked child action state sync
       child = action.child_action
+      child_char = child&.character
       
       action.destroy # This will also destroy the child action via dependent: :destroy
       
-      character.sync_offset!
-      character.save!
-
-      # If there was a child action, we must also sync the child character's state
-      if child
-        child_char = child.character
-        child_char.target_offset -= child.size_change
-        child_char.sync_offset!
-        child_char.save!
-      end
+      # Refresh character states
+      character.reload.recalculate_pending_actions!
+      child_char.reload.recalculate_pending_actions! if child_char
 
       render json: {
                character: serialize_data(character.reload, DiscourseSizeCharacterSerializer),

@@ -53,7 +53,7 @@ module ::DiscourseSize
       end
 
       # Apply effect
-      # Re-calculated stacking logic with cancellation
+      # Sequential stacking logic
       start_offset = character.target_offset
       current_target_total = character.base_size + start_offset
       new_target_total = current_target_total * (1.0 + (item.effect == "shrink" ? -item.amount.to_f : item.amount.to_f) / 100.0)

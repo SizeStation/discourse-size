@@ -87,39 +87,61 @@
       {{#if this.isAnimating}}
         <div class="character-size-row">
           <div class="growth-stats">
-            <div
-              class="growth-status-label
-                {{if this.isGrowing 'growing' 'shrinking'}}"
-            >
-              {{#if this.isGrowing}}
-                {{d-icon "arrow-up"}}
-                Currently growing
-              {{else}}
-                {{d-icon "arrow-down"}}
-                Currently shrinking
-              {{/if}}
-
-              <div class="growth-meta">
-                <span class="time-remaining">
-                  {{d-icon "clock"}}
-                  {{this.timeRemaining}}
-                  remaining
+            {{#if this.activeAction}}
+              <div class="growth-status-label">
+                <span
+                  class="{{if
+                      (eq this.activeActionType 'grow')
+                      'growing'
+                      'shrinking'
+                    }}"
+                >
+                  {{#if (eq this.activeActionType "grow")}}
+                    {{d-icon "arrow-up"}}
+                    {{i18n
+                      "discourse_size.currently_growing_from"
+                      item=this.activeActionItemName
+                    }}
+                  {{else}}
+                    {{d-icon "arrow-down"}}
+                    {{i18n
+                      "discourse_size.currently_shrinking_from"
+                      item=this.activeActionItemName
+                    }}
+                  {{/if}}
                 </span>
-              </div>
-            </div>
 
-            <div class="progress-bar-wrapper">
-              <span class="size-bound">{{this.formattedStartSize}}</span>
-              <div class="progress-bar-mini">
-                <div
-                  class="progress-fill"
-                  style={{html-safe
-                    (concat "width: " this.progressPercent "%")
-                  }}
-                ></div>
+                {{#if this.timeRemaining}}
+                  <div class="growth-meta">
+                    <span class="time-remaining">
+                      {{d-icon "clock"}}
+                      {{this.timeRemaining}}
+                      remaining
+                    </span>
+                  </div>
+                {{/if}}
               </div>
-              <span class="size-bound">{{this.formattedTargetSize}}</span>
-            </div>
+
+              <div class="progress-bar-wrapper">
+                <span class="size-bound">{{this.formattedStartSize}}</span>
+                <div class="progress-bar-mini">
+                  <div
+                    class="progress-fill"
+                    style={{html-safe
+                      (concat "width: " this.progressPercent "%")
+                    }}
+                  ></div>
+                </div>
+                <span class="size-bound">{{this.formattedTargetSize}}</span>
+              </div>
+            {{/if}}
+
+            {{#if this.formattedQueuedActions}}
+              <div class="queued-actions">
+                {{i18n "discourse_size.queued"}}
+                {{this.formattedQueuedActions}}
+              </div>
+            {{/if}}
           </div>
         </div>
       {{/if}}
@@ -180,7 +202,10 @@
               </strong>
               {{#if action.parent_action_id}}
                 {{i18n "discourse_size.activity.used"}}
-                <LinkTo @route="size-shop" class="item-link">{{action.item_name}}</LinkTo>
+                <LinkTo
+                  @route="size-shop"
+                  class="item-link"
+                >{{action.item_name}}</LinkTo>
                 {{#if (eq action.parent_action_type "grow")}}
                   {{i18n "discourse_size.activity.to_grow"}}
                 {{else}}
@@ -207,13 +232,28 @@
                   (abs action.size_change)
                   @character.measurement_system
                 }}
-              {{else if (or (eq action.action_type "grow") (eq action.action_type "shrink"))}}
+              {{else if
+                (or
+                  (eq action.action_type "grow")
+                  (eq action.action_type "shrink")
+                )
+              }}
                 {{#if action.item_name}}
                   {{i18n "discourse_size.activity.used"}}
-                  <LinkTo @route="size-shop" class="item-link">{{action.item_name}}</LinkTo>
-                  {{i18n (concat "discourse_size.activity.to_" action.action_type)}}
+                  <LinkTo
+                    @route="size-shop"
+                    class="item-link"
+                  >{{action.item_name}}</LinkTo>
+                  {{i18n
+                    (concat "discourse_size.activity.to_" action.action_type)
+                  }}
                 {{else}}
-                  {{i18n (concat "discourse_size.activity." (if (eq action.action_type "grow") "grew" "shrunk"))}}
+                  {{i18n
+                    (concat
+                      "discourse_size.activity."
+                      (if (eq action.action_type "grow") "grew" "shrunk")
+                    )
+                  }}
                 {{/if}}
                 <LinkTo
                   @route="user.characters.index"
@@ -239,12 +279,14 @@
                 {{/if}}
               {{else if (eq action.action_type "reset")}}
                 {{i18n
-                  "discourse_size.activity.reset" character=@character.name
+                  "discourse_size.activity.reset"
+                  character=@character.name
                 }}
               {{else if (eq action.action_type "set_size")}}
                 {{i18n "discourse_size.activity.set_size_to"}}
                 {{format-size
-                  @character.current_size @character.measurement_system
+                  @character.current_size
+                  @character.measurement_system
                 }}
               {{else if (eq action.action_type "boost_speed")}}
                 {{i18n "discourse_size.activity.boost_speed"}}

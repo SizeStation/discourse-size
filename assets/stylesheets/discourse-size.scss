@@ -52,15 +52,15 @@
       margin-right: 2px;
       vertical-align: middle;
     }
-
-    &.growing {
-      color: var(--success);
-    }
-
-    &.shrinking {
-      color: var(--danger);
-    }
   }
+}
+
+.growing {
+  color: var(--success);
+}
+
+.shrinking {
+  color: var(--danger);
 }
 
 // ─── User profile page widget ──────────────────────────────────────────────────
@@ -473,17 +473,32 @@
       .growth-status-label {
         font-size: 0.9em;
         font-weight: 700;
-        color: var(--primary-high);
         display: flex;
         align-items: center;
         gap: 6px;
+        color: var(--primary-high);
+
+        label {
+          color: inherit;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          cursor: inherit;
+          margin: 0;
+        }
 
         &.growing {
-          color: var(--success);
+          color: var(--success) !important;
+          .d-icon {
+            color: var(--success);
+          }
         }
 
         &.shrinking {
-          color: var(--danger);
+          color: var(--danger) !important;
+          .d-icon {
+            color: var(--danger);
+          }
         }
 
         .d-icon {
@@ -536,6 +551,15 @@
           align-items: center;
           gap: 6px;
         }
+      }
+
+      .queued-actions {
+        font-size: 0.85em;
+        color: var(--primary-medium);
+        margin-top: 5px;
+        padding-top: 10px;
+        border-top: 1px solid var(--primary-low);
+        line-height: 1.4;
       }
     }
   }
@@ -1115,215 +1139,19 @@
   }
 }
 
-.discourse-size-character-details {
-  background: var(--secondary);
-  border-radius: 16px;
-  border: 1px solid var(--primary-low);
-  overflow: hidden;
-  box-shadow: 0 4px 20px rgb(0, 0, 0, 0.08);
+.user-character-show {
+  .back-link {
+    margin-bottom: 20px;
 
-  .details-header {
-    background: var(--primary-very-low);
-    padding: 20px;
-    border-bottom: 1px solid var(--primary-low);
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-
-    .back-link {
-      font-size: 0.9em;
-      color: var(--primary-medium);
+    a {
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 8px;
+      font-weight: 600;
+      color: var(--primary-medium);
 
       &:hover {
         color: var(--primary);
-      }
-    }
-
-    h2 {
-      margin: 0;
-      font-size: 1.8em;
-      font-weight: 800;
-    }
-  }
-
-  .details-grid {
-    display: grid;
-    grid-template-columns: 1fr 400px;
-    gap: 30px;
-    padding: 30px;
-
-    @media (width <= 800px) {
-      grid-template-columns: 1fr;
-    }
-  }
-
-  .details-main-info {
-    display: flex;
-    flex-direction: column;
-    gap: 25px;
-  }
-
-  .details-picture-section {
-    width: 100%;
-    max-width: 500px;
-    aspect-ratio: 16/9;
-    background: var(--primary-very-low);
-    border-radius: 12px;
-    overflow: hidden;
-    border: 1px solid var(--primary-low);
-
-    .details-picture {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .details-picture-placeholder {
-      height: 200px;
-      width: 200px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--primary-medium);
-      font-weight: 600;
-    }
-  }
-
-  .details-stats-section {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 20px;
-
-    .stat-item {
-      label {
-        font-size: 0.85em;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        color: var(--primary-medium);
-        display: block;
-        margin-bottom: 5px;
-      }
-
-      .value {
-        font-weight: 700;
-        font-size: 1.1em;
-
-        &.big {
-          font-size: 1.5em;
-          color: var(--tertiary);
-        }
-      }
-
-      &.animation-info {
-        background: var(--tertiary-low);
-        padding: 15px;
-        border-radius: 8px;
-        border: 1px solid var(--tertiary-medium);
-
-        .progress-info {
-          font-size: 0.8em;
-          color: var(--tertiary-hover);
-          margin-top: 5px;
-          font-style: italic;
-        }
-      }
-    }
-  }
-
-  .details-actions-section {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-
-    .action-card {
-      background: var(--primary-very-low);
-      padding: 20px;
-      border-radius: 12px;
-      border: 1px solid var(--primary-low);
-
-      h3 {
-        margin: 0 0 15px 0;
-        font-size: 1.1em;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        color: var(--primary-medium);
-      }
-    }
-
-    .owner-buttons {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-  }
-
-  .details-activity-section {
-    padding: 30px;
-    border-top: 1px solid var(--primary-low);
-    background: var(--primary-very-low);
-
-    h3 {
-      margin: 0 0 20px 0;
-    }
-
-    .activity-list {
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-    }
-
-    .folder-contents {
-      padding: 10px;
-      background: var(--secondary);
-      min-height: 20px; // Ensure there's a drop target even if empty
-
-      &.collapsed {
-        display: none;
-      }
-    }
-
-    .empty-folder-indicator {
-      padding: 30px 20px;
-      border: 2px dashed var(--primary-low);
-      border-radius: 8px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-      color: var(--primary-medium);
-      font-style: italic;
-      margin: 5px;
-      pointer-events: none;
-      background: var(--primary-very-low);
-
-      .d-icon {
-        font-size: 2em;
-        color: var(--primary-low);
-      }
-
-      span {
-        font-size: 0.95em;
-        text-align: center;
-      }
-    }
-
-    .activity-item {
-      padding: 15px;
-      background: var(--secondary);
-      border-radius: 10px;
-      border: 1px solid var(--primary-low);
-      display: flex;
-      gap: 15px;
-      align-items: baseline;
-
-      .activity-date {
-        font-size: 0.85em;
-        color: var(--primary-medium);
-        white-space: nowrap;
       }
     }
   }

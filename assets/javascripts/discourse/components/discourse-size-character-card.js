@@ -72,6 +72,13 @@ export default class DiscourseSizeCharacterCard extends Component {
   }
 
   get targetSizeCm() {
+    const active = this.activeAction;
+    if (active) {
+      return (
+        parseFloat(this.args?.character?.base_size) +
+        parseFloat(active.end_offset)
+      );
+    }
     return (
       parseFloat(this.args?.character?.base_size) +
       parseFloat(this.args?.character?.target_offset)
@@ -87,9 +94,11 @@ export default class DiscourseSizeCharacterCard extends Component {
   get formattedStartSize() {
     const system =
       this.currentUser?.discourse_size_measurement_system || "imperial";
+    const active = this.activeAction;
+    const startOffset = active ? parseFloat(active.start_offset) : parseFloat(this.args?.character?.start_offset);
+    
     return formatSize(
-      parseFloat(this.args?.character?.base_size) +
-        parseFloat(this.args?.character?.start_offset),
+      parseFloat(this.args?.character?.base_size) + startOffset,
       system
     );
   }
@@ -128,6 +137,50 @@ export default class DiscourseSizeCharacterCard extends Component {
       const end = new Date(a.end_time);
       return now >= start && now < end;
     });
+  }
+
+  get activeActionType() {
+    return this.activeAction?.action_type;
+  }
+
+  get activeActionItemName() {
+    return this.activeAction?.item_name || I18n.t("discourse_size.unknown");
+  }
+
+  get queuedActions() {
+    const c = this.args?.character;
+    if (!c || !c.actions) return [];
+    const now = this._currentTime;
+    const active = this.activeAction;
+
+    return (c.actions || [])
+      .filter((a) => {
+        if (!a.start_time || !["grow", "shrink"].includes(a.action_type))
+          return false;
+        const start = new Date(a.start_time);
+        return start > now && (!active || a.id !== active.id);
+      })
+      .sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
+  }
+
+  get formattedQueuedActions() {
+    const c = this.args?.character;
+    if (!c) return "";
+
+    const system =
+      this.currentUser?.discourse_size_measurement_system || "imperial";
+    return this.queuedActions
+      .map((a) => {
+        const baseSize = parseFloat(c.base_size) || 0;
+        const endOffset = parseFloat(a.end_offset) || 0;
+        const targetSize = baseSize + endOffset;
+        
+        return `${a.item_name || I18n.t("discourse_size.unknown")} (${formatSize(
+          targetSize,
+          system
+        )})`;
+      })
+      .join(", ");
   }
 
   get progressPercent() {
