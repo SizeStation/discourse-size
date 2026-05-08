@@ -53,6 +53,31 @@ module DiscourseSize
       render json: { character: serialize_data(character, ::DiscourseSizeCharacterSerializer) }
     end
 
+    def sync_character
+      character = DiscourseSizeCharacter.find(params[:id])
+
+      # First, rebuild the absolute chain from the activity log to fix any desyncs
+      character.rebuild_offset_chain!
+
+      # Now mark all growth/shrink actions that haven't finished as "finished" now
+      # This will effectively "teleport" the character to the final target size
+      # derived from the corrected chain.
+      character.discourse_size_actions.where(action_type: ["grow", "shrink"])
+                                     .where("end_time > ?", Time.now)
+                                     .update_all(end_time: Time.now, start_time: Time.now - 1.second)
+
+      # Update character state to match the log
+      # We fetch the target_offset which was correctly set by rebuild_offset_chain!
+      final_offset = character.target_offset
+      character.current_offset = final_offset
+      character.target_offset = final_offset
+      character.start_offset = final_offset
+      character.offset_updated_at = Time.now
+      character.save!
+
+      render json: { character: serialize_data(character, ::DiscourseSizeCharacterSerializer) }
+    end
+
     def update_points
       user = User.find(params[:user_id])
       new_points = params[:points].to_i

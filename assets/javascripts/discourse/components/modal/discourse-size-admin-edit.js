@@ -32,6 +32,25 @@ export default class DiscourseSizeAdminEdit extends Component {
   }
 
   @action
+  async syncWithHistory() {
+    this.isSaving = true;
+    try {
+      await ajax(`/size/admin/characters/${this.args?.model?.character?.id}/sync`, {
+        type: "POST",
+      });
+      this.args?.model?.onSave?.();
+      this.args?.closeModal?.();
+    } catch (e) {
+      alert(
+        e.jqXHR?.responseJSON?.errors?.join(", ") ||
+          "Error syncing character with history"
+      );
+    } finally {
+      this.isSaving = false;
+    }
+  }
+
+  @action
   async save() {
     this.isSaving = true;
 

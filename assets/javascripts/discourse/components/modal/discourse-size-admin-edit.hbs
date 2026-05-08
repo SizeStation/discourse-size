@@ -21,7 +21,15 @@
         </select>
       </div>
     </div>
-
+    <div class="control-group">
+      <DButton
+        @action={{this.syncWithHistory}}
+        @label="discourse_size.admin.sync_with_history"
+        @disabled={{this.isSaving}}
+        class="btn-default"
+      />
+      <span class="instructions">Teleport to the final size calculated from the activity log.</span>
+    </div>
   </:body>
   <:footer>
     <DButton

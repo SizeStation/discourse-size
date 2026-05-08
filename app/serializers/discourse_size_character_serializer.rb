@@ -35,12 +35,8 @@ class DiscourseSizeCharacterSerializer < ApplicationSerializer
   has_many :actions, serializer: DiscourseSizeActionSerializer, embed: :objects
 
   def actions
-    # We need all pending actions for animation, plus some recent ones for display
-    now = Time.now
-    pending_actions = object.discourse_size_actions.where("end_time > ?", now).to_a
-    recent_actions = object.discourse_size_actions.order(created_at: :desc).limit(10).to_a
-    
-    (pending_actions + recent_actions).uniq(&:id).sort_by(&:created_at).reverse
+    # Return all actions to ensure the history graph is complete
+    object.discourse_size_actions.order(created_at: :desc).to_a
   end
 
   def username

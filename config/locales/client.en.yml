@@ -45,6 +45,7 @@ en:
       create: "Create"
       admin:
         title: "Admin Tools"
+        sync_with_history: "Sync with History"
         manage_points: "Manage Size Coins"
         current_points: "Current Points"
         reason: "Reason for Adjustment"

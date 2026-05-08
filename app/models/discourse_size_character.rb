@@ -160,11 +160,33 @@ class DiscourseSizeCharacter < ActiveRecord::Base
     recalculate_pending_actions!
   end
 
-  def recalculate_pending_actions!
-    # Sync current interpolated offset to start the chain from exactly where we are
-    sync_offset!
+  def rebuild_offset_chain!
+    # Get all actions that affect size
+    actions = discourse_size_actions
+               .where(action_type: ["grow", "shrink", "set_size"])
+               .order(created_at: :asc)
     
-    current_chain_offset = self.current_offset
+    current_chain_offset = 0.0
+    
+    actions.each do |action|
+      action.start_offset = current_chain_offset
+      action.end_offset = current_chain_offset + action.size_change
+      action.save!
+      current_chain_offset = action.end_offset
+    end
+    
+    self.target_offset = current_chain_offset
+    self.save!
+    
+    # After rebuilding the chain, we need to update the current interpolated offset
+    sync_offset!
+  end
+
+  def recalculate_pending_actions!
+    # Always rebuild from the beginning to ensure absolute sync with the log
+    rebuild_offset_chain!
+    
+    current_chain_offset = self.current_calculated_offset
     current_chain_time = Time.now
     
     # All actions that haven't finished yet
@@ -175,10 +197,9 @@ class DiscourseSizeCharacter < ActiveRecord::Base
     first_action = true
     pending.each do |action|
       # Only the FIRST action in the queue can be considered "in-progress"
-      # This prevents new actions (which might have a placeholder start_time of now)
-      # from overlapping with the truly active one.
       if first_action && action.start_time && action.start_time <= Time.now
         # We preserve the start point of the active action to avoid jumping
+        # but ensure the end point is still correctly offset from the start
         action.end_offset = action.start_offset + action.size_change
         action.end_time = action.start_time + action.duration_minutes.minutes
         first_action = false

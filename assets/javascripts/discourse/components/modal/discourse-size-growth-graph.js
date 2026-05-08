@@ -77,7 +77,8 @@ export default class DiscourseSizeGrowthGraph extends Component {
         action.action_type === "shrink" ||
         action.action_type === "set_size"
       ) {
-        cumulativeSize += parseFloat(action.size_change);
+        // Use the absolute end_offset from the action to ensure perfect sync
+        cumulativeSize = parseFloat(char.base_size) + parseFloat(action.end_offset || 0);
       }
       history.push({
         date: new Date(action.created_at),

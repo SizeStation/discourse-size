@@ -32,6 +32,7 @@ DiscourseSize::Engine.routes.draw do
 
   # Admin actions
   put "admin/characters/:id" => "admin#update_character"
+  post "admin/characters/:id/sync" => "admin#sync_character"
   put "admin/users/:user_id/points" => "admin#update_points"
   get "admin/users/:user_id/inventory" => "admin#user_inventory"
   get "admin/users/:user_id/point_history" => "admin#user_point_history"
