@@ -32,15 +32,17 @@ describe DiscourseSize::QuestManager do
       SiteSetting.discourse_size_conversation_category_ids = "1,2"
       
       # Mock QUESTS to only have one
-      stub_const("DiscourseSize::QuestManager::QUESTS", [
+      quests_mock = [
         { id: "topic_created_conv", type: :topic_created, category_group: :conversation, min: 1, max: 1, reward: 10 }
-      ])
+      ]
       
-      # Clear any existing quests for today
-      DiscourseSizeUserQuest.where(user_id: user.id).destroy_all
-      
-      quests = described_class.ensure_quests_for(user)
-      expect(quests.map(&:quest_id)).to include("topic_created_conv")
+      stub_const(DiscourseSize::QuestManager, :QUESTS, quests_mock) do
+        # Clear any existing quests for today
+        DiscourseSizeUserQuest.where(user_id: user.id).destroy_all
+        
+        quests = described_class.ensure_quests_for(user)
+        expect(quests.map(&:quest_id)).to include("topic_created_conv")
+      end
     end
   end
 
