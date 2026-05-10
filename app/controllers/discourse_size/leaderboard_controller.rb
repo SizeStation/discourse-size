@@ -5,23 +5,31 @@ module DiscourseSize
     requires_plugin DiscourseSize::PLUGIN_NAME
 
     def index
-      direction = params[:sort] == "smallest" ? "ASC" : "DESC"
-      direction = params[:sort] == "smallest" ? "ASC" : "DESC"
       limit = params[:limit] || 50
+      search = params[:search].to_s.strip
 
-      # For sorting, we can use the calculated current_size, but in SQL we don't have it directly.
-      # Because current_size = base_size + current_calculated_offset.
-      # As a proxy, base_size + target_offset is exactly what they are moving towards.
-      # To make it accurate, we could just sort by (base_size + current_offset)
-      # But current_offset is updated lazily. We can either do a background job to sync them, or just use what we have in DB.
-
-      # We'll use (base_size + current_offset) as sorting.
       characters =
         DiscourseSizeCharacter
           .includes(:user)
           .where(character_type: "game")
-          .order(Arel.sql("(base_size + current_offset) #{direction}"))
-          .limit(limit)
+
+      if search.present?
+        # Safe ILIKE search for postgres
+        characters = characters.where("name ILIKE ?", "%#{search}%")
+      end
+
+      preference = params[:preference].to_s.strip
+      if preference == "both"
+        characters = characters.where("NOT (blocked_item_keys ? '__all_growing__') AND NOT (blocked_item_keys ? '__all_shrinking__') AND NOT (blocked_item_keys ? '__all__')")
+      elsif preference == "growing"
+        characters = characters.where("NOT (blocked_item_keys ? '__all_growing__') AND NOT (blocked_item_keys ? '__all__') AND (blocked_item_keys ? '__all_shrinking__')")
+      elsif preference == "shrinking"
+        characters = characters.where("NOT (blocked_item_keys ? '__all_shrinking__') AND NOT (blocked_item_keys ? '__all__') AND (blocked_item_keys ? '__all_growing__')")
+      elsif preference == "neither"
+        characters = characters.where("blocked_item_keys ? '__all__' OR (blocked_item_keys ? '__all_growing__' AND blocked_item_keys ? '__all_shrinking__')")
+      end
+
+      characters = characters.order(name: :asc).limit(limit)
 
       respond_to do |format|
         format.html { render "default/empty" }
@@ -33,24 +41,20 @@ module DiscourseSize
 
     def character_serializer(c)
       c.sync_offset!
-      target_size = c.base_size + c.target_offset
       seconds_left = c.time_remaining_seconds
       
-      trend_hours = SiteSetting.discourse_size_leaderboard_trend_hours
-      past_size = c.size_at(trend_hours.hours.ago)
-      current = c.current_size
-      diff = current - past_size
-      percent_change = past_size > 0 ? (diff / past_size * 100).round(2) : 0
+      # Determine preferences based on blocked items. 
+      # Since we don't pass a user, we check directly against the blocked lists for 'grow' and 'shrink'
+      prefers_growing = !c.blocked_item_keys.include?("__all_growing__") && !c.blocked_item_keys.include?("__all__")
+      prefers_shrinking = !c.blocked_item_keys.include?("__all_shrinking__") && !c.blocked_item_keys.include?("__all__")
 
       {
         id: c.id,
         user_id: c.user_id,
         name: c.name,
         picture: c.picture,
-        current_size: current,
-        target_size: target_size,
-        trend_diff: diff.round(2),
-        trend_percent: percent_change,
+        prefers_growing: prefers_growing,
+        prefers_shrinking: prefers_shrinking,
         is_animating: (c.current_offset - c.target_offset).abs > 0.0001,
         is_growing: c.target_offset > c.current_offset,
         time_remaining: (seconds_left && seconds_left > 0) ? format_duration(seconds_left) : nil,

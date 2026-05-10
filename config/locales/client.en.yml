@@ -60,13 +60,15 @@ en:
         clear_reward_success: "Daily reward status cleared successfully."
         site_sink: "Site Sink"
         site_sink_help: "This character will receive a duplicate of every item used on the forum (unless blocked)."
-      leaderboard:
-        biggest: "Biggest"
-        tiniest: "Tiniest"
-        smallest: "Smallest"
-        trend: "Trend"
-        climbing: "Climbing"
-        descending: "Descending"
+      directory:
+        title: "Character Directory"
+        search_placeholder: "Search characters by name..."
+        no_results: "No characters match your search."
+        prefers_growing: "Prefers Growing"
+        prefers_shrinking: "Prefers Shrinking"
+        prefers_both: "Both growing and shrinking"
+        prefers_neither: "Prefers Neither"
+        filter_all: "All Preferences"
       notifications:
         title: "Character Interaction"
         grow: "%{username} made %{character_name} grow by %{amount}."

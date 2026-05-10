@@ -1,16 +1,19 @@
 <div class="container size-leaderboard">
   <div class="leaderboard-header">
-    <h2>Size Leaderboard</h2>
-    <div class="sort-controls">
-      <DButton
-        @action={{fn this.setSort "biggest"}}
-        @label="discourse_size.leaderboard.biggest"
-        class={{if (eq this.sort "biggest") "btn-primary" "btn-default"}}
+    <h2>{{i18n "discourse_size.directory.title"}}</h2>
+    <div class="search-controls">
+      <Input
+        @type="text"
+        @value={{this.searchQuery}}
+        {{on "input" this.updateSearch}}
+        placeholder={{i18n "discourse_size.directory.search_placeholder"}}
+        class="directory-search-input"
       />
-      <DButton
-        @action={{fn this.setSort "smallest"}}
-        @label="discourse_size.leaderboard.smallest"
-        class={{if (eq this.sort "smallest") "btn-primary" "btn-default"}}
+      <ComboBox
+        @content={{this.preferenceOptions}}
+        @value={{this.preferenceFilter}}
+        @onChange={{action "setPreferenceFilter"}}
+        class="directory-preference-filter"
       />
     </div>
   </div>
@@ -19,17 +22,14 @@
     <table class="table">
       <thead>
         <tr>
-          <th>Rank</th>
           <th>Character</th>
           <th>Owner</th>
-          <th>Size</th>
-          <th>Trend</th>
+          <th>Preferences</th>
         </tr>
       </thead>
       <tbody>
         {{#each this.characters as |character index|}}
           <tr>
-            <td>#{{add index 1}}</td>
             <td>
               <div class="lb-character-info">
                 {{#if character.picture}}
@@ -54,65 +54,49 @@
                 href="/u/{{character.user.username}}"
               >{{character.user.username}}</a>
             </td>
-            <td class="lb-size-column">
-              <div class="lb-size-wrapper">
-                <div class="lb-current-size">
-                  {{format-size character.current_size}}
-                </div>
-                {{#if character.is_animating}}
-                  <div
-                    class="lb-growth-info
-                      {{if character.is_growing 'growing' 'shrinking'}}"
-                  >
-                    <span class="lb-status-label">
-                      {{#if character.is_growing}}
-                        {{d-icon "arrow-up"}}
-                        Currently growing
-                      {{else}}
-                        {{d-icon "arrow-down"}}
-                        Currently shrinking
-                      {{/if}}
-                      {{#if character.time_remaining}}
-                        <div></div>
-                        <div class="growth-meta">
-                          <span class="time-remaining">
-                            {{d-icon "clock"}}
-                            {{character.time_remaining}}
-                            remaining
-                          </span>
-                        </div>
-                      {{/if}}
-                    </span>
-                    <span class="lb-target-size">
-                      Target:
-                      {{format-size character.target_size}}
-                    </span>
-                  </div>
-                {{/if}}
-              </div>
-            </td>
-            <td class="lb-trend-column">
-              {{#if (not (eq character.trend_diff 0))}}
-                <div
-                  class="lb-trend-wrapper
-                    {{if (gt character.trend_diff 0) 'climbing' 'descending'}}"
+            <td class="lb-prefs-column">
+              {{#if
+                (and character.prefers_growing character.prefers_shrinking)
+              }}
+                <span
+                  class="badge-pref badge-pref-both"
+                  title={{i18n "discourse_size.directory.prefers_both"}}
                 >
-                  {{#if (gt character.trend_diff 0)}}
-                    {{d-icon "arrow-up"}}
-                  {{else}}
-                    {{d-icon "arrow-down"}}
-                  {{/if}}
-                  <span class="trend-percent">
-                    {{abs character.trend_percent}}%
-                  </span>
-                </div>
+                  {{d-icon "check"}}
+                  {{i18n "discourse_size.directory.prefers_both"}}
+                </span>
+              {{else if character.prefers_growing}}
+                <span
+                  class="badge-pref badge-pref-grow"
+                  title={{i18n "discourse_size.directory.prefers_growing"}}
+                >
+                  {{d-icon "arrow-up"}}
+                  {{i18n "discourse_size.directory.prefers_growing"}}
+                </span>
+              {{else if character.prefers_shrinking}}
+                <span
+                  class="badge-pref badge-pref-shrink"
+                  title={{i18n "discourse_size.directory.prefers_shrinking"}}
+                >
+                  {{d-icon "arrow-down"}}
+                  {{i18n "discourse_size.directory.prefers_shrinking"}}
+                </span>
+              {{else}}
+                <span
+                  class="badge-pref badge-pref-none"
+                  title={{i18n "discourse_size.directory.prefers_neither"}}
+                >
+                  {{d-icon "block"}}
+                  {{i18n "discourse_size.directory.prefers_neither"}}
+                </span>
               {{/if}}
             </td>
           </tr>
         {{else}}
           <tr>
-            <td colspan="4" class="no-results">No characters found for this
-              sorting.</td>
+            <td colspan="3" class="no-results">{{i18n
+                "discourse_size.directory.no_results"
+              }}</td>
           </tr>
         {{/each}}
       </tbody>
