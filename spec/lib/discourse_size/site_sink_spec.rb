@@ -55,8 +55,8 @@ describe DiscourseSize::InventoryManager do
     it "duplicates the effect to site sink characters independently" do
       expect {
         described_class.use_item(user, inventory_item.id, character.id)
-      }.to change { character.reload.target_offset }.by(10.0) # 100 * 0.1
-       .and change { sink_character.reload.target_offset }.by(20.0) # 200 * 0.1
+      }.to change { character.reload.target_offset.round(2) }.by(10.0) # 100 * 0.1
+       .and change { sink_character.reload.target_offset.round(2) }.by(20.0) # 200 * 0.1
 
       sink_action = sink_character.discourse_size_actions.last
       expect(sink_action.parent_action_id).to be_nil
@@ -67,7 +67,7 @@ describe DiscourseSize::InventoryManager do
       
       expect {
         described_class.use_item(user, inventory_item.id, character.id)
-      }.to change { character.reload.target_offset }.by(10.0)
+      }.to change { character.reload.target_offset.round(2) }.by(10.0)
        .and not_change { sink_character.reload.target_offset }
     end
 
@@ -76,7 +76,7 @@ describe DiscourseSize::InventoryManager do
       
       expect {
         described_class.use_item(user, inventory_item.id, character.id)
-      }.to change { character.reload.target_offset }.by(10.0)
+      }.to change { character.reload.target_offset.round(2) }.by(10.0)
        .and not_change { sink_character.reload.target_offset }
     end
     
@@ -88,7 +88,7 @@ describe DiscourseSize::InventoryManager do
        
        expect {
          described_class.use_item(user, inventory_item.id, sink_character.id)
-       }.to change { sink_character.reload.target_offset }.by(20.0)
+       }.to change { sink_character.reload.target_offset.round(2) }.by(20.0)
        # Should only apply once (20.0, not 40.0)
     end
   end

@@ -8,6 +8,7 @@ class ChangeIdsToBigint < ActiveRecord::Migration[7.0]
     change_column :discourse_size_actions, :character_id, :bigint
     change_column :discourse_size_actions, :user_id, :bigint
     change_column :discourse_size_actions, :parent_action_id, :bigint
+    change_column :discourse_size_actions, :notification_id, :bigint
 
     change_column :discourse_size_point_history, :user_id, :bigint
     change_column :discourse_size_inventory, :user_id, :bigint
@@ -23,6 +24,7 @@ class ChangeIdsToBigint < ActiveRecord::Migration[7.0]
     change_column :discourse_size_actions, :character_id, :integer
     change_column :discourse_size_actions, :user_id, :integer
     change_column :discourse_size_actions, :parent_action_id, :integer
+    change_column :discourse_size_actions, :notification_id, :integer
 
     change_column :discourse_size_point_history, :user_id, :integer
     change_column :discourse_size_inventory, :user_id, :integer
