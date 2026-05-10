@@ -678,27 +678,7 @@ export function getComparison(character) {
   const sizeCm = character.current_size;
   const name = character.name || "this character";
 
-  // Add ranking info if available (skip for freeform)
-  let rankText = "";
-  if (character.character_type !== "freeform") {
-    if (character.biggest_rank === 1) {
-      rankText = `${name} is the biggest character on the forum and is `;
-    } else if (character.tiniest_rank === 1) {
-      rankText = `${name} is the tiniest character on the forum and is `;
-    } else if (character.biggest_rank <= 10) {
-      rankText = `${name} is the ${getOrdinal(
-        character.biggest_rank
-      )} biggest character on the forum and is `;
-    } else if (character.tiniest_rank <= 10) {
-      rankText = `${name} is the ${getOrdinal(
-        character.tiniest_rank
-      )} tiniest character on the forum and is `;
-    }
-  }
-
-  if (!rankText) {
-    rankText = `${name} is `;
-  }
+  let rankText = `${name} is `;
 
   let best = COMPARISONS[0];
   let minDiff = Infinity;

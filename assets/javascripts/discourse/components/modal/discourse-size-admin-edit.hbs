@@ -30,6 +30,18 @@
       />
       <span class="instructions">Teleport to the final size calculated from the activity log.</span>
     </div>
+
+    <hr />
+
+    <div class="control-group checkbox-group">
+      <label>
+        <Input @type="checkbox" @checked={{this.siteSink}} />
+        {{i18n "discourse_size.admin.site_sink"}}
+      </label>
+      <span class="instructions">
+        {{i18n "discourse_size.admin.site_sink_help"}}
+      </span>
+    </div>
   </:body>
   <:footer>
     <DButton

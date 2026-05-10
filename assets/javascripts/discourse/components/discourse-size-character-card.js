@@ -84,7 +84,11 @@ export default class DiscourseSizeCharacterCard extends Component {
   }
 
   _tickWords(now) {
-    if (now - this._wordTimer > 600 + Math.random() * 900) {
+    const multiplier = this.animationMultiplier;
+    const baseInterval = 1000; // ms
+    const interval = baseInterval / multiplier;
+
+    if (now - this._wordTimer > interval) {
       this._wordTimer = now;
       this._spawnWord();
     }
@@ -98,24 +102,27 @@ export default class DiscourseSizeCharacterCard extends Component {
     const rawText = wordList[Math.floor(Math.random() * wordList.length)];
     const text = `*${rawText.toLowerCase()}*`;
 
+    const multiplier = this.animationMultiplier;
+    const duration = 2000 / multiplier;
+
     const newWord = {
       id: Math.random().toString(36).substr(2, 9),
       text,
       type: this.activeActionType,
-      style: this._getRandomWordStyle(),
+      style: this._getRandomWordStyle(duration),
     };
 
     this.floatingWords = [...this.floatingWords, newWord];
 
-    // Remove after animation (matches CSS duration)
+    // Remove after animation
     setTimeout(() => {
       this.floatingWords = this.floatingWords.filter(
         (w) => w.id !== newWord.id
       );
-    }, 2000);
+    }, duration);
   }
 
-  _getRandomWordStyle() {
+  _getRandomWordStyle(duration) {
     // Keep it on the picture area
     const top = 15 + Math.random() * 70;
     const left = 15 + Math.random() * 70;
@@ -124,7 +131,7 @@ export default class DiscourseSizeCharacterCard extends Component {
     const tx = (Math.random() - 0.5) * 60 + "px";
     const ty = (Math.random() - 0.5) * 60 + "px";
 
-    return `top: ${top}%; left: ${left}%; --rot: ${rotate}deg; --tx: ${tx}; --ty: ${ty};`;
+    return `top: ${top}%; left: ${left}%; --rot: ${rotate}deg; --tx: ${tx}; --ty: ${ty}; animation-duration: ${duration}ms;`;
   }
 
   willDestroy() {
@@ -239,6 +246,41 @@ export default class DiscourseSizeCharacterCard extends Component {
 
   get activeActionType() {
     return this.activeAction?.action_type;
+  }
+
+  get currentRateCmPerDay() {
+    const active = this.activeAction;
+    if (!active) return 0;
+
+    const start = new Date(active.start_time);
+    const end = new Date(active.end_time);
+    const durationDays = (end - start) / (1000 * 60 * 60 * 24);
+    if (durationDays <= 0) return 0;
+
+    return Math.abs(active.end_offset - active.start_offset) / durationDays;
+  }
+
+  get animationMultiplier() {
+    const rate = this.currentRateCmPerDay;
+    if (rate <= 0) return 1;
+
+    const logRate = Math.log10(rate + 1e-10);
+    // Map logRate (-2 to 15) to a multiplier
+    // -2 (fingernail) -> ~0.15
+    // 2 (bamboo) -> ~0.66
+    // 8 (highway) -> ~1.66
+    // 15 (light speed) -> ~2.9
+    const factor = (logRate + 2) / 6;
+    return Math.max(0.1, Math.min(5, factor));
+  }
+
+  get pingStyle() {
+    if (!this.isAnimating) return "";
+    const multiplier = this.animationMultiplier;
+    const duration = 2000 / multiplier;
+    const scale = 1.2 + 0.2 * multiplier;
+
+    return `--ping-duration: ${duration}ms; --ping-scale: ${scale};`;
   }
 
   get activeActionItemName() {

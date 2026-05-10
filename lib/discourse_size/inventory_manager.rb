@@ -59,6 +59,12 @@ module ::DiscourseSize
       new_target_total = current_target_total * (1.0 + (item.effect == "shrink" ? -item.amount.to_f : item.amount.to_f) / 100.0)
       size_change = new_target_total - current_target_total
 
+      # Track quest activity (only if targeting someone else)
+      if character.user_id != user.id
+        quest_type = item.effect == "grow" ? :character_grow : :character_shrink
+        ::DiscourseSize::QuestManager.track_activity(user, quest_type)
+      end
+
       # Handle self-effect validation first
       main_char = nil
       if item.self_effect.present? && item.self_amount.to_f > 0 && character.user_id != user.id
@@ -103,6 +109,35 @@ module ::DiscourseSize
           user_id: user.id,
           item_key: item.key,
           parent_action_id: action&.id
+        )
+      end
+
+      # Duplicate effect to site sinks
+      DiscourseSizeCharacter.where(site_sink: true).find_each do |sink_char|
+        next if sink_char.id == target_character_id # Already applied if it was the target
+        next if sink_char.is_blocked?(user, item_key: inventory_item.item_key, action_type: item.effect)
+
+        # Duplicate effect
+        sink_start_offset = sink_char.target_offset
+        sink_current_total = sink_char.base_size + sink_start_offset
+        sink_new_total = sink_current_total * (1.0 + (item.effect == "shrink" ? -item.amount.to_f : item.amount.to_f) / 100.0)
+        sink_size_change = sink_new_total - sink_current_total
+
+        sink_char.add_queued_action(
+          action_type: item.effect,
+          size_change: sink_size_change,
+          duration_minutes: item.duration_minutes.to_f,
+          user_id: user.id,
+          item_key: item.key
+        )
+
+        # Send notification to sink character owner
+        NotificationManager.send_growth_notification(
+          user,
+          sink_char,
+          item.effect,
+          sink_size_change,
+          item_name: item.name
         )
       end
 

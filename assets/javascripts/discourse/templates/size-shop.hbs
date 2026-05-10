@@ -31,9 +31,12 @@
           {{i18n "discourse_size.admin_points"}}</span>
       </DButton>
       <DButton
-        @label="discourse_size.shop.claim_reward"
-        @action={{this.claimDailyReward}}
-        @disabled={{not this.currentUser.discourse_size_can_claim_daily_reward}}
+        @label={{if
+          (eq this.currentUser.discourse_size_daily_reward_status "available")
+          "discourse_size.shop.claim_reward"
+          "discourse_size.shop.earn_coins"
+        }}
+        @action={{this.showQuests}}
         class="btn-default claim-reward-btn"
       />
     </div>
@@ -85,23 +88,21 @@
               <div class="item-info">
                 <h2 class="item-name">{{item.name}}</h2>
                 <div class="item-stats">
-                  {{#if this.currentUser.admin}}
-                    <span
-                      class="stat stock {{if (eq item.stock 0) 'out-of-stock'}}"
-                    >
-                      {{i18n "discourse_size.shop.stats.stock"}}:
-                      {{if
-                        (eq item.stock -1)
-                        (i18n "discourse_size.shop.stats.infinite")
-                        item.stock
-                      }}
-                    </span>
-                    {{#unless item.enabled}}
-                      <span class="stat disabled-label">{{i18n
-                          "discourse_size.shop.stats.disabled"
-                        }}</span>
-                    {{/unless}}
-                  {{/if}}
+                  <span
+                    class="stat stock {{if (eq item.stock 0) 'out-of-stock'}}"
+                  >
+                    {{i18n "discourse_size.shop.stats.stock"}}:
+                    {{if
+                      (eq item.stock -1)
+                      (i18n "discourse_size.shop.stats.infinite")
+                      item.stock
+                    }}
+                  </span>
+                  {{#unless item.enabled}}
+                    <span class="stat disabled-label">{{i18n
+                        "discourse_size.shop.stats.disabled"
+                      }}</span>
+                  {{/unless}}
                 </div>
                 <p class="item-description">{{item.description}}</p>
               </div>
@@ -159,46 +160,21 @@
               <div class="item-info">
                 <h2 class="item-name">{{item.name}}</h2>
                 <div class="item-stats">
-                  <span class="stat effect {{item.effect}}">
-                    {{#if (eq item.effect "grow")}}
-                      {{i18n "discourse_size.grow"}}
-                    {{else}}
-                      {{i18n "discourse_size.shrink"}}
-                    {{/if}}
+                  <span
+                    class="stat stock {{if (eq item.stock 0) 'out-of-stock'}}"
+                  >
+                    {{i18n "discourse_size.shop.stats.stock"}}:
+                    {{if
+                      (eq item.stock -1)
+                      (i18n "discourse_size.shop.stats.infinite")
+                      item.stock
+                    }}
                   </span>
-                  <span class="stat amount">
-                    {{item.amount}}%
-                    {{i18n "discourse_size.shop.stats.amount"}}
-                  </span>
-                  {{#if item.self_effect}}
-                    <span class="stat self-effect {{item.self_effect}}">
-                      +
-                      {{item.self_amount}}%
-                      {{item.self_effect}}
-                      self
-                    </span>
-                  {{/if}}
-                  <span class="stat duration">
-                    {{#if (gt item.duration_minutes 0)}}
-                      {{i18n
-                        "discourse_size.shop.stats.duration_full"
-                        count=item.duration_minutes
-                      }}
-                    {{else}}
-                      {{i18n "discourse_size.shop.stats.duration_instant"}}
-                    {{/if}}
-                  </span>
-                  <span class="stat uses">
-                    {{#if (eq item.uses 0)}}
-                      {{i18n "discourse_size.inventory.infinite_uses"}}
-                    {{else}}
-                      {{i18n "discourse_size.inventory.uses" count=item.uses}}
-                    {{/if}}
-                  </span>
-                  <span class="stat purchase-count">
-                    {{i18n "discourse_size.shop.stats.purchased"}}:
-                    {{item.purchase_count}}
-                  </span>
+                  {{#unless item.enabled}}
+                    <span class="stat disabled-label">{{i18n
+                        "discourse_size.shop.stats.disabled"
+                      }}</span>
+                  {{/unless}}
                 </div>
                 <p class="item-description">{{item.description}}</p>
               </div>

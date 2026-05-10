@@ -6,6 +6,8 @@ class DiscourseSizeUserSetting < ActiveRecord::Base
   def self.for_user(user)
     find_or_create_by!(user_id: user.id)
   end
+
+  self.ignored_columns = ["hide_reward_notice"]
 end
 
 # == Schema Information

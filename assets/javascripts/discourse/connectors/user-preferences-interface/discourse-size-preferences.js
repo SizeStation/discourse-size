@@ -6,8 +6,6 @@ import { ajax } from "discourse/lib/ajax";
 export default class DiscourseSizePreferences extends Component {
   @tracked measurementSystem =
     this.args.model.discourse_size_settings?.measurement_system || "imperial";
-  @tracked hideRewardNotice =
-    !!this.args.model.discourse_size_settings?.hide_reward_notice;
 
   get measurementOptions() {
     return [
@@ -23,7 +21,6 @@ export default class DiscourseSizePreferences extends Component {
         type: "POST",
         data: {
           measurement_system: this.measurementSystem,
-          hide_reward_notice: this.hideRewardNotice,
         },
       });
     } catch (e) {
@@ -37,9 +34,4 @@ export default class DiscourseSizePreferences extends Component {
     this.saveSettings();
   }
 
-  @action
-  onChangeHideReward(value) {
-    this.hideRewardNotice = value;
-    this.saveSettings();
-  }
 }

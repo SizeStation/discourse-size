@@ -8,6 +8,7 @@ import DiscourseSizePointHistory from "../components/modal/discourse-size-point-
 import I18n from "I18n";
 
 import DiscourseSizeEditShopItem from "../components/modal/discourse-size-edit-shop-item";
+import DiscourseSizeDailyQuests from "../components/modal/discourse-size-daily-quests";
 
 export default class SizeShopController extends Controller {
   @service currentUser;
@@ -93,24 +94,8 @@ export default class SizeShopController extends Controller {
   }
 
   @action
-  async claimDailyReward() {
-    try {
-      const result = await ajax("/size/shop/claim_reward", {
-        type: "POST",
-      });
-
-      if (result.success) {
-        this.currentPoints = result.current_points;
-        this.currentUser.set("discourse_size_can_claim_daily_reward", false);
-        alert(
-          I18n.t("discourse_size.shop.reward_claimed", {
-            amount: result.amount,
-          })
-        );
-      }
-    } catch (e) {
-      alert(e.jqXHR?.responseJSON?.message || "Error claiming reward");
-    }
+  showQuests() {
+    this.modal.show(DiscourseSizeDailyQuests);
   }
 
   @action

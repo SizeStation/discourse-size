@@ -22,6 +22,8 @@ require_relative "lib/discourse_size/size_calculator"
 register_svg_icon "paw"
 register_svg_icon "angle-double-up"
 register_svg_icon "angle-double-down"
+register_svg_icon "sync"
+register_svg_icon "wrench"
 register_asset "stylesheets/discourse-size.scss"
 
 after_initialize do
@@ -33,91 +35,55 @@ after_initialize do
   require_relative "app/models/discourse_size_character"
   require_relative "app/models/discourse_size_action"
   require_relative "app/models/discourse_size_folder"
+  require_relative "app/models/discourse_size_user_quest"
+  require_relative "lib/discourse_size/quest_manager"
 
   # Settings serialization
   add_to_serializer(:user, :discourse_size_settings) do
     settings = DiscourseSizeUserSetting.for_user(object)
     {
-      measurement_system: settings.measurement_system,
-      hide_reward_notice: settings.hide_reward_notice
+      measurement_system: settings.measurement_system
     }
   end
 
   add_to_serializer(:current_user, :discourse_size_settings) do
     settings = DiscourseSizeUserSetting.for_user(object)
     {
-      measurement_system: settings.measurement_system,
-      hide_reward_notice: settings.hide_reward_notice
+      measurement_system: settings.measurement_system
     }
   end
 
-  # Check if daily reward is claimable
-  add_to_serializer(:current_user, :discourse_size_can_claim_daily_reward) do
-    return false unless SiteSetting.discourse_size_enabled
-    settings = DiscourseSizeUserSetting.for_user(object)
-    return false if settings.hide_reward_notice
-
-    last_reward_date = object.custom_fields["discourse_size_last_daily_reward_date"]
-    dismissed_date = object.custom_fields["discourse_size_dismissed_reward_notice_date"]
-    today = Date.today.to_s
-
-    last_reward_date != today && dismissed_date != today
+  # Daily Reward Status
+  add_to_serializer(:current_user, :discourse_size_daily_reward_status) do
+    return "collected" if object.custom_fields["discourse_size_last_daily_reward_date"] == Date.today.to_s
+    "available"
   end
 
-  # Points for inviting / being invited
-  on(:invite_redeemed) do |invite|
-    if SiteSetting.discourse_size_enabled
-      # Points for the person who joined
-      if invite.user
-        DiscourseSize::PointsManager.add_points(
-          invite.user,
-          SiteSetting.discourse_size_points_per_invited,
-          source_type: "invite_reward",
-          description: "Joined via invite from #{invite.invited_by&.username}"
-        )
-      end
-      # Points for the person who sent the invite
-      if invite.invited_by
-        DiscourseSize::PointsManager.add_points(
-          invite.invited_by,
-          SiteSetting.discourse_size_points_per_invite,
-          source_type: "invite_reward",
-          description: "Invited #{invite.user&.username}"
-        )
-      end
-    end
-  end
 
-  # Points for posting a reply / new thread
+  # Quest Tracking Hooks
   on(:post_created) do |post, opts, user|
+    user ||= post.user
     if SiteSetting.discourse_size_enabled && user
-      points =
-        (
-          if post.is_first_post?
-            SiteSetting.discourse_size_points_per_topic
-          else
-            SiteSetting.discourse_size_points_per_reply
-          end
-        )
-      DiscourseSize::PointsManager.add_points(
-        user,
-        points,
-        source_type: "post_reward",
-        description: post.is_first_post? ? "Created topic" : "Replied to post"
-      )
+      type = post.is_first_post? ? :topic_created : :post_created
+      DiscourseSize::QuestManager.track_activity(user, type, category_id: post.topic&.category_id)
     end
   end
 
-  # Points for reading posts
-  on(:post_read) do |post, user|
+  on(:topic_visited) do |topic_view, user|
     if SiteSetting.discourse_size_enabled && user
-      DiscourseSize::PointsManager.add_points(
-        user,
-        SiteSetting.discourse_size_points_per_read,
-        source_type: "read_reward"
-      )
+      DiscourseSize::QuestManager.track_activity(user, :post_read)
     end
   end
+
+  on(:chat_message_created) do |message, user|
+    if SiteSetting.discourse_size_enabled
+      user ||= message.user
+      DiscourseSize::QuestManager.track_activity(user, :chat_message_created) if user
+    end
+  end
+
+
+
 
   add_to_serializer(:user_card, :discourse_size_main_character) do
     return nil if !object&.id
@@ -174,7 +140,11 @@ after_initialize do
     get "size/shop" => "discourse_size/shop#index"
     get "size/leaderboard" => "discourse_size/leaderboard#index"
     post "size/shop/claim_reward" => "discourse_size/shop#claim_reward"
-    post "size/shop/dismiss_reward_notice" => "discourse_size/shop#dismiss_reward_notice"
+    get "size/quests" => "discourse_size/quests#index"
+    post "size/quests/collect" => "discourse_size/quests#collect"
+    post "size/quests/collect_bonus" => "discourse_size/quests#collect_bonus"
+    post "size/quests/reroll" => "discourse_size/quests#reroll"
+    post "size/admin/reset_quests" => "discourse_size/admin#reset_quests"
   end
 
   if Rails.env.test?

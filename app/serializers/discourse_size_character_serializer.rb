@@ -27,10 +27,7 @@ class DiscourseSizeCharacterSerializer < ApplicationSerializer
              :show_comparison,
              :folder_id,
              :position,
-             :is_biggest,
-             :is_tiniest,
-             :biggest_rank,
-             :tiniest_rank
+             :site_sink
 
   has_many :actions, serializer: DiscourseSizeActionSerializer, embed: :objects
 
@@ -41,34 +38,6 @@ class DiscourseSizeCharacterSerializer < ApplicationSerializer
 
   def username
     object.user.username
-  end
-
-  def is_biggest
-    return false unless object.game?
-    @biggest_character_id ||= DiscourseSizeCharacter.where(character_type: "game").order(Arel.sql("(base_size + current_offset) DESC")).limit(1).pluck(:id).first
-    object.id == @biggest_character_id && DiscourseSizeCharacter.count > 1
-  end
-
-  def is_tiniest
-    return false unless object.game?
-    @tiniest_character_id ||= DiscourseSizeCharacter.where(character_type: "game").order(Arel.sql("(base_size + current_offset) ASC")).limit(1).pluck(:id).first
-    object.id == @tiniest_character_id && DiscourseSizeCharacter.count > 1
-  end
-
-  def biggest_rank
-    return nil unless object.game?
-    DiscourseSizeCharacter.where(character_type: "game").where(
-      "(base_size + current_offset) > ?",
-      object.base_size + object.current_offset
-    ).count + 1
-  end
-
-  def tiniest_rank
-    return nil unless object.game?
-    DiscourseSizeCharacter.where(character_type: "game").where(
-      "(base_size + current_offset) < ?",
-      object.base_size + object.current_offset
-    ).count + 1
   end
 
   def blocked_users

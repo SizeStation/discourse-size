@@ -1,0 +1,116 @@
+<DModal
+  @title={{i18n "discourse_size.quests.modal_title"}}
+  @closeModal={{@closeModal}}
+  class="discourse-size-daily-quests-modal"
+>
+  <:body>
+    <div class="quests-container">
+      <h3>{{i18n "discourse_size.admin.daily_reward_section"}}</h3>
+      <div class="daily-reward-section">
+        {{#if (eq this.dailyRewardStatus "available")}}
+          <DButton
+            @label="discourse_size.quests.collect_daily_reward_10"
+            @action={{this.collectDailyReward}}
+            @disabled={{this.collectingDaily}}
+            class="btn-primary btn-large daily-collect-btn"
+          />
+        {{else}}
+          <DButton
+            @label="discourse_size.quests.come_back_tomorrow"
+            @disabled={{true}}
+            class="btn-default btn-large daily-collect-btn"
+          />
+        {{/if}}
+      </div>
+    </div>
+
+    <div class="quests-container">
+      <h3>{{i18n "discourse_size.quests.daily_quests"}}</h3>
+      <div class="quests-list">
+        {{#each this.quests as |quest|}}
+          <div class="quest-item {{if quest.collected 'collected'}}">
+            <div class="quest-emoji">{{quest.emoji}}</div>
+            <div class="quest-info">
+              <span class="quest-name">{{this.getQuestName quest}}</span>
+              <div class="quest-progress-wrapper">
+                <div class="quest-progress-bar">
+                  <div
+                    class="progress-fill"
+                    style={{html-safe
+                      (concat "width: " (this.getQuestProgress quest) "%")
+                    }}
+                  ></div>
+                </div>
+                <span class="progress-text">{{quest.current_count}}
+                  /
+                  {{quest.target_count}}</span>
+              </div>
+            </div>
+            <div class="quest-actions">
+              <span class="quest-reward">{{i18n
+                  "discourse_size.coins"
+                  count=quest.reward
+                }}</span>
+              <DButton
+                @label="discourse_size.quests.collect"
+                @action={{fn this.collectQuest quest}}
+                @disabled={{or
+                  (not quest.completed)
+                  quest.collected
+                  this.collectingQuest
+                }}
+                class={{if quest.completed "btn-primary" "btn-default"}}
+              />
+            </div>
+          </div>
+        {{/each}}
+      </div>
+
+      <div class="quests-footer">
+        {{#if this.canReroll}}
+          <DButton
+            @label="discourse_size.quests.reroll_quests"
+            @action={{this.rerollQuests}}
+            @disabled={{this.rerolling}}
+            class="btn-default reroll-btn"
+          />
+        {{/if}}
+        {{#if this.currentUser.admin}}
+          <DButton
+            @icon="wrench"
+            @label="discourse_size.quests.admin_reset_quests"
+            @action={{this.adminResetQuests}}
+            class="btn-danger reroll-btn admin-only"
+          />
+        {{/if}}
+      </div>
+
+      <div class="bonus-quest-section {{if this.bonusCollected 'collected'}}">
+        <div class="bonus-quest-info">
+          <span class="bonus-quest-title">{{i18n
+              "discourse_size.quests.bonus_reward"
+            }}</span>
+          <p class="bonus-quest-description">Complete all daily quests to earn
+            an extra reward!</p>
+        </div>
+        <div class="bonus-quest-action">
+          <DButton
+            @action={{this.collectBonusReward}}
+            @disabled={{or
+              (not this.allQuestsCompleted)
+              this.bonusCollected
+              this.collectingBonus
+            }}
+            @labelOptions={{hash count=this.extraRewardAmount}}
+            class={{if this.allQuestsCompleted "btn-primary" "btn-default"}}
+          >
+            {{i18n
+              "discourse_size.quests.collect_bonus"
+              count=this.extraRewardAmount
+            }}
+          </DButton>
+        </div>
+      </div>
+    </div>
+  </:body>
+</DModal>

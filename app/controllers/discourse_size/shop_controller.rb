@@ -89,11 +89,6 @@ module DiscourseSize
       }
     end
 
-    def dismiss_reward_notice
-      current_user.custom_fields["discourse_size_dismissed_reward_notice_date"] = Date.today.to_s
-      current_user.save_custom_fields(true)
-      render json: success_json
-    end
 
     def reorder
       params[:ids].each_with_index do |id, index|
@@ -105,8 +100,7 @@ module DiscourseSize
     def save_settings
       settings = DiscourseSizeUserSetting.for_user(current_user)
       settings.update!(
-        measurement_system: params[:measurement_system],
-        hide_reward_notice: params[:hide_reward_notice]
+        measurement_system: params[:measurement_system]
       )
       render json: success_json
     end

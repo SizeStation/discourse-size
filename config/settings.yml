@@ -10,26 +10,25 @@ plugins:
     default: 300
     client: true
     type: float
-  discourse_size_points_per_invite:
-    default: 100
-    type: integer
-  discourse_size_points_per_invited:
-    default: 100
-    type: integer
-  discourse_size_points_per_reply:
-    default: 5
-    type: integer
-  discourse_size_points_per_topic:
-    default: 10
-    type: integer
   discourse_size_daily_reward_amount:
     default: 10
     type: integer
+    client: true
+  discourse_size_daily_quests_count:
+    default: 3
+    type: integer
+  discourse_size_extra_reward_amount:
+    default: 50
+    type: integer
+  discourse_size_conversation_category_ids:
+    default: ""
+  discourse_size_content_category_ids:
+    default: ""
+  discourse_size_chat_channel_id:
+    default: 0
+    type: integer
   discourse_size_leaderboard_trend_hours:
     default: 24
-    type: integer
-  discourse_size_points_per_read:
-    default: 1
     type: integer
   discourse_size_help_url:
     default: ""

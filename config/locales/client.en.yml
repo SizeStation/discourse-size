@@ -58,6 +58,8 @@ en:
         clear_daily_reward: "Clear Daily Reward Status"
         clear_reward_confirm: "Are you sure you want to let this user collect their daily reward again today?"
         clear_reward_success: "Daily reward status cleared successfully."
+        site_sink: "Site Sink"
+        site_sink_help: "This character will receive a duplicate of every item used on the forum (unless blocked)."
       leaderboard:
         biggest: "Biggest"
         tiniest: "Tiniest"
@@ -90,8 +92,8 @@ en:
         delete_item: "Delete Item"
         delete_confirm: "Delete this item? This will also remove it from ALL user inventories!"
         claim_reward: "Collect Daily Reward"
+        earn_coins: "Earn Coins"
         reward_claimed: "Reward claimed! You got %{amount} coins."
-        collect_reward_notice: "You have a daily reward waiting! Collect it in the shop."
         fields:
           key: "Unique Key (slug)"
           name: "Display Name"
@@ -228,8 +230,68 @@ en:
         set_size_to: "set their size to"
         boost_speed: "increased growth speed by"
         unknown: "performed action: %{type}"
+      coins:
+        one: "%{count} Coin"
+        other: "%{count} Coins"
+      quests:
+        modal_title: "Earn Coins"
+        daily_reward: "Daily Reward"
+        collect_daily_reward_10: "Collect 10 Coins"
+        come_back_tomorrow: "Come back tomorrow"
+        daily_quests: "Daily Quests"
+        collect: "Collect"
+        reroll_quests: "Reroll Quests"
+        admin_reset_quests: "Admin Reset Quests"
+        other_activities: "Other Activities"
+        daily_reward_collected:
+          one: "Daily reward collected! You got %{count} coin."
+          other: "Daily reward collected! You got %{count} coins."
+        quest_reward_collected:
+          one: "Quest reward collected! You got %{count} coin."
+          other: "Quest reward collected! You got %{count} coins."
+        bonus_reward: "Daily Bonus"
+        collect_bonus: "Collect %{count} bonus Coins"
+        bonus_reward_collected: "Bonus reward collected!"
+        quests_rerolled: "Quests rerolled!"
+        activity:
+          invite: "Invite a user"
+          be_invited: "Join via invite"
+        names:
+          topic_created:
+            one: "Create %{count} new thread."
+            other: "Create %{count} new threads."
+          topic_created_conv:
+            one: "Create %{count} new thread in conversation categories."
+            other: "Create %{count} new threads in conversation categories."
+          topic_created_content:
+            one: "Create %{count} new thread in content categories."
+            other: "Create %{count} new threads in content categories."
+          post_created:
+            one: "Write %{count} reply to any thread."
+            other: "Write %{count} replies to any thread."
+          post_created_conv:
+            one: "Write %{count} reply in conversation categories."
+            other: "Write %{count} replies in conversation categories."
+          post_created_content:
+            one: "Write %{count} reply in content categories."
+            other: "Write %{count} replies in content categories."
+          like_created:
+            one: "Like %{count} post."
+            other: "Like %{count} posts."
+          post_read:
+            one: "Read %{count} thread."
+            other: "Read %{count} threads."
+          chat_message_created:
+            one: "Send %{count} message in any chat channel."
+            other: "Send %{count} messages in any chat channel."
+          character_grow:
+            one: "Make %{count} other character grow."
+            other: "Make %{count} others characters grow."
+          character_shrink:
+            one: "Make %{count} other character shrink."
+            other: "Make %{count} others characters shrink."
+          status_set: "Set a new status."
       preferences:
         title: "Size Plugin Settings"
-        hide_reward_notice: "Hide daily reward notification"
         measurement_system: "Measurement System"
       dismiss: "Dismiss"

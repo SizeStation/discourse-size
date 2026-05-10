@@ -48,6 +48,10 @@ module DiscourseSize
         )
       end
 
+      if params[:site_sink].present?
+        character.site_sink = params[:site_sink] == "true" || params[:site_sink] == true
+      end
+
       character.save!
 
       render json: { character: serialize_data(character, ::DiscourseSizeCharacterSerializer) }
@@ -129,6 +133,11 @@ module DiscourseSize
       user = User.find(params[:user_id])
       user.custom_fields["discourse_size_last_daily_reward_date"] = nil
       user.save_custom_fields(true)
+      render json: success_json
+    end
+
+    def reset_quests
+      QuestManager.reset_quests(current_user)
       render json: success_json
     end
 
