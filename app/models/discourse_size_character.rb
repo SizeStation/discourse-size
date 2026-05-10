@@ -271,6 +271,7 @@ end
 #  position             :integer          default(0), not null
 #  pronouns             :string
 #  show_comparison      :boolean          default(TRUE), not null
+#  site_sink            :boolean          default(FALSE), not null
 #  species              :string
 #  start_offset         :float            default(0.0), not null
 #  target_offset        :float            default(0.0), not null

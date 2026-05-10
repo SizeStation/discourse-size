@@ -69,13 +69,9 @@ after_initialize do
     end
   end
 
-  on(:topic_visited) do |topic_view, user|
-    if SiteSetting.discourse_size_enabled && user
-      DiscourseSize::QuestManager.track_activity(user, :post_read)
-    end
-  end
 
-  on(:chat_message_created) do |message, user|
+
+  on(:chat_message_created) do |message, _channel, user|
     if SiteSetting.discourse_size_enabled
       user ||= message.user
       DiscourseSize::QuestManager.track_activity(user, :chat_message_created) if user

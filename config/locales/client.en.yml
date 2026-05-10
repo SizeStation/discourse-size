@@ -278,9 +278,6 @@ en:
           like_created:
             one: "Like %{count} post."
             other: "Like %{count} posts."
-          post_read:
-            one: "Read %{count} thread."
-            other: "Read %{count} threads."
           chat_message_created:
             one: "Send %{count} message in any chat channel."
             other: "Send %{count} messages in any chat channel."

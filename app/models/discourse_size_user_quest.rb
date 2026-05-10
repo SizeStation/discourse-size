@@ -17,3 +17,23 @@ class DiscourseSizeUserQuest < ActiveRecord::Base
     current_count >= target_count
   end
 end
+
+# == Schema Information
+#
+# Table name: discourse_size_user_quests
+#
+#  id            :bigint           not null, primary key
+#  collected     :boolean          default(FALSE), not null
+#  current_count :integer          default(0), not null
+#  reward        :integer          default(0), not null
+#  target_count  :integer          default(1), not null
+#  created_at    :datetime         not null
+#  updated_at    :datetime         not null
+#  quest_id      :string           not null
+#  user_id       :integer          not null
+#
+# Indexes
+#
+#  index_discourse_size_user_quests_on_user_id                 (user_id)
+#  index_discourse_size_user_quests_on_user_id_and_created_at  (user_id,created_at)
+#

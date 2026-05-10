@@ -15,7 +15,6 @@ end
 # Table name: discourse_size_user_settings
 #
 #  id                 :bigint           not null, primary key
-#  hide_reward_notice :boolean          default(FALSE), not null
 #  measurement_system :string           default("imperial"), not null
 #  created_at         :datetime         not null
 #  updated_at         :datetime         not null
