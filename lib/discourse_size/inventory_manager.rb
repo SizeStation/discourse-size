@@ -127,17 +127,8 @@ module ::DiscourseSize
           action_type: item.effect,
           size_change: sink_size_change,
           duration_minutes: item.duration_minutes.to_f,
-          user_id: user.id,
+          user_id: sink_char.user_id,
           item_key: item.key
-        )
-
-        # Send notification to sink character owner
-        NotificationManager.send_growth_notification(
-          user,
-          sink_char,
-          item.effect,
-          sink_size_change,
-          item_name: item.name
         )
       end
 
