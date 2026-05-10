@@ -91,10 +91,10 @@ end
 #  start_time       :datetime
 #  created_at       :datetime         not null
 #  updated_at       :datetime         not null
-#  character_id     :integer          not null
+#  character_id     :bigint           not null
 #  notification_id  :integer
 #  parent_action_id :bigint
-#  user_id          :integer          not null
+#  user_id          :bigint           not null
 #
 # Indexes
 #

@@ -277,8 +277,8 @@ end
 #  target_offset        :float            default(0.0), not null
 #  created_at           :datetime         not null
 #  updated_at           :datetime         not null
-#  folder_id            :integer
-#  user_id              :integer          not null
+#  folder_id            :bigint
+#  user_id              :bigint           not null
 #
 # Indexes
 #
