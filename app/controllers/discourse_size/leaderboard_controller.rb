@@ -5,7 +5,7 @@ module DiscourseSize
     requires_plugin DiscourseSize::PLUGIN_NAME
 
     def index
-      limit = params[:limit] || 50
+      limit = params[:limit] || 5000
       search = params[:search].to_s.strip
 
       characters =
@@ -42,8 +42,8 @@ module DiscourseSize
     def character_serializer(c)
       c.sync_offset!
       seconds_left = c.time_remaining_seconds
-      
-      # Determine preferences based on blocked items. 
+
+      # Determine preferences based on blocked items.
       # Since we don't pass a user, we check directly against the blocked lists for 'grow' and 'shrink'
       prefers_growing = !c.blocked_item_keys.include?("__all_growing__") && !c.blocked_item_keys.include?("__all__")
       prefers_shrinking = !c.blocked_item_keys.include?("__all_shrinking__") && !c.blocked_item_keys.include?("__all__")
