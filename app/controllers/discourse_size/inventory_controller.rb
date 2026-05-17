@@ -37,6 +37,7 @@ module DiscourseSize
       result = ::DiscourseSize::InventoryManager.gift_item(current_user, params[:inventory_item_id], params[:username])
       
       if result[:success]
+        DiscourseSize::QuestManager.track_activity(current_user, :item_gifted)
         render json: success_json
       else
         render json: { failed: true, message: result[:error] }, status: :unprocessable_content

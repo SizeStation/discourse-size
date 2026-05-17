@@ -69,6 +69,7 @@ en:
         prefers_shrinking: "Prefers Shrinking"
         prefers_both: "Both growing and shrinking"
         prefers_neither: "Prefers Neither"
+        load_more: "Load More"
         filter_all: "All Preferences"
       notifications:
         title: "Character Interaction"
@@ -300,6 +301,12 @@ en:
           character_shrink:
             one: "Make %{count} other character shrink."
             other: "Make %{count} others characters shrink."
+          post_read:
+            one: "Read %{count} post."
+            other: "Read %{count} posts."
+          item_gifted:
+            one: "Gift %{count} item from your inventory."
+            other: "Gift %{count} items from your inventory."
           status_set: "Set a new status."
       preferences:
         title: "Size Plugin Settings"

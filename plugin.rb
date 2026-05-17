@@ -70,7 +70,43 @@ after_initialize do
     end
   end
 
+  on(:like_created) do |post_action, _creator|
+    user = post_action.user
+    if SiteSetting.discourse_size_enabled && user
+      DiscourseSize::QuestManager.track_activity(user, :like_created)
+    end
+  end
 
+  # Track post reads via TopicsController show action
+  ::TopicsController.class_eval do
+    before_action :track_post_read, only: [:show]
+
+    def track_post_read
+      return unless SiteSetting.discourse_size_enabled
+      return if current_user.blank?
+      DiscourseSize::QuestManager.track_activity(current_user, :post_read)
+    end
+  end
+
+  # Track user status changes
+  ::User.class_eval do
+    prepend(Module.new do
+      def set_status!(description, emoji, ends_at = nil)
+        result = super(description, emoji, ends_at)
+        if SiteSetting.discourse_size_enabled
+          DiscourseSize::QuestManager.track_activity(self, :status_set)
+        end
+        result
+      end
+
+      def clear_status!
+        if SiteSetting.discourse_size_enabled
+          DiscourseSize::QuestManager.track_activity(self, :status_set)
+        end
+        super
+      end
+    end)
+  end
 
   on(:chat_message_created) do |message, _channel, user|
     if SiteSetting.discourse_size_enabled
@@ -141,7 +177,7 @@ after_initialize do
     mount ::DiscourseSize::Engine, at: "/size"
     get "u/:username/characters" => "users#show", :constraints => { username: RouteFormat.username }
     get "size/shop" => "discourse_size/shop#index"
-    get "size/leaderboard" => "discourse_size/leaderboard#index"
+    get "size/directory" => "discourse_size/leaderboard#index"
     post "size/shop/claim_reward" => "discourse_size/shop#claim_reward"
     get "size/quests" => "discourse_size/quests#index"
     post "size/quests/collect" => "discourse_size/quests#collect"

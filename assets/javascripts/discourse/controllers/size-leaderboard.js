@@ -9,6 +9,9 @@ export default class SizeLeaderboardController extends Controller {
   @tracked searchQuery = "";
   @tracked preferenceFilter = "all";
   @tracked characters = [];
+  @tracked loadingMore = false;
+  @tracked more = true;
+  @tracked total = 0;
 
   get preferenceOptions() {
     return [
@@ -35,7 +38,27 @@ export default class SizeLeaderboardController extends Controller {
   async performSearch() {
     const query = encodeURIComponent(this.searchQuery);
     const pref = encodeURIComponent(this.preferenceFilter);
-    const result = await ajax(`/size/leaderboard?search=${query}&preference=${pref}`);
+    const result = await ajax(`/size/directory?search=${query}&preference=${pref}&limit=100`);
     this.characters = result.characters;
+    this.more = result.more;
+    this.total = result.total;
+  }
+
+  @action
+  loadMore() {
+    if (this.loadingMore || !this.more) return;
+    this.loadingMore = true;
+
+    const query = encodeURIComponent(this.searchQuery);
+    const pref = encodeURIComponent(this.preferenceFilter);
+    const offset = this.characters.length;
+
+    ajax(`/size/directory?search=${query}&preference=${pref}&limit=100&offset=${offset}`).then((result) => {
+      this.characters = [...this.characters, ...result.characters];
+      this.more = result.more;
+      this.total = result.total;
+    }).finally(() => {
+      this.loadingMore = false;
+    });
   }
 }

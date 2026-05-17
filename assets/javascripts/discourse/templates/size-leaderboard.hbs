@@ -101,5 +101,17 @@
         {{/each}}
       </tbody>
     </table>
+
+    {{#if this.more}}
+      <div class="directory-load-more">
+        <DButton
+          @action={{this.loadMore}}
+          @icon="chevron-down"
+          @label="discourse_size.directory.load_more"
+          @disabled={{this.loadingMore}}
+          class="btn-default"
+        />
+      </div>
+    {{/if}}
   </div>
 </div>

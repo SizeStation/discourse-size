@@ -17,3 +17,23 @@ class DiscourseSizeRoleplay < ActiveRecord::Base
     uuid
   end
 end
+
+# == Schema Information
+#
+# Table name: discourse_size_roleplays
+#
+#  id          :bigint           not null, primary key
+#  description :text
+#  is_public   :boolean          default(TRUE), not null
+#  name        :string           not null
+#  picture     :string
+#  uuid        :string
+#  created_at  :datetime         not null
+#  updated_at  :datetime         not null
+#  creator_id  :bigint           not null
+#
+# Indexes
+#
+#  index_discourse_size_roleplays_on_creator_id  (creator_id)
+#  index_discourse_size_roleplays_on_uuid        (uuid) UNIQUE
+#

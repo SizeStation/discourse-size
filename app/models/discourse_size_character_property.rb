@@ -37,3 +37,22 @@ class DiscourseSizeCharacterProperty < ActiveRecord::Base
     end
   end
 end
+
+# == Schema Information
+#
+# Table name: discourse_size_character_properties
+#
+#  id             :bigint           not null, primary key
+#  link_ratio     :float
+#  linked_to_size :boolean          default(FALSE), not null
+#  name           :string           not null
+#  property_type  :string           default("text"), not null
+#  value          :string
+#  created_at     :datetime         not null
+#  updated_at     :datetime         not null
+#  character_id   :bigint           not null
+#
+# Indexes
+#
+#  index_discourse_size_character_properties_on_character_id  (character_id)
+#

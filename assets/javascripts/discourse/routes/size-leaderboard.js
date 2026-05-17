@@ -3,9 +3,8 @@ import { ajax } from "discourse/lib/ajax";
 
 export default class SizeLeaderboardRoute extends DiscourseRoute {
   model(params) {
-    // Default to biggest
-    return ajax(`/size/leaderboard?sort=biggest`).then((result) => {
-      return { characters: result.characters, sort: "biggest" };
+    return ajax(`/size/directory?sort=biggest&limit=100`).then((result) => {
+      return { characters: result.characters, sort: "biggest", total: result.total, more: result.more };
     });
   }
 

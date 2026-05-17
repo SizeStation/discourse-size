@@ -15,3 +15,19 @@ class DiscourseSizeRoleplayMember < ActiveRecord::Base
     status == 'accepted'
   end
 end
+
+# == Schema Information
+#
+# Table name: discourse_size_roleplay_members
+#
+#  id           :bigint           not null, primary key
+#  status       :string           default("accepted"), not null
+#  created_at   :datetime         not null
+#  updated_at   :datetime         not null
+#  character_id :bigint           not null
+#  roleplay_id  :bigint           not null
+#
+# Indexes
+#
+#  idx_ds_rp_members_rp_char  (roleplay_id,character_id) UNIQUE
+#

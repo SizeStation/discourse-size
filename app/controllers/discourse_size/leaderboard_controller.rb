@@ -5,7 +5,8 @@ module DiscourseSize
     requires_plugin DiscourseSize::PLUGIN_NAME
 
     def index
-      limit = params[:limit] || 5000
+      limit = [(params[:limit] || 100).to_i, 100].min
+      offset = (params[:offset] || 0).to_i
       search = params[:search].to_s.strip
 
       characters =
@@ -14,7 +15,6 @@ module DiscourseSize
           .where(character_type: "game")
 
       if search.present?
-        # Safe ILIKE search for postgres
         characters = characters.where("name ILIKE ?", "%#{search}%")
       end
 
@@ -29,11 +29,14 @@ module DiscourseSize
         characters = characters.where("blocked_item_keys ? '__all__' OR (blocked_item_keys ? '__all_growing__' AND blocked_item_keys ? '__all_shrinking__')")
       end
 
-      characters = characters.order(name: :asc).limit(limit)
+      total = characters.count
+      characters = characters.order(name: :asc).offset(offset).limit(limit + 1)
+      more = characters.length > limit
+      characters = characters.limit(limit)
 
       respond_to do |format|
         format.html { render "default/empty" }
-        format.json { render json: { characters: characters.map { |c| character_serializer(c) } } }
+        format.json { render json: { characters: characters.map { |c| character_serializer(c) }, total: total, more: more } }
       end
     end
 
@@ -43,8 +46,6 @@ module DiscourseSize
       c.sync_offset!
       seconds_left = c.time_remaining_seconds
 
-      # Determine preferences based on blocked items.
-      # Since we don't pass a user, we check directly against the blocked lists for 'grow' and 'shrink'
       prefers_growing = !c.blocked_item_keys.include?("__all_growing__") && !c.blocked_item_keys.include?("__all__")
       prefers_shrinking = !c.blocked_item_keys.include?("__all_shrinking__") && !c.blocked_item_keys.include?("__all__")
 

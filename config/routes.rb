@@ -30,7 +30,7 @@ DiscourseSize::Engine.routes.draw do
     post "remove_member", on: :member
   end
 
-  get "leaderboard" => "leaderboard#index"
+  get "directory" => "leaderboard#index"
   get "shop" => "shop#index"
   post "shop/purchase" => "shop#purchase"
   post "shop/save_settings" => "shop#save_settings"

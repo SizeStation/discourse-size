@@ -1347,31 +1347,27 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 30px;
-    background: var(--primary-very-low);
-    padding: 20px;
-    border-radius: 12px;
-    border: 1px solid var(--primary-low);
+    border-bottom: 1px solid var(--primary-low);
+    padding-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 15px;
 
     h2 {
       margin: 0;
-      font-weight: 800;
-      color: var(--primary);
+      font-size: 2.5em;
+      background: linear-gradient(
+        135deg,
+        var(--tertiary),
+        var(--tertiary-hover)
+      );
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
 
-    .sort-controls {
+    .search-controls {
       display: flex;
+      align-items: center;
       gap: 10px;
-
-      .btn {
-        border-radius: 20px;
-        padding: 6px 18px;
-        font-weight: 600;
-
-        &.btn-primary {
-          background: var(--tertiary);
-          border-color: var(--tertiary);
-        }
-      }
     }
   }
 
