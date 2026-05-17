@@ -37,8 +37,16 @@
             </div>
             <DButton
               @action={{fn this.invite char}}
-              @label="discourse_size.roleplays.invite"
-              @icon="envelope"
+              @label={{if
+                (eq char.user_id this.currentUser.id)
+                "discourse_size.roleplays.add"
+                "discourse_size.roleplays.invite"
+              }}
+              @icon={{if
+                (eq char.user_id this.currentUser.id)
+                "plus"
+                "envelope"
+              }}
               class="btn-primary btn-small"
               @disabled={{this.inviting}}
             />

@@ -1,11 +1,13 @@
 import Component from "@glimmer/component";
 import { action } from "@ember/object";
 import { tracked } from "@glimmer/tracking";
+import { inject as service } from "@ember/service";
 import { ajax } from "discourse/lib/ajax";
 import { popupAjaxError } from "discourse/lib/ajax-error";
 import { debounce } from "@ember/runloop";
 
 export default class DiscourseSizeInviteToRoleplay extends Component {
+  @service currentUser;
   @tracked searchTerm = "";
   @tracked searchResults = [];
   @tracked searching = false;
@@ -37,11 +39,19 @@ export default class DiscourseSizeInviteToRoleplay extends Component {
     }
   }
 
+  get isOwnCharacter() {
+    return (char) => Number(char.user_id) === Number(this.currentUser.id);
+  }
+
   @action
   async invite(character) {
     this.inviting = true;
     try {
-      await ajax(`/size/roleplays/${this.args.model.roleplay.id}/invite`, {
+      const isOwn = Number(character.user_id) === Number(this.currentUser.id);
+      const url = isOwn
+        ? `/size/roleplays/${this.args.model.roleplay.id}/join`
+        : `/size/roleplays/${this.args.model.roleplay.id}/invite`;
+      await ajax(url, {
         type: "POST",
         data: { character_id: character.id }
       });

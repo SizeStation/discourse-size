@@ -323,6 +323,7 @@ en:
         created_by: "Created by %{username}"
         join: "Join Roleplay"
         leave: "Leave Roleplay"
+        add: "Add"
         invite: "Invite Character"
         you_are_invited: "You're invited"
         pending_invites: "Pending Invites"
