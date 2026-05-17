@@ -8,10 +8,7 @@
             {{if (eq this.activeActionType 'shrink') 'shrinking'}}"
           style={{html-safe
             (concat
-              "background-image: url("
-              @character.picture
-              "); "
-              this.pingStyle
+              "background-image: url(" @character.picture "); " this.pingStyle
             )
           }}
         ></div>
@@ -56,6 +53,15 @@
           <strong>{{@character.name}}</strong>
           {{#if @character.is_main}}
             <span class="badge main-badge">Main Character</span>
+          {{/if}}
+          {{#if (eq @character.character_type "freeform")}}
+            <span class="badge freeform-badge">{{i18n
+                "discourse_size.modes.freeform_name"
+              }}</span>
+          {{else if (eq @character.character_type "roleplay")}}
+            <span class="badge roleplay-badge">{{i18n
+                "discourse_size.modes.roleplay_name"
+              }}</span>
           {{/if}}
         </h2>
 
@@ -122,6 +128,21 @@
             <span class="value">{{@character.species}}</span>
           </span>
         {{/if}}
+        {{#each @character.properties as |prop|}}
+          <span class="header-meta-card custom-prop {{prop.property_type}}">
+            <span class="label">{{prop.name}}</span>
+            <span class="value">
+              {{#if (eq prop.property_type "size")}}
+                {{format-size
+                  prop.effective_value
+                  @character.measurement_system
+                }}
+              {{else}}
+                {{prop.value}}
+              {{/if}}
+            </span>
+          </span>
+        {{/each}}
       </div>
 
       {{#if this.isAnimating}}
@@ -323,10 +344,18 @@
                   character=@character.name
                 }}
               {{else if (eq action.action_type "set_size")}}
-                {{i18n "discourse_size.activity.set_size_to"}}
-                {{format-size
-                  @character.current_size
-                  @character.measurement_system
+                {{i18n
+                  "discourse_size.activity.set_size"
+                  character=@character.name
+                  size=(format-size
+                    action.end_total_size @character.measurement_system
+                  )
+                }}
+              {{else if (eq action.action_type "trigger")}}
+                {{i18n
+                  "discourse_size.activity.run_trigger"
+                  trigger=action.item_name
+                  character=@character.name
                 }}
               {{else if (eq action.action_type "boost_speed")}}
                 {{i18n "discourse_size.activity.boost_speed"}}
@@ -334,7 +363,6 @@
               {{else}}
                 {{i18n
                   "discourse_size.activity.unknown"
-                  character=@character.name
                   type=action.action_type
                 }}
               {{/if}}

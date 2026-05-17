@@ -1,0 +1,130 @@
+<div class="size-roleplay-detail">
+  <div
+    class="rp-header {{if this.roleplay.picture 'has-picture'}}"
+    style={{this.headerStyle}}
+  >
+    <div class="rp-header-content">
+      <h1>{{this.roleplay.name}}</h1>
+      <div class="rp-creator">
+        {{i18n "discourse_size.roleplays.created_by" username=this.roleplay.creator_username}}
+      </div>
+      <p>{{this.roleplay.description}}</p>
+
+      <div class="rp-header-actions">
+        <DButton
+          @action={{this.copyLink}}
+          @icon="link"
+          @label="discourse_size.roleplays.copy_link"
+          class="btn-default"
+        />
+        {{#if this.isCreator}}
+          <DButton
+            @action={{this.editRoleplay}}
+            @icon="pencil"
+            @label="discourse_size.edit"
+            class="btn-default"
+          />
+          <DButton
+            @action={{this.openInviteModal}}
+            @label="discourse_size.roleplays.invite"
+            @icon="plus"
+            class="btn-default"
+          />
+          {{#if this.allPendingInvites.length}}
+            <DButton
+              @action={{this.openInvitedModal}}
+              @icon="envelope"
+              class="btn-default"
+            >
+              {{i18n "discourse_size.roleplays.pending_invites"}}
+              <span class="badge-number">{{this.allPendingInvites.length}}</span>
+            </DButton>
+          {{/if}}
+          <DButton
+            @action={{this.deleteRoleplay}}
+            @icon="trash-can"
+            @label="discourse_size.delete"
+            class="btn-danger"
+          />
+        {{else}}
+          {{#if this.roleplay.is_public}}
+            <DButton
+              @action={{this.joinRoleplay}}
+              @label="discourse_size.roleplays.join"
+              @icon="user-plus"
+              class="btn-default"
+            />
+          {{/if}}
+        {{/if}}
+      </div>
+    </div>
+  </div>
+
+  {{#if this.myPendingInvites.length}}
+    <div class="my-pending-invites">
+      <div class="invited-header">
+        {{d-icon "envelope"}}
+        <h2>{{i18n "discourse_size.roleplays.invited_heading"}}</h2>
+      </div>
+      <div class="invited-body">
+        {{#each this.myPendingInvites as |member|}}
+          <div class="my-invite-item">
+            <div class="invite-char">
+              {{#if member.character.picture}}
+                <img src={{member.character.picture}} class="char-pic" />
+              {{else}}
+                <div class="char-pic-placeholder">{{d-icon "user"}}</div>
+              {{/if}}
+              <div class="char-info">
+                <span class="name">{{member.character.name}}</span>
+                <span class="hint">{{i18n
+                    "discourse_size.roleplays.invited_hint"
+                  }}</span>
+              </div>
+            </div>
+            <div class="invite-actions">
+              <DButton
+                @action={{fn this.acceptInvite member}}
+                @icon="check"
+                @label="discourse_size.roleplays.accept_invite"
+                class="btn-primary"
+              />
+              <DButton
+                @action={{fn this.declineInvite member}}
+                @icon="xmark"
+                @label="discourse_size.roleplays.decline_invite"
+                class="btn-danger"
+              />
+            </div>
+          </div>
+        {{/each}}
+      </div>
+    </div>
+  {{/if}}
+
+  <div class="rp-members-section">
+    {{#each this.acceptedMembers as |member|}}
+      <div class="member-card-wrapper">
+        <DiscourseSizeCharacterCard
+          @character={{member.character}}
+          @isCurrentUser={{eq member.character.user_id this.currentUser.id}}
+          @userPoints={{this.currentUser.discourse_size_points}}
+          @onAction={{this.refreshRoleplay}}
+          @onUpdate={{this.editCharacter}}
+        />
+        {{#if
+          (or this.isCreator (eq member.character.user_id this.currentUser.id))
+        }}
+          <div class="member-actions">
+            <DButton
+              @action={{fn this.removeMember member}}
+              @icon="trash-can"
+              class="btn-danger btn-small"
+              @title={{i18n "discourse_size.roleplays.leave"}}
+            />
+          </div>
+        {{/if}}
+      </div>
+    {{/each}}
+  </div>
+</div>

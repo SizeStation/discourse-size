@@ -1,0 +1,26 @@
+<div class="size-roleplays-container">
+  <div class="roleplays-header">
+    <h1>{{i18n "discourse_size.roleplays.title"}}</h1>
+    <DButton
+      @action={{this.createRoleplay}}
+      @label="discourse_size.roleplays.create_roleplay"
+      @icon="plus"
+      class="btn-primary"
+    />
+  </div>
+
+  <div class="roleplays-list">
+    {{#each this.roleplays as |rp|}}
+      <div class="roleplay-card">
+        <h3>{{rp.name}}</h3>
+        <p>{{rp.description}}</p>
+        <div class="rp-meta">
+          <span>{{i18n "discourse_size.roleplays.members_count" count=rp.members.length}}</span>
+          <LinkTo @route="size-roleplay" @model={{rp.id}} class="btn-default">{{i18n "discourse_size.roleplays.view_details"}}</LinkTo>
+        </div>
+      </div>
+    {{else}}
+      <p>{{i18n "discourse_size.roleplays.no_roleplays"}}</p>
+    {{/each}}
+  </div>
+</div>

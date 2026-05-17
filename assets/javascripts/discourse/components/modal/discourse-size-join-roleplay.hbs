@@ -1,0 +1,70 @@
+<DModal
+  @title={{i18n "discourse_size.roleplays.modals.join.title"}}
+  @closeModal={{@closeModal}}
+  class="discourse-size-join-roleplay-modal"
+>
+  <:body>
+    <div class="join-roleplay-content">
+      {{#if this.loading}}
+        <div class="loading-spinner"></div>
+      {{else}}
+        {{#if this.myCharacters.length}}
+          <div class="search-box">
+            <Input
+              @value={{this.searchTerm}}
+              @placeholder={{i18n
+                "discourse_size.roleplays.modals.join.search_placeholder"
+              }}
+              class="character-search-input"
+            />
+            {{d-icon "search"}}
+          </div>
+
+          <div class="characters-list">
+            {{#each this.filteredCharacters as |char|}}
+              <div
+                class="character-list-item
+                  {{if (eq this.selectedCharacterId char.id) 'selected'}}"
+                {{on "click" (fn this.selectCharacter char)}}
+              >
+                <div class="char-pic">
+                  {{#if char.picture}}
+                    <img src={{char.picture}} alt="" />
+                  {{else}}
+                    {{d-icon "user"}}
+                  {{/if}}
+                </div>
+                <div class="char-info">
+                  <span class="char-name">{{char.name}}</span>
+                </div>
+                {{#if (eq this.selectedCharacterId char.id)}}
+                  {{d-icon "check-circle"}}
+                {{/if}}
+              </div>
+            {{else}}
+              <p class="no-results">{{i18n
+                  "discourse_size.roleplays.no_characters"
+                }}</p>
+            {{/each}}
+          </div>
+        {{else}}
+          <p class="empty-notice">{{i18n
+              "discourse_size.roleplays.modals.join.no_characters"
+            }}</p>
+        {{/if}}
+      {{/if}}
+    </div>
+  </:body>
+
+  <:footer>
+    {{#if this.myCharacters.length}}
+      <DButton
+        @action={{this.join}}
+        @label="discourse_size.roleplays.modals.join.join_btn"
+        @icon="user-plus"
+        class="btn-primary"
+        @disabled={{or this.joining (not this.selectedCharacterId)}}
+      />
+    {{/if}}
+  </:footer>
+</DModal>

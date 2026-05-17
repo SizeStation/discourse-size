@@ -18,6 +18,7 @@ require_relative "lib/discourse_size/points_manager"
 require_relative "lib/discourse_size/inventory_manager"
 require_relative "lib/discourse_size/notification_manager"
 require_relative "lib/discourse_size/size_calculator"
+require_relative "lib/discourse_size/trigger_executor"
 
 register_svg_icon "paw"
 register_svg_icon "angle-double-up"
@@ -130,6 +131,12 @@ after_initialize do
     DiscourseSize::PointsManager.get_points(object)
   end
 
+  add_to_serializer(:current_user, :pending_roleplay_invites_count) do
+    DiscourseSizeRoleplayMember.joins(:character)
+      .where(discourse_size_characters: { user_id: object.id }, status: 'pending')
+      .count
+  end
+
   Discourse::Application.routes.append do
     mount ::DiscourseSize::Engine, at: "/size"
     get "u/:username/characters" => "users#show", :constraints => { username: RouteFormat.username }
@@ -140,7 +147,10 @@ after_initialize do
     post "size/quests/collect" => "discourse_size/quests#collect"
     post "size/quests/collect_bonus" => "discourse_size/quests#collect_bonus"
     post "size/quests/reroll" => "discourse_size/quests#reroll"
+    post "size/quests/get_new" => "discourse_size/quests#get_new_quests"
     post "size/admin/reset_quests" => "discourse_size/admin#reset_quests"
+    get "size/roleplays" => "discourse_size/roleplays#index"
+    get "size/roleplays/:id" => "discourse_size/roleplays#show"
   end
 
   if Rails.env.test?

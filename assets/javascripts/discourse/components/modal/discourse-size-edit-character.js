@@ -4,6 +4,7 @@ import { inject as service } from "@ember/service";
 import { tracked } from "@glimmer/tracking";
 import { ajax } from "discourse/lib/ajax";
 import { UNITS, getBestUnit } from "../../lib/size-formatter";
+import DiscourseSizeTriggerHelp from "./discourse-size-trigger-help";
 
 export default class DiscourseSizeEditCharacter extends Component {
   @tracked name = "";
@@ -28,9 +29,12 @@ export default class DiscourseSizeEditCharacter extends Component {
   @tracked availableItems = [];
   @tracked blockedUsers = [];
   @tracked blockUsername = "";
+  @tracked properties = [];
+  @tracked triggers = [];
 
   @service currentUser;
   @service siteSettings;
+  @service modal;
 
   constructor() {
     super(...arguments);
@@ -52,6 +56,8 @@ export default class DiscourseSizeEditCharacter extends Component {
       parseInt(id, 10)
     );
     this.blockedUsers = char.blocked_users || [];
+    this.properties = (char.properties || []).map((p) => ({ ...p }));
+    this.triggers = (char.triggers || []).map((t) => ({ ...t }));
 
     if (this.characterType === "game") {
       this.fetchAvailableItems();
@@ -87,7 +93,9 @@ export default class DiscourseSizeEditCharacter extends Component {
       this.isMain !== (char.is_main || false) ||
       this.characterType !== (char.character_type || "game") ||
       parseFloat(this.displaySize) !== parseFloat(this._initialDisplaySize) ||
-      this.sizeUnit !== this._initialSizeUnit
+      this.sizeUnit !== this._initialSizeUnit ||
+      JSON.stringify(this.properties) !== JSON.stringify(char.properties || []) ||
+      JSON.stringify(this.triggers) !== JSON.stringify(char.triggers || [])
     );
   }
 
@@ -142,7 +150,7 @@ export default class DiscourseSizeEditCharacter extends Component {
         this.sizeError = null;
       }
     } else {
-      // Freeform: allow any positive number
+      // Freeform/Roleplay: allow any positive number
       if (val <= 0) {
         this.sizeError = "Size must be greater than 0.";
       } else {
@@ -266,6 +274,26 @@ export default class DiscourseSizeEditCharacter extends Component {
       description: this.description,
       show_comparison: this.showComparison,
       is_main: this.isMain,
+      discourse_size_character_properties_attributes: this.properties.map((p) => {
+        const attr = {
+          name: p.name,
+          property_type: p.property_type,
+          value: p.value,
+          linked_to_size: p.linked_to_size,
+        };
+        if (p.id) attr.id = p.id;
+        if (p._destroy) attr._destroy = true;
+        return attr;
+      }),
+      discourse_size_character_triggers_attributes: this.triggers.map((t) => {
+        const attr = {
+          name: t.name,
+          js_code: t.js_code,
+        };
+        if (t.id) attr.id = t.id;
+        if (t._destroy) attr._destroy = true;
+        return attr;
+      }),
     };
 
     try {
@@ -473,5 +501,143 @@ export default class DiscourseSizeEditCharacter extends Component {
     return this.availableItems.filter(
       (i) => i.effect !== "grow" && i.effect !== "shrink"
     );
+  }
+  @action
+  addProperty() {
+    this.properties = [
+      ...this.properties,
+      {
+        name: "",
+        property_type: "text",
+        value: "",
+        linked_to_size: false,
+      },
+    ];
+  }
+
+  @action
+  removeProperty(prop) {
+    if (prop.id) {
+      prop._destroy = true;
+      this.properties = [...this.properties];
+    } else {
+      this.properties = this.properties.filter((p) => p !== prop);
+    }
+  }
+
+  @action
+  updateProperty(prop, field, value) {
+    prop[field] = value;
+    this.properties = [...this.properties];
+  }
+
+  @action
+  addTrigger() {
+    this.triggers = [
+      ...this.triggers,
+      {
+        name: "",
+        js_code: "// character.setSize(character.getSize() * 1.1);",
+      },
+    ];
+  }
+
+  @action
+  removeTrigger(trigger) {
+    if (trigger.id) {
+      trigger._destroy = true;
+      this.triggers = [...this.triggers];
+    } else {
+      this.triggers = this.triggers.filter((t) => t !== trigger);
+    }
+  }
+
+  @action
+  openTriggerHelp() {
+    this.modal.show(DiscourseSizeTriggerHelp);
+  }
+
+  @action
+  async initCodeMirror(trigger, element) {
+    if (!element) return;
+    
+    try {
+      // 1. Try to load CodeMirror if not present
+      if (!window.CodeMirror) {
+        try {
+          // Try local Discourse module first
+          const mod = await import("discourse-common/lib/code-mirror");
+          window.CodeMirror = mod.default;
+        } catch (e) {
+          // Fallback to CDN for reliability
+          const CDN_BASE = "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13";
+          
+          if (!document.getElementById("codemirror-css")) {
+            const link = document.createElement("link");
+            link.id = "codemirror-css";
+            link.rel = "stylesheet";
+            link.href = `${CDN_BASE}/codemirror.min.css`;
+            document.head.appendChild(link);
+          }
+
+          // We use standard script injection since loadScript might not be easily imported
+          await this._loadExternalScript(`${CDN_BASE}/codemirror.min.js`);
+          await this._loadExternalScript(`${CDN_BASE}/mode/javascript/javascript.min.js`);
+        }
+      }
+
+      if (window.CodeMirror) {
+        this._setupCM(window.CodeMirror, trigger, element);
+      } else {
+        throw new Error("CodeMirror failed to load");
+      }
+    } catch (e) {
+      console.error("CodeMirror failed to load:", e);
+      this._showFallbackTextarea(trigger, element);
+    }
+  }
+
+  _loadExternalScript(src) {
+    return new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = src;
+      script.onload = resolve;
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+  }
+
+  _showFallbackTextarea(trigger, element) {
+    const text = document.createElement("textarea");
+    text.value = trigger.js_code || "";
+    text.className = "trigger-code-fallback";
+    text.style.width = "100%";
+    text.style.minHeight = "120px";
+    text.oninput = (ev) => this.updateTrigger(trigger, "js_code", ev.target.value);
+    element.appendChild(text);
+  }
+
+  _setupCM(CodeMirror, trigger, element) {
+    const editor = CodeMirror(element, {
+      value: trigger.js_code || "",
+      mode: "javascript",
+      lineNumbers: true,
+      tabSize: 2,
+      lineWrapping: true,
+      viewportMargin: Infinity,
+    });
+
+    editor.on("change", (cm) => {
+      this.updateTrigger(trigger, "js_code", cm.getValue());
+    });
+
+    editor.setSize(null, "auto");
+    setTimeout(() => editor?.refresh(), 100);
+  }
+
+  @action
+  updateTrigger(trigger, field, value) {
+    trigger[field] = value;
+    this.triggers = [...this.triggers];
   }
 }

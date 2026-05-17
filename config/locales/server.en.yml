@@ -3,6 +3,9 @@ en:
     discourse_size_notification:
       grow: "%{username} used %{item_name} on %{character_name}! (Grow %{amount})"
       shrink: "%{username} used %{item_name} on %{character_name}! (Shrink %{amount})"
+      item_returned: "Item returned: %{item_name} from %{character_name}"
+      gift_received: "%{username} sent you a gift: %{item_name}"
+      roleplay_invite: "Roleplay Invite: %{character_name} invited to %{roleplay_name}"
   site_settings:
     discourse_size_enabled: "Enable the Discourse Size plugin"
     discourse_size_min_base_size: "Minimum base size for new characters (game mode)"

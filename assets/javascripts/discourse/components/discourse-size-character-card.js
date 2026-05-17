@@ -14,6 +14,7 @@ import {
 } from "../lib/size-formatter";
 import I18n from "I18n";
 import { ajax } from "discourse/lib/ajax";
+import { popupAjaxError } from "discourse/lib/ajax-error";
 import DiscourseSizeGrowthGraph from "./modal/discourse-size-growth-graph";
 
 export default class DiscourseSizeCharacterCard extends Component {
@@ -307,8 +308,7 @@ export default class DiscourseSizeCharacterCard extends Component {
     const c = this.args?.character;
     if (!c) return "";
 
-    const system =
-      this.currentUser?.discourse_size_measurement_system || "imperial";
+    const system = this.preferredSystem;
     return this.queuedActions
       .map((a) => {
         const baseSize = parseFloat(c.base_size) || 0;
@@ -341,7 +341,39 @@ export default class DiscourseSizeCharacterCard extends Component {
   }
 
   get recentActions() {
-    return (this.args?.character?.actions || []).slice(0, 5);
+    return (this.args.character.actions || []).slice(0, 5);
+  }
+
+  get pendingRoleplayInvites() {
+    return (this.args.character.roleplay_memberships || []).filter(
+      (m) => m.status === "pending"
+    );
+  }
+
+  @action
+  async acceptInvite(invite) {
+    try {
+      await ajax(`/size/roleplays/${invite.roleplay_id}/accept_invite`, {
+        type: "POST",
+        data: { character_id: this.args.character.id },
+      });
+      this.args.onAction?.();
+    } catch (e) {
+      popupAjaxError(e);
+    }
+  }
+
+  @action
+  async declineInvite(invite) {
+    try {
+      await ajax(`/size/roleplays/${invite.roleplay_id}/decline_invite`, {
+        type: "POST",
+        data: { character_id: this.args.character.id },
+      });
+      this.args.onAction?.();
+    } catch (e) {
+      popupAjaxError(e);
+    }
   }
 
   @action

@@ -1,0 +1,72 @@
+<DModal
+  @title={{i18n "discourse_size.roleplays.title"}}
+  @closeModal={{@closeModal}}
+  class="discourse-size-roleplays-modal"
+>
+  <:body>
+    <div class="roleplays-modal-content">
+      <div class="search-box">
+        <Input
+          @value={{this.searchTerm}}
+          @placeholder={{i18n "discourse_size.roleplays.search_placeholder"}}
+          class="roleplay-search-input"
+        />
+        {{d-icon "search"}}
+      </div>
+
+      <div class="roleplays-list">
+        {{#if this.loading}}
+          <div class="loading-spinner"></div>
+        {{else}}
+          {{#each this.filteredRoleplays as |rp|}}
+            <div
+              class="roleplay-modal-item"
+              {{on "click" (fn this.openRoleplay rp)}}
+            >
+              <div class="rp-pic">
+                {{#if rp.picture}}
+                  <img src={{rp.picture}} alt="" />
+                {{else}}
+                  {{d-icon "users"}}
+                {{/if}}
+              </div>
+              <div class="rp-info">
+                <span class="rp-name">{{rp.name}}</span>
+                <span class="rp-creator-small">
+                  {{i18n
+                    "discourse_size.roleplays.created_by"
+                    username=rp.creator_username
+                  }}
+                </span>
+                <div class="rp-meta-info">
+                  <span class="rp-members">{{i18n
+                      "discourse_size.roleplays.members_count"
+                      count=rp.members_count
+                    }}</span>
+                  {{#if (eq rp.user_status "pending")}}
+                    <span class="rp-status invited">{{i18n
+                        "discourse_size.roleplays.you_are_invited"
+                      }}</span>
+                  {{/if}}
+                </div>
+              </div>
+              {{d-icon "chevron-right"}}
+            </div>
+          {{else}}
+            <p class="no-results">{{i18n
+                "discourse_size.roleplays.no_roleplays"
+              }}</p>
+          {{/each}}
+        {{/if}}
+      </div>
+    </div>
+  </:body>
+  <:footer>
+    <DButton
+      @action={{this.createRoleplay}}
+      @label="discourse_size.roleplays.create_roleplay"
+      @icon="plus"
+      class="btn-primary"
+    />
+  </:footer>
+</DModal>

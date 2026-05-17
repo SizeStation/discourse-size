@@ -26,10 +26,9 @@ export default {
 
               get shouldRender() {
                 const data = this.notificationData;
-                // Only render if it's our notification data structure
                 return (
                   data &&
-                  (data.character_name || data.returned || data.gift_received)
+                  (data.character_name || data.returned || data.gift_received || data.invite)
                 );
               }
 
@@ -38,15 +37,25 @@ export default {
                 if (data.gift_received) {
                   return I18n.t("js.discourse_size.notifications.gift_received_title");
                 }
+                if (data.invite) {
+                  return I18n.t("js.discourse_size.notifications.roleplay_invite_title");
+                }
                 return I18n.t("js.discourse_size.notifications.title");
               }
 
               get linkHref() {
+                const data = this.notificationData;
+                if (data.invite && data.roleplay_id) {
+                  return `/size/roleplays/${data.roleplay_id}`;
+                }
                 return userPath(`${this.currentUser.username}/characters`);
               }
 
               get icon() {
                 const data = this.notificationData;
+                if (data.invite) {
+                  return "envelope";
+                }
                 if (data.returned) {
                   return "undo";
                 }
@@ -60,6 +69,9 @@ export default {
 
               get label() {
                 const data = this.notificationData;
+                if (data.invite) {
+                  return I18n.t("js.discourse_size.notifications.roleplay_invite_label");
+                }
                 if (data.returned) {
                   return I18n.t(
                     "js.discourse_size.notifications.item_returned_label"
@@ -77,6 +89,13 @@ export default {
                 const data = this.notificationData;
                 if (!this.shouldRender) {
                   return "";
+                }
+
+                if (data.invite) {
+                  return I18n.t("js.discourse_size.notifications.roleplay_invite", {
+                    character_name: data.character_name,
+                    roleplay_name: data.roleplay_name
+                  });
                 }
 
                 if (data.returned) {

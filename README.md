@@ -1,6 +1,6 @@
 # Discourse Size
 
-A comprehensive character growth and profile plugin for Discourse. Users can create, customize, and grow characters using a unique exponential growth system or purely for roleplay in freeform mode.
+A comprehensive character growth and profile plugin for Discourse. Users can create, customize, and grow characters using a unique exponential growth system or purely for roleplay in static mode.
 
 ## Features
 
@@ -9,7 +9,7 @@ A comprehensive character growth and profile plugin for Discourse. Users can cre
 - **Multiple Characters**: Users can create and manage multiple character profiles.
 - **Dual Modes**:
   - **Game Mode**: Earn and spend "Size Coins" to grow or shrink. Experience real-time compounding exponential growth.
-  - **Freeform Mode**: Purely for roleplay—manually set your character's size and metadata without growth restrictions.
+  - **Static Mode**: Purely for roleplay—manually set your character's size and metadata without growth restrictions.
 - **Main Character**: Select a primary character to be featured on your Discourse user card and profile.
 - **Blocking System**: Control who can interact with your character. Block specific users or types of items (e.g., block all shrinking items).
 - **Folders**: Organize your characters into custom folders for better management.

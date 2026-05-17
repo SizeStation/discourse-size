@@ -30,15 +30,32 @@
                   }}</strong>:
                 {{i18n "discourse_size.modes.freeform_desc"}}</span>
             </label>
+            <label class="radio-label">
+              <input
+                type="radio"
+                name="char_type"
+                value="roleplay"
+                checked={{eq this.characterType "roleplay"}}
+                {{on "change" (fn this.setCharType "roleplay")}}
+              />
+              <span><strong>{{i18n
+                    "discourse_size.modes.roleplay_name"
+                  }}</strong>:
+                {{i18n "discourse_size.modes.roleplay_desc"}}</span>
+            </label>
           </div>
         {{else}}
           <div class="type-display">
             <span class="mode-label">Mode:</span>
-            <strong>{{if
-                (eq this.characterType "game")
-                (i18n "discourse_size.modes.game_name")
-                (i18n "discourse_size.modes.freeform_name")
-              }}</strong>
+            <strong>
+              {{#if (eq this.characterType "game")}}
+                {{i18n "discourse_size.modes.game_name"}}
+              {{else if (eq this.characterType "freeform")}}
+                {{i18n "discourse_size.modes.freeform_name"}}
+              {{else if (eq this.characterType "roleplay")}}
+                {{i18n "discourse_size.modes.roleplay_name"}}
+              {{/if}}
+            </strong>
             <span class="instructions">{{i18n
                 "discourse_size.modes.cannot_change"
               }}</span>
@@ -135,14 +152,177 @@
 
       <hr />
 
+      <div class="control-group custom-properties-group">
+        <label>{{i18n "discourse_size.properties.title"}}</label>
+        <span class="instructions">{{i18n
+            "discourse_size.properties.instructions"
+          }}</span>
+
+        <div class="properties-list">
+          {{#each this.properties as |prop|}}
+            {{#unless prop._destroy}}
+              <div class="property-item">
+                <div class="property-row">
+                  <Input
+                    @type="text"
+                    @value={{prop.name}}
+                    placeholder={{i18n
+                      "discourse_size.properties.name_placeholder"
+                    }}
+                    {{on
+                      "input"
+                      (fn this.updateProperty prop "name" prop.name)
+                    }}
+                    class="prop-name"
+                  />
+                  <select
+                    class="prop-type"
+                    {{on
+                      "change"
+                      (action
+                        "updateProperty"
+                        prop
+                        "property_type"
+                        value="target.value"
+                      )
+                    }}
+                  >
+                    <option
+                      value="text"
+                      selected={{eq prop.property_type "text"}}
+                    >{{i18n "discourse_size.properties.types.text"}}</option>
+                    <option
+                      value="number"
+                      selected={{eq prop.property_type "number"}}
+                    >{{i18n "discourse_size.properties.types.number"}}</option>
+                    <option
+                      value="size"
+                      selected={{eq prop.property_type "size"}}
+                    >{{i18n "discourse_size.properties.types.size"}}</option>
+                  </select>
+                  <DButton
+                    @action={{fn this.removeProperty prop}}
+                    @icon="trash-can"
+                    class="btn-danger btn-small remove-prop-btn"
+                  />
+                </div>
+                <div class="property-row second-row">
+                  <Input
+                    @type="text"
+                    @value={{prop.value}}
+                    placeholder={{i18n
+                      "discourse_size.properties.value_placeholder"
+                    }}
+                    {{on
+                      "input"
+                      (fn this.updateProperty prop "value" prop.value)
+                    }}
+                    class="prop-value"
+                  />
+                  {{#if (eq prop.property_type "size")}}
+                    <label class="link-to-size">
+                      <Input
+                        @type="checkbox"
+                        @checked={{prop.linked_to_size}}
+                        {{on
+                          "change"
+                          (fn
+                            this.updateProperty
+                            prop
+                            "linked_to_size"
+                            (not prop.linked_to_size)
+                          )
+                        }}
+                      />
+                      {{i18n "discourse_size.properties.linked_to_size"}}
+                    </label>
+                  {{/if}}
+                </div>
+              </div>
+            {{/unless}}
+          {{/each}}
+        </div>
+
+        <DButton
+          @action={{this.addProperty}}
+          @label="discourse_size.properties.add_property"
+          @icon="plus"
+          class="btn-default add-prop-btn"
+        />
+      </div>
+
+      <hr />
+
+      {{#if (eq this.characterType "roleplay")}}
+        <div class="control-group custom-triggers-group">
+          <div class="triggers-header-row">
+            <label>{{i18n "discourse_size.triggers.title"}}</label>
+            <DButton
+              @action={{this.openTriggerHelp}}
+              @icon="question"
+              @label="discourse_size.triggers.help_btn"
+              class="btn-default btn-small"
+            />
+          </div>
+          <span class="instructions">{{i18n
+              "discourse_size.triggers.instructions"
+            }}</span>
+
+          <div class="triggers-list">
+            {{#each this.triggers as |trigger|}}
+              {{#unless trigger._destroy}}
+                <div class="trigger-item">
+                  <div class="trigger-header">
+                    <Input
+                      @type="text"
+                      @value={{trigger.name}}
+                      placeholder={{i18n
+                        "discourse_size.triggers.name_placeholder"
+                      }}
+                      {{on
+                        "input"
+                        (fn this.updateTrigger trigger "name" trigger.name)
+                      }}
+                      class="trigger-name"
+                    />
+                    <DButton
+                      @action={{fn this.removeTrigger trigger}}
+                      @icon="trash-can"
+                      class="btn-danger btn-small remove-trigger-btn"
+                    />
+                  </div>
+                  <div {{did-insert (fn this.initCodeMirror trigger)}}>
+                  </div>
+                </div>
+              {{/unless}}
+            {{/each}}
+          </div>
+
+          <DButton
+            @action={{this.addTrigger}}
+            @label="discourse_size.triggers.add_trigger"
+            @icon="plus"
+            class="btn-default add-trigger-btn"
+          />
+        </div>
+
+        <hr />
+      {{/if}}
+
       <div class="control-group">
         <label>{{if
-            (eq this.characterType "freeform")
+            (or
+              (eq this.characterType "freeform")
+              (eq this.characterType "roleplay")
+            )
             (i18n "discourse_size.fields.size")
             (i18n "discourse_size.fields.base_size")
           }}</label>
         <span class="instructions">{{if
-            (eq this.characterType "freeform")
+            (or
+              (eq this.characterType "freeform")
+              (eq this.characterType "roleplay")
+            )
             (i18n "discourse_size.fields.size_help")
             (i18n "discourse_size.fields.base_size_help")
           }}</span>
@@ -171,11 +351,9 @@
         {{/if}}
       </div>
 
-
-
       <hr />
 
-      {{#if (not (eq this.characterType "freeform"))}}
+      {{#if (eq this.characterType "game")}}
         <div class="control-group blocking-items-group">
           <label>{{i18n "discourse_size.blocking.block_items"}}</label>
           <span class="instructions">{{i18n

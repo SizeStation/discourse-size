@@ -277,14 +277,14 @@
                     leaveAgo="true"
                   }}</span>
 
-                {{#unless action.parent_action_id}}
+                {{#if (and this.canManageCharacter (not action.parent_action_id))}}
                   <DButton
                     @action={{fn this.deleteAction action}}
                     @icon="clock-rotate-left"
                     class="btn-danger btn-small delete-action-btn"
                     @title="discourse_size.delete_action"
                   />
-                {{/unless}}
+                {{/if}}
               </div>
             </li>
           {{/each}}

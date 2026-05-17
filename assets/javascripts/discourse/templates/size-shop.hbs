@@ -11,13 +11,6 @@
           @action={{this.addShopItem}}
           class="btn-default add-item-btn"
         />
-        <DButton
-          @icon="plus"
-          @icon="heading"
-          @label="discourse_size.shop.add_header"
-          @action={{this.addSectionHeader}}
-          class="btn-default add-header-btn"
-        />
       {{/if}}
       <DButton
         @label="discourse_size.inventory.my_inventory"
@@ -51,69 +44,54 @@
         class="shop-grid"
       >
         {{#each this.items as |item|}}
-          {{#if (eq item.item_type "header")}}
-            <div
-              class="shop-section-header"
-              style={{html-safe (concat "color: " item.color)}}
-            >
-              <div class="header-left">
-                <div class="drag-handle">
-                  {{d-icon "grip-lines"}}
+          <div
+            class="shop-item-card
+              {{if (gt item.price this.currentPoints) 'expensive'}}"
+          >
+            <div class="item-header">
+              {{#if item.picture}}
+                <div class="item-image">
+                  <img src={{item.picture}} alt={{item.name}} />
                 </div>
-                <h2>{{item.name}}</h2>
+              {{/if}}
+              <div class="drag-handle">
+                {{d-icon "grip-lines"}}
               </div>
-              <div class="header-actions">
+            </div>
+            <div class="item-info">
+              <h2 class="item-name">{{item.name}}</h2>
+              <div class="item-stats">
+                <span
+                  class="stat stock {{if (eq item.stock 0) 'out-of-stock'}}"
+                >
+                  {{i18n "discourse_size.shop.stats.stock"}}:
+                  {{if
+                    (eq item.stock -1)
+                    (i18n "discourse_size.shop.stats.infinite")
+                    item.stock
+                  }}
+                </span>
+                {{#unless item.enabled}}
+                  <span class="stat disabled-label">{{i18n
+                      "discourse_size.shop.stats.disabled"
+                    }}</span>
+                {{/unless}}
+              </div>
+              <p class="item-description">{{item.description}}</p>
+            </div>
+            <div class="item-footer">
+              <span class="item-price">{{item.price}} Coins</span>
+              <div class="actions">
                 <DButton
                   @icon="pencil"
                   @action={{fn this.editShopItem item}}
-                  class="btn-flat"
+                  class="btn-default edit-btn"
                 />
-              </div>
-            </div>
-          {{else}}
-            <div
-              class="shop-item-card
-                {{if (gt item.price this.currentPoints) 'expensive'}}"
-            >
-              <div class="item-header">
-                {{#if item.picture}}
-                  <div class="item-image">
-                    <img src={{item.picture}} alt={{item.name}} />
-                  </div>
-                {{/if}}
-                <div class="drag-handle">
-                  {{d-icon "grip-lines"}}
-                </div>
-              </div>
-              <div class="item-info">
-                <h2 class="item-name">{{item.name}}</h2>
-                <div class="item-stats">
-                  <span
-                    class="stat stock {{if (eq item.stock 0) 'out-of-stock'}}"
-                  >
-                    {{i18n "discourse_size.shop.stats.stock"}}:
-                    {{if
-                      (eq item.stock -1)
-                      (i18n "discourse_size.shop.stats.infinite")
-                      item.stock
-                    }}
-                  </span>
-                  {{#unless item.enabled}}
-                    <span class="stat disabled-label">{{i18n
-                        "discourse_size.shop.stats.disabled"
-                      }}</span>
-                  {{/unless}}
-                </div>
-                <p class="item-description">{{item.description}}</p>
-              </div>
-              <div class="item-footer">
-                <span class="item-price">{{item.price}} Coins</span>
-                <div class="actions">
-                  <DButton
-                    @icon="pencil"
-                    @action={{fn this.editShopItem item}}
-                    class="btn-default edit-btn"
-                  />
+                {{#if (eq item.stock 0)}}
+                  <span class="out-of-stock-label">{{i18n
+                      "discourse_size.shop.out_of_stock"
+                    }}</span>
+                {{else}}
                   <DButton
                     @label={{if
                       (gt item.price this.currentPoints)
@@ -131,23 +109,15 @@
                       "btn-primary purchase-btn"
                     }}
                   />
-                </div>
+                {{/if}}
               </div>
             </div>
-          {{/if}}
+          </div>
         {{/each}}
       </DiscourseSizeReorderableList>
-    {{else}}
-      <div class="shop-grid">
-        {{#each this.items as |item|}}
-          {{#if (eq item.item_type "header")}}
-            <div
-              class="shop-section-header"
-              style={{html-safe (concat "color: " item.color)}}
-            >
-              <h2>{{item.name}}</h2>
-            </div>
-          {{else}}
+      {{else}}
+        <div class="shop-grid">
+          {{#each this.items as |item|}}
             <div
               class="shop-item-card
                 {{if (gt item.price this.currentPoints) 'expensive'}}"
@@ -181,29 +151,34 @@
               <div class="item-footer">
                 <span class="item-price">{{item.price}} Coins</span>
                 <div class="actions">
-                  <DButton
-                    @label={{if
-                      (gt item.price this.currentPoints)
-                      "discourse_size.shop.too_expensive"
-                      "discourse_size.shop.purchase"
-                    }}
-                    @action={{fn this.purchaseItem item}}
-                    @disabled={{or
-                      (gt item.price this.currentPoints)
-                      (eq this.purchasing item.key)
-                    }}
-                    class={{if
-                      (gt item.price this.currentPoints)
-                      "btn-danger purchase-btn"
-                      "btn-primary purchase-btn"
-                    }}
-                  />
+                  {{#if (eq item.stock 0)}}
+                    <span class="out-of-stock-label">{{i18n
+                        "discourse_size.shop.out_of_stock"
+                      }}</span>
+                  {{else}}
+                    <DButton
+                      @label={{if
+                        (gt item.price this.currentPoints)
+                        "discourse_size.shop.too_expensive"
+                        "discourse_size.shop.purchase"
+                      }}
+                      @action={{fn this.purchaseItem item}}
+                      @disabled={{or
+                        (gt item.price this.currentPoints)
+                        (eq this.purchasing item.key)
+                      }}
+                      class={{if
+                        (gt item.price this.currentPoints)
+                        "btn-danger purchase-btn"
+                        "btn-primary purchase-btn"
+                      }}
+                    />
+                  {{/if}}
                 </div>
               </div>
             </div>
-          {{/if}}
-        {{/each}}
-      </div>
-    {{/if}}
+          {{/each}}
+        </div>
+      {{/if}}
   </div>
 </div>

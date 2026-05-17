@@ -12,6 +12,8 @@ module DiscourseSize
         quests: serialize_data(quests, DiscourseSizeUserQuestSerializer),
         daily_reward_status: current_user.custom_fields["discourse_size_last_daily_reward_date"] == Date.today.to_s ? "collected" : "available",
         can_reroll: current_user.custom_fields["discourse_size_last_quest_reroll_date"] != Date.today.to_s,
+        can_get_new_quests: QuestManager.can_get_new_quests?(current_user),
+        next_reroll_at: (Time.zone.now.beginning_of_day + 1.day).iso8601,
         extra_reward_amount: SiteSetting.discourse_size_extra_reward_amount,
         bonus_collected: current_user.custom_fields["discourse_size_last_bonus_reward_date"] == Date.today.to_s
       }
@@ -48,6 +50,19 @@ module DiscourseSize
 
     def reroll
       result = QuestManager.reroll(current_user)
+      
+      if result[:success]
+        render json: {
+          success: true,
+          quests: serialize_data(result[:quests], DiscourseSizeUserQuestSerializer),
+        }
+      else
+        render json: { success: false, failed: true, message: result[:error] }, status: :unprocessable_content
+      end
+    end
+
+    def get_new_quests
+      result = QuestManager.get_new_quests(current_user)
       
       if result[:success]
         render json: {

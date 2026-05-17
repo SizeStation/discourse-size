@@ -60,6 +60,24 @@ module ::DiscourseSize
       )
     end
 
+    def self.send_roleplay_invite(roleplay, character)
+      notification_type = Notification.types[:discourse_size_notification] || 2600
+      return if Notification.types.values.exclude?(notification_type)
+
+      notification_data = {
+        roleplay_name: roleplay.name,
+        roleplay_id: roleplay.uuid,
+        character_name: character.name,
+        invite: true
+      }
+
+      Notification.create!(
+        notification_type: notification_type,
+        user_id: character.user_id,
+        data: notification_data.to_json
+      )
+    end
+
     def self.delete_notification(notification_id)
       return unless notification_id
       Notification.find_by(id: notification_id)&.destroy

@@ -7,6 +7,7 @@ DiscourseSize::Engine.routes.draw do
   put "characters/:id" => "characters#update"
   delete "characters/:id" => "characters#destroy"
   post "characters/:id/set_size" => "characters#set_size"
+  post "characters/:id/trigger" => "characters#trigger"
   post "characters/:id/set_main" => "characters#set_main"
   post "characters/:id/unset_main" => "characters#unset_main"
   post "characters/:id/block_user" => "characters#block_user"
@@ -18,6 +19,15 @@ DiscourseSize::Engine.routes.draw do
 
   resources :folders, only: [:create, :update, :destroy] do
     post "reorder", on: :collection
+  end
+
+  resources :roleplays do
+    post "join", on: :member
+    post "leave", on: :member
+    post "invite", on: :member
+    post "accept_invite", on: :member
+    post "decline_invite", on: :member
+    post "remove_member", on: :member
   end
 
   get "leaderboard" => "leaderboard#index"

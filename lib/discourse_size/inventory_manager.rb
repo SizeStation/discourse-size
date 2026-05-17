@@ -112,25 +112,6 @@ module ::DiscourseSize
         )
       end
 
-      # Duplicate effect to site sinks
-      DiscourseSizeCharacter.where(site_sink: true).find_each do |sink_char|
-        next if sink_char.id == target_character_id # Already applied if it was the target
-        next if sink_char.is_blocked?(user, item_key: inventory_item.item_key, action_type: item.effect)
-
-        # Duplicate effect
-        sink_start_offset = sink_char.target_offset
-        sink_current_total = sink_char.base_size + sink_start_offset
-        sink_new_total = sink_current_total * (1.0 + (item.effect == "shrink" ? -item.amount.to_f : item.amount.to_f) / 100.0)
-        sink_size_change = sink_new_total - sink_current_total
-
-        sink_char.add_queued_action(
-          action_type: item.effect,
-          size_change: sink_size_change,
-          duration_minutes: item.duration_minutes.to_f,
-          user_id: sink_char.user_id,
-          item_key: item.key
-        )
-      end
 
       # Decrease uses
       if inventory_item.uses_remaining < 999999

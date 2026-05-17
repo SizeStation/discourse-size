@@ -67,13 +67,34 @@
       </div>
 
       <div class="quests-footer">
-        {{#if this.canReroll}}
+        {{#if this.canGetNewQuests}}
           <DButton
-            @label="discourse_size.quests.reroll_quests"
-            @action={{this.rerollQuests}}
-            @disabled={{this.rerolling}}
-            class="btn-default reroll-btn"
+            @label="discourse_size.quests.get_new_quests"
+            @action={{this.getNewQuests}}
+            @disabled={{this.gettingNewQuests}}
+            class="btn-primary reroll-btn"
           />
+        {{else}}
+          {{#if this.allQuestsCompleted}}
+            <DButton
+              @label="discourse_size.quests.come_back_tomorrow"
+              @disabled={{true}}
+              class="btn-default reroll-btn"
+            />
+          {{else}}
+            {{#if this.canReroll}}
+              <DButton
+                @label="discourse_size.quests.reroll_quests"
+                @action={{this.rerollQuests}}
+                @disabled={{this.rerolling}}
+                class="btn-default reroll-btn"
+              />
+            {{/if}}
+          {{/if}}
+        {{/if}}
+
+        {{#if this.rerollTimerText}}
+          <span class="reroll-timer">{{this.rerollTimerText}}</span>
         {{/if}}
         {{#if this.currentUser.admin}}
           <DButton

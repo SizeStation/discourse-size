@@ -20,10 +20,23 @@ export default class DiscourseSizeDailyQuests extends Component {
   @tracked collectingQuest = false;
   @tracked collectingBonus = false;
   @tracked rerolling = false;
+  @tracked canGetNewQuests = false;
+  @tracked nextRerollAt = null;
+  @tracked rerollTimerText = "";
+  @tracked gettingNewQuests = false;
+
+  _timer = null;
 
   constructor() {
     super(...arguments);
     this.loadQuests();
+  }
+
+  willDestroy() {
+    super.willDestroy(...arguments);
+    if (this._timer) {
+      clearInterval(this._timer);
+    }
   }
 
   async loadQuests() {
@@ -32,12 +45,51 @@ export default class DiscourseSizeDailyQuests extends Component {
       this.quests = response.quests;
       this.dailyRewardStatus = response.daily_reward_status;
       this.canReroll = response.can_reroll;
+      this.canGetNewQuests = response.can_get_new_quests;
+      this.nextRerollAt = response.next_reroll_at;
       this.extraRewardAmount = response.extra_reward_amount;
       this.bonusCollected = response.bonus_collected;
       this.loading = false;
+
+      this.startRerollTimer();
     } catch (e) {
       popupAjaxError(e);
     }
+  }
+
+  startRerollTimer() {
+    if (this._timer) {
+      clearInterval(this._timer);
+    }
+
+    if (this.canReroll || !this.nextRerollAt) {
+      this.rerollTimerText = "";
+      return;
+    }
+
+    const updateTimer = () => {
+      const now = new Date();
+      const target = new Date(this.nextRerollAt);
+      const diff = target - now;
+
+      if (diff <= 0) {
+        this.rerollTimerText = "";
+        this.canReroll = true;
+        clearInterval(this._timer);
+        return;
+      }
+
+      const hours = Math.floor(diff / 3600000);
+      const minutes = Math.floor((diff % 3600000) / 60000);
+      const seconds = Math.floor((diff % 60000) / 1000);
+
+      this.rerollTimerText = I18n.t("js.discourse_size.quests.next_reroll_in", {
+        time: `${hours}h ${minutes}m ${seconds}s`,
+      });
+    };
+
+    updateTimer();
+    this._timer = setInterval(updateTimer, 1000);
   }
 
   get allQuestsCompleted() {
@@ -105,11 +157,30 @@ export default class DiscourseSizeDailyQuests extends Component {
       if (response?.success) {
         this.quests = response.quests;
         this.canReroll = false;
+        this.startRerollTimer();
       }
     } catch (e) {
       popupAjaxError(e);
     } finally {
       this.rerolling = false;
+    }
+  }
+
+  @action
+  async getNewQuests() {
+    this.gettingNewQuests = true;
+    try {
+      const response = await ajax("/size/quests/get_new", { type: "POST" });
+      if (response?.success) {
+        this.quests = response.quests;
+        this.canGetNewQuests = false;
+        this.canReroll = true;
+        this.startRerollTimer();
+      }
+    } catch (e) {
+      popupAjaxError(e);
+    } finally {
+      this.gettingNewQuests = false;
     }
   }
 

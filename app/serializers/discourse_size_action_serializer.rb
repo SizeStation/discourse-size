@@ -28,7 +28,8 @@ class DiscourseSizeActionSerializer < ApplicationSerializer
              :child_size_change,
              :child_action_type,
              :parent_size_change,
-             :parent_action_type
+             :parent_action_type,
+             :end_total_size
   
   has_one :user, serializer: UserNameSerializer, embed: :objects
 
@@ -115,7 +116,15 @@ class DiscourseSizeActionSerializer < ApplicationSerializer
     object.end_offset.to_f
   end
 
+  def end_total_size
+    return nil unless object.character
+    object.character.base_size + object.end_offset.to_f
+  end
+
   def item_name
+    if object.action_type == "trigger"
+      return object.item_key
+    end
     return nil unless object.item_key
     DiscourseSizeShopItem.find_by(key: object.item_key)&.name
   end

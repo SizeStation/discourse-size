@@ -9,14 +9,12 @@ export default class DiscourseSizeAdminEdit extends Component {
   @tracked isSaving = false;
   @tracked sizeUnit = "cm";
   @tracked displaySize = 0;
-  @tracked siteSink = false;
 
   constructor() {
     super(...arguments);
     const char = this.args?.model?.character || {};
     this.currentSize = char.current_size;
     this.originalCurrentSize = char.current_size;
-    this.siteSink = char.site_sink;
     const unit = getBestUnit(this.currentSize);
     this.sizeUnit = unit.id;
     this.displaySize = parseFloat(
@@ -67,7 +65,6 @@ export default class DiscourseSizeAdminEdit extends Component {
       data.current_size = currentSizeInCm;
     }
 
-    data.site_sink = this.siteSink;
 
     try {
       await ajax(`/size/admin/characters/${this.args?.model?.character?.id}`, {

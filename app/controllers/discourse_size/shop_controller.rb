@@ -7,7 +7,7 @@ module DiscourseSize
 
     def index
       items = DiscourseSizeShopItem.all
-      items = items.enabled.in_stock unless current_user&.admin?
+      items = items.enabled unless current_user&.admin?
 
       respond_to do |format|
         format.html { render "default/empty" }

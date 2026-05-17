@@ -9,6 +9,7 @@ import DiscourseSizePointHistory from "../../../components/modal/discourse-size-
 
 import DiscourseSizeAdminUser from "../../../components/modal/discourse-size-admin-user";
 import DiscourseSizeInventory from "../../../components/modal/discourse-size-inventory";
+import DiscourseSizeRoleplaysModal from "../../../components/modal/discourse-size-roleplays-modal";
 import I18n from "I18n";
 
 export default class UserCharactersIndexController extends Controller {
@@ -160,6 +161,11 @@ export default class UserCharactersIndexController extends Controller {
         },
       },
     });
+  }
+
+  @action
+  openRoleplaysModal() {
+    this.modal.show(DiscourseSizeRoleplaysModal);
   }
 
   @action

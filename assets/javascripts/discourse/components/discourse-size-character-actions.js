@@ -3,6 +3,7 @@ import { action } from "@ember/object";
 import { tracked } from "@glimmer/tracking";
 import { inject as service } from "@ember/service";
 import { ajax } from "discourse/lib/ajax";
+import { popupAjaxError } from "discourse/lib/ajax-error";
 import { formatSize } from "../lib/size-formatter";
 import DiscourseSizeUseItem from "./modal/discourse-size-use-item";
 
@@ -13,12 +14,12 @@ export default class DiscourseSizeCharacterActions extends Component {
   @service modal;
   @tracked amountInput = 10;
   @tracked boostAmountInput = 10;
-  @tracked freeformSizeInput = "";
+  @tracked manualSizeInput = "";
 
   constructor() {
     super(...arguments);
-    if (this.args.character.character_type === "freeform") {
-      this.freeformSizeInput = (
+    if (this.args.character.character_type === "freeform" || this.args.character.character_type === "roleplay") {
+      this.manualSizeInput = (
         this.args.character.current_size || this.args.character.base_size
       ).toString();
     }
@@ -40,6 +41,14 @@ export default class DiscourseSizeCharacterActions extends Component {
 
   get isFreeform() {
     return this.args.character.character_type === "freeform";
+  }
+
+  get isRoleplay() {
+    return this.args.character.character_type === "roleplay";
+  }
+
+  get isManual() {
+    return this.isFreeform || this.isRoleplay;
   }
 
   get canEdit() {
@@ -77,13 +86,13 @@ export default class DiscourseSizeCharacterActions extends Component {
   }
 
   @action
-  setFreeformSize(event) {
-    this.freeformSizeInput = event.target.value;
+  setManualSize(event) {
+    this.manualSizeInput = event.target.value;
   }
 
   @action
   async setSize() {
-    const size = parseFloat(this.freeformSizeInput);
+    const size = parseFloat(this.manualSizeInput);
     if (isNaN(size)) return;
 
     try {
@@ -96,7 +105,23 @@ export default class DiscourseSizeCharacterActions extends Component {
       );
       this.args.onAction?.(result);
     } catch (e) {
-      alert(e.jqXHR?.responseJSON?.error || "Error setting size");
+      popupAjaxError(e);
+    }
+  }
+
+  @action
+  async runTrigger(triggerName) {
+    try {
+      const result = await ajax(
+        `/size/characters/${this.args.character.id}/trigger`,
+        {
+          type: "POST",
+          data: { trigger_name: triggerName },
+        }
+      );
+      this.args.onAction?.(result);
+    } catch (e) {
+      popupAjaxError(e);
     }
   }
 }

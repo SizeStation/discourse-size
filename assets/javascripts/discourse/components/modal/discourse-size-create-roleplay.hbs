@@ -1,0 +1,53 @@
+<DModal
+  @title={{i18n "discourse_size.roleplays.modals.create.title"}}
+  @closeModal={{@closeModal}}
+  class="discourse-size-create-roleplay-modal"
+>
+  <:body>
+    <div class="roleplay-form">
+      <div class="control-group">
+        <label>{{i18n "discourse_size.fields.name"}}</label>
+        <Input @type="text" @value={{this.name}} />
+      </div>
+
+      <div class="control-group">
+        <label>{{i18n "discourse_size.fields.picture"}}</label>
+        <div class="picture-upload-wrapper">
+          {{#if this.picture}}
+            <img src={{this.picture}} alt="Preview" class="upload-preview" />
+          {{/if}}
+          <div class="upload-controls">
+            <DButton
+              @action={{this.uploadImage}}
+              @label="discourse_size.upload_picture"
+              @icon="upload"
+              class="btn-default"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>{{i18n "discourse_size.description"}}</label>
+        <Textarea @value={{this.description}} />
+      </div>
+
+      <div class="control-group checkbox-group">
+        <label>
+          <Input @type="checkbox" @checked={{this.isPublic}} />
+          {{i18n "discourse_size.roleplays.is_public"}}
+        </label>
+      </div>
+    </div>
+  </:body>
+
+  <:footer>
+    <DButton
+      @action={{this.save}}
+      @label="discourse_size.roleplays.modals.create.create_btn"
+      @icon="plus"
+      class="btn-primary"
+      @disabled={{this.saving}}
+    />
+  </:footer>
+</DModal>

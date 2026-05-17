@@ -1,0 +1,60 @@
+<DModal
+  @title={{i18n "discourse_size.roleplays.modals.invite.title"}}
+  @closeModal={{@closeModal}}
+  class="discourse-size-invite-to-roleplay-modal"
+>
+  <:body>
+    <div class="invite-roleplay-content">
+      <div class="search-box">
+        <Input
+          @value={{this.searchTerm}}
+          @placeholder={{i18n
+            "discourse_size.roleplays.modals.invite.search_placeholder"
+          }}
+          class="character-search-input"
+          {{on "input" this.onSearchInput}}
+        />
+        {{#if this.searching}}
+          <div class="loading-spinner small"></div>
+        {{else}}
+          {{d-icon "search"}}
+        {{/if}}
+      </div>
+
+      <div class="characters-list">
+        {{#each this.searchResults as |char|}}
+          <div class="character-list-item">
+            <div class="char-pic">
+              {{#if char.picture}}
+                <img src={{char.picture}} alt="" />
+              {{else}}
+                {{d-icon "user"}}
+              {{/if}}
+            </div>
+            <div class="char-info">
+              <span class="char-name">{{char.name}}</span>
+              <span class="char-owner">@{{char.username}}</span>
+            </div>
+            <DButton
+              @action={{fn this.invite char}}
+              @label="discourse_size.roleplays.invite"
+              @icon="envelope"
+              class="btn-primary btn-small"
+              @disabled={{this.inviting}}
+            />
+          </div>
+        {{else}}
+          {{#if (gt this.searchTerm.length 1)}}
+            <p class="no-results">{{i18n
+                "discourse_size.roleplays.no_characters"
+              }}</p>
+          {{else}}
+            <p class="instructions">{{i18n
+                "discourse_size.roleplays.modals.invite.instructions"
+              }}</p>
+          {{/if}}
+        {{/each}}
+      </div>
+    </div>
+  </:body>
+</DModal>

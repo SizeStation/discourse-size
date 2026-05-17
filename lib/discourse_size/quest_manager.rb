@@ -17,7 +17,7 @@ module ::DiscourseSize
     def self.ensure_quests_for(user)
       return [] if user.nil?
 
-      existing = DiscourseSizeUserQuest.where(user_id: user.id).today
+      existing = DiscourseSizeUserQuest.where(user_id: user.id)
       return existing if existing.any?
 
       # Generate new quests
@@ -57,7 +57,7 @@ module ::DiscourseSize
       # Handle symbols/strings for type
       type = type.to_sym if type.respond_to?(:to_sym)
 
-      quests = DiscourseSizeUserQuest.where(user_id: user_id, collected: false).today
+      quests = DiscourseSizeUserQuest.where(user_id: user_id, collected: false)
 
       quests.each do |quest|
         definition = QUESTS.find { |q| q[:id] == quest.quest_id }
@@ -123,7 +123,7 @@ module ::DiscourseSize
     end
 
     def self.collect_bonus(user)
-      all_quests = DiscourseSizeUserQuest.where(user_id: user.id).today
+      all_quests = DiscourseSizeUserQuest.where(user_id: user.id)
       return { success: false, error: "Not all quests completed or collected." } unless all_quests.any? && all_quests.all?(&:collected) && all_quests.count >= SiteSetting.discourse_size_daily_quests_count
 
       today = Date.today.to_s
@@ -149,19 +149,20 @@ module ::DiscourseSize
 
       return { success: false, error: "Already rerolled today." } if last_reroll == today
 
-      uncollected = DiscourseSizeUserQuest.where(user_id: user.id, collected: false).today
-      return { success: false, error: "No uncollected quests to reroll." } if uncollected.empty?
+      # Only reroll quests that are NOT finished (not collected AND not completed)
+      to_reroll = DiscourseSizeUserQuest.where(user_id: user.id, collected: false).select { |q| !q.completed? }
+      return { success: false, error: "No incomplete quests to reroll." } if to_reroll.empty?
 
-      # Get IDs of quests to keep (collected ones)
-      collected_ids = DiscourseSizeUserQuest.where(user_id: user.id, collected: true).today.pluck(:quest_id)
+      # Get IDs of quests to keep (collected or completed)
+      kept_ids = DiscourseSizeUserQuest.where(user_id: user.id).select { |q| q.collected || q.completed? }.map(&:quest_id)
 
-      # Generate new quests to replace uncollected ones
-      available_pool = QUESTS.reject { |q| collected_ids.include?(q[:id]) }
+      # Generate new quests to replace incomplete ones
+      available_pool = QUESTS.reject { |q| kept_ids.include?(q[:id]) }
 
-      new_quests = available_pool.sample(uncollected.count)
+      new_quests = available_pool.sample(to_reroll.count)
 
       DiscourseSizeUserQuest.transaction do
-        uncollected.destroy_all
+        DiscourseSizeUserQuest.where(id: to_reroll.map(&:id)).destroy_all
         new_quests.each do |q|
           DiscourseSizeUserQuest.create!(
             user_id: user.id,
@@ -177,8 +178,32 @@ module ::DiscourseSize
       { success: true, quests: ensure_quests_for(user) }
     end
 
+    def self.can_get_new_quests?(user)
+      return false if user.nil?
+      
+      quests = DiscourseSizeUserQuest.where(user_id: user.id)
+      return true if quests.empty?
+
+      # Can get new quests only on the next calendar day
+      oldest_quest = quests.order(created_at: :asc).first
+      oldest_quest.created_at < Time.zone.now.beginning_of_day
+    end
+
+    def self.get_new_quests(user)
+      return { success: false, error: "Cannot get new quests today." } unless can_get_new_quests?(user)
+
+      DiscourseSizeUserQuest.transaction do
+        DiscourseSizeUserQuest.where(user_id: user.id).destroy_all
+        user.custom_fields["discourse_size_last_quest_reroll_date"] = nil
+        user.custom_fields["discourse_size_last_bonus_reward_date"] = nil
+        user.save_custom_fields(true)
+      end
+
+      { success: true, quests: ensure_quests_for(user) }
+    end
+
     def self.reset_quests(user)
-      DiscourseSizeUserQuest.where(user_id: user.id).today.destroy_all
+      DiscourseSizeUserQuest.where(user_id: user.id).destroy_all
       user.custom_fields["discourse_size_last_quest_reroll_date"] = nil
       user.custom_fields["discourse_size_last_bonus_reward_date"] = nil
       user.save_custom_fields(true)

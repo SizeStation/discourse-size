@@ -3,12 +3,20 @@
 class DiscourseSizeCharacter < ActiveRecord::Base
   belongs_to :user
   belongs_to :discourse_size_folder, foreign_key: "folder_id", optional: true
+  has_many :discourse_size_character_properties, foreign_key: "character_id", dependent: :destroy
+  accepts_nested_attributes_for :discourse_size_character_properties, allow_destroy: true
+
+  has_many :discourse_size_roleplay_members, foreign_key: "character_id", dependent: :destroy
+  has_many :discourse_size_roleplays, through: :discourse_size_roleplay_members
+  has_many :discourse_size_character_triggers, foreign_key: "character_id", dependent: :destroy
+  accepts_nested_attributes_for :discourse_size_character_triggers, allow_destroy: true
+
   before_validation :trim_fields
   before_save :ensure_single_main, if: :is_main?
   before_save :set_folder_position, if: :will_save_change_to_folder_id?
   before_create :set_default_position
 
-  self.ignored_columns = %w[allow_growth allow_shrink growth_speed_multiplier measurement_system]
+  self.ignored_columns = %w[allow_growth allow_shrink growth_speed_multiplier measurement_system site_sink]
 
   def set_default_position
     return if position.present?
@@ -50,8 +58,9 @@ class DiscourseSizeCharacter < ActiveRecord::Base
 
   TYPE_GAME = 'game'
   TYPE_FREEFORM = 'freeform'
+  TYPE_ROLEPLAY = 'roleplay'
 
-  validates :character_type, inclusion: { in: [TYPE_GAME, TYPE_FREEFORM] }
+  validates :character_type, inclusion: { in: [TYPE_GAME, TYPE_FREEFORM, TYPE_ROLEPLAY] }
 
   def game?
     character_type == TYPE_GAME
@@ -59,6 +68,10 @@ class DiscourseSizeCharacter < ActiveRecord::Base
 
   def freeform?
     character_type == TYPE_FREEFORM
+  end
+
+  def roleplay?
+    character_type == TYPE_ROLEPLAY
   end
 
   MAX_SIZE = 1e120 # Cap at a googol-plus to prevent Infinity overflow
@@ -79,6 +92,49 @@ class DiscourseSizeCharacter < ActiveRecord::Base
  
     self.target_offset = new_target
     save!
+  end
+
+  def update_size(new_total_cm, actor)
+    new_total_cm = new_total_cm.to_f
+    new_total_cm = 1e-18 if new_total_cm < 1e-18
+    new_total_cm = MAX_SIZE if new_total_cm > MAX_SIZE
+
+    old_total_cm = self.current_size
+    
+    # Stop all pending growth/shrinking
+    discourse_size_actions.where(action_type: ["grow", "shrink"]).where("end_time > ?", Time.now).destroy_all
+
+    old_target_offset = target_offset
+    new_offset = new_total_cm - base_size
+    size_change = new_offset - old_target_offset
+
+    self.current_offset = new_offset
+    self.target_offset = new_offset
+    self.start_offset = new_offset
+    self.offset_updated_at = Time.now
+    save!
+
+    DiscourseSizeAction.create!(
+      character_id: id,
+      user_id: actor.id,
+      action_type: "set_size",
+      size_change: size_change,
+      points_spent: 0,
+      start_offset: old_target_offset,
+      end_offset: new_offset,
+      duration_minutes: 0,
+      start_time: Time.now,
+      end_time: Time.now
+    )
+
+    # Scale linked properties
+    if old_total_cm > 0 && new_total_cm > 0
+      factor = new_total_cm / old_total_cm
+      discourse_size_character_properties.where(property_type: "size", linked_to_size: true).each do |prop|
+        current_val = prop.value.to_f
+        prop.update!(value: (current_val * factor).to_s)
+      end
+    end
   end
 
   def current_size

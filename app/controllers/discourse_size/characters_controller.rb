@@ -6,7 +6,14 @@ module DiscourseSize
     before_action :ensure_logged_in, except: [:index]
 
     def index
-      user_id = params[:user_id]
+      if params[:q].present?
+        characters = DiscourseSizeCharacter.where("name ILIKE ?", "%#{params[:q]}%")
+        characters = characters.where(character_type: 'roleplay') if params[:roleplay_only]
+        return render json: { characters: serialize_data(characters.limit(20), DiscourseSizeCharacterSerializer) }
+      end
+
+      user_id = params[:user_id] || (params[:username] && User.find_by(username: params[:username])&.id) || current_user&.id
+      return render_json_error("User not found") unless user_id
       folders = DiscourseSizeFolder.where(user_id: user_id).order(position: :asc)
       characters = DiscourseSizeCharacter.where(user_id: user_id).order(is_main: :desc, position: :asc, created_at: :asc)
 
@@ -130,8 +137,8 @@ module DiscourseSize
 
     def set_size
       character = DiscourseSizeCharacter.find(params[:id])
-      unless character.freeform? || current_user.admin?
-        return render json: failed_json.merge(error: "Only Freeform characters can set size directly"), status: :forbidden
+      unless character.freeform? || character.roleplay? || current_user.admin?
+        return render json: failed_json.merge(error: "Only Static or Roleplay characters can set size directly"), status: :forbidden
       end
 
       unless character.user_id == current_user.id || current_user.admin?
@@ -139,39 +146,30 @@ module DiscourseSize
       end
 
       new_total_cm = params[:size].to_f
-      new_total_cm = 1e-18 if new_total_cm < 1e-18
-      new_total_cm = DiscourseSizeCharacter::MAX_SIZE if new_total_cm > DiscourseSizeCharacter::MAX_SIZE
-
-      # Stop all pending growth/shrinking
-      character.discourse_size_actions.where(action_type: ["grow", "shrink"]).where("end_time > ?", Time.now).destroy_all
-
-      old_target_offset = character.target_offset
-      new_offset = new_total_cm - character.base_size
-      size_change = new_offset - old_target_offset
-
-      character.current_offset = new_offset
-      character.target_offset = new_offset
-      character.start_offset = new_offset
-      character.offset_updated_at = Time.now
-      character.save!
-
-      DiscourseSizeAction.create!(
-        character_id: character.id,
-        user_id: current_user.id,
-        action_type: "set_size",
-        size_change: size_change,
-        points_spent: 0,
-        start_offset: old_target_offset,
-        end_offset: new_offset,
-        duration_minutes: 0,
-        start_time: Time.now,
-        end_time: Time.now
-      )
+      character.update_size(new_total_cm, current_user)
 
       render json: {
-               character: serialize_data(character, DiscourseSizeCharacterSerializer),
-               points: DiscourseSize::PointsManager.get_points(current_user),
-             }
+        character: serialize_data(character, DiscourseSizeCharacterSerializer),
+        points: DiscourseSize::PointsManager.get_points(current_user),
+      }
+    end
+
+    def trigger
+      character = DiscourseSizeCharacter.find(params[:id])
+      unless character.user_id == current_user.id || current_user.admin?
+        raise Discourse::InvalidAccess
+      end
+
+      result = DiscourseSize::TriggerExecutor.execute(character, params[:trigger_name], current_user)
+
+      if result[:success]
+        render json: {
+          character: serialize_data(character.reload, DiscourseSizeCharacterSerializer),
+          trigger_result: result[:result]
+        }
+      else
+        render json: failed_json.merge(error: result[:error]), status: :unprocessable_content
+      end
     end
 
     def destroy_action
@@ -296,7 +294,9 @@ module DiscourseSize
         :description,
         :show_comparison,
         blocked_item_keys: [],
-        blocked_user_ids: []
+        blocked_user_ids: [],
+        discourse_size_character_properties_attributes: [:id, :name, :property_type, :value, :linked_to_size, :_destroy],
+        discourse_size_character_triggers_attributes: [:id, :name, :js_code, :_destroy]
       )
     end
 

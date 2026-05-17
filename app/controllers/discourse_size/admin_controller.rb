@@ -48,9 +48,6 @@ module DiscourseSize
         )
       end
 
-      if params[:site_sink].present?
-        character.site_sink = params[:site_sink] == "true" || params[:site_sink] == true
-      end
 
       character.save!
 

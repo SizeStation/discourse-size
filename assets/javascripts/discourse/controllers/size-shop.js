@@ -31,22 +31,6 @@ export default class SizeShopController extends Controller {
   }
 
   @action
-  addSectionHeader() {
-    this.modal.show(DiscourseSizeEditShopItem, {
-      model: {
-        item: {
-          item_type: "header",
-          name: "New Section",
-          key: "section-" + Date.now(),
-        },
-        onSave: () => {
-          this.router.refresh();
-        },
-      },
-    });
-  }
-
-  @action
   editShopItem(item) {
     this.modal.show(DiscourseSizeEditShopItem, {
       model: {

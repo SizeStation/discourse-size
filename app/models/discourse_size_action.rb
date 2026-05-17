@@ -12,7 +12,7 @@ class DiscourseSizeAction < ActiveRecord::Base
   validates :action_type,
             presence: true,
             inclusion: {
-              in: %w[grow shrink reset boost_speed set_main unset_main],
+              in: %w[grow shrink reset boost_speed set_main unset_main set_size trigger],
             }
   validates :size_change, presence: true
 

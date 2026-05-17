@@ -3,11 +3,24 @@
     <DButton
       class="btn-danger disabled open-inventory-btn"
       @disabled={{true}}
-    >You're Blocked</DButton>
+      @label="discourse_size.blocked"
+    />
   {{else}}
     <DButton
       @action={{this.openInventoryModal}}
       class="btn-primary open-inventory-btn"
-    >Use Items</DButton>
+      @label="discourse_size.inventory.use_on_character_btn"
+    />
   {{/if}}
+{{/if}}
+
+{{#if this.isRoleplay}}
+  {{#each @character.triggers as |trigger|}}
+    <DButton
+      @action={{fn this.runTrigger trigger.name}}
+      class="btn-default trigger-btn"
+    >
+      {{trigger.name}}
+    </DButton>
+  {{/each}}
 {{/if}}

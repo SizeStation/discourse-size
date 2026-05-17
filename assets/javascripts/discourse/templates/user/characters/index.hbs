@@ -1,6 +1,6 @@
 {{#if this.isCurrentUser}}
   <div class="user-characters-header">
-    <h3>My Characters</h3>
+    <h3>{{i18n "discourse_size.my_characters"}}</h3>
 
     <div class="header-buttons">
       {{#if this.siteSettings.discourse_size_help_url}}
@@ -17,6 +17,16 @@
         @href="/size/shop"
         class="btn-default"
       />
+      <DButton
+        @action={{this.openRoleplaysModal}}
+        class="btn-default btn-roleplays {{if this.currentUser.pending_roleplay_invites_count 'has-badge'}}"
+      >
+        {{d-icon "users"}}
+        <span class="d-button-label">{{i18n "discourse_size.roleplays.title"}}</span>
+        {{#if this.currentUser.pending_roleplay_invites_count}}
+          <span class="badge-notification pending-invites">{{this.currentUser.pending_roleplay_invites_count}}</span>
+        {{/if}}
+      </DButton>
       <DButton
         @action={{this.createNewFolder}}
         @icon="plus"
@@ -40,7 +50,7 @@
   </div>
 {{else}}
   <div class="user-characters-header">
-    <h3>{{this.user.username}}'s Characters</h3>
+    <h3>{{i18n "discourse_size.user_characters" username=this.user.username}}</h3>
 
     <div class="header-buttons">
       {{#if this.siteSettings.discourse_size_help_url}}
@@ -55,6 +65,12 @@
         @label="discourse_size.shop.visit_shop"
         @icon="discourse-other-tab"
         @href="/size/shop"
+        class="btn-default"
+      />
+      <DButton
+        @action={{this.openRoleplaysModal}}
+        @label="discourse_size.roleplays.title"
+        @icon="users"
         class="btn-default"
       />
       {{#if this.currentUser}}
@@ -151,6 +167,6 @@
   </DiscourseSizeReorderableList>
 
   {{#unless this.characters.length}}
-    <p>No characters found.</p>
+    <p>{{i18n "discourse_size.no_characters"}}</p>
   {{/unless}}
 </div>

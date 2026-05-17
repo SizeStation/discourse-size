@@ -17,8 +17,6 @@ export default class DiscourseSizeEditShopItem extends Component {
     picture: "",
     stock: -1,
     enabled: true,
-    item_type: "item",
-    color: "",
     self_effect: null,
     self_amount: 0,
     can_only_use_on_others: false,
@@ -33,13 +31,6 @@ export default class DiscourseSizeEditShopItem extends Component {
         this.itemData.self_effect = null;
       }
     }
-  }
-
-  get itemTypeOptions() {
-    return [
-      { id: "item", name: "Shop Item" },
-      { id: "header", name: "Section Header" },
-    ];
   }
 
   get effectOptions() {

@@ -1,0 +1,37 @@
+<DModal
+  @title={{i18n "discourse_size.roleplays.pending_invites"}}
+  @closeModal={{@closeModal}}
+  class="discourse-size-invited-characters-modal"
+>
+  <:body>
+    <div class="invited-characters-content">
+      {{#if this.pendingMembers.length}}
+        <div class="invites-list">
+          {{#each this.pendingMembers as |member|}}
+            <div class="invite-item">
+              <div class="char-thumb">
+                {{#if member.character.picture}}
+                  <img src={{member.character.picture}} alt="" />
+                {{else}}
+                  {{d-icon "user"}}
+                {{/if}}
+              </div>
+              <div class="char-details">
+                <span class="name">{{member.character.name}}</span>
+                <span class="owner">@{{member.character.username}}</span>
+              </div>
+              <DButton
+                @action={{fn this.removeInvite member}}
+                @icon="trash-can"
+                class="btn-danger btn-small"
+                @title={{i18n "discourse_size.cancel"}}
+              />
+            </div>
+          {{/each}}
+        </div>
+      {{else}}
+        <p class="no-invites">{{i18n "discourse_size.roleplays.modals.invite.no_results"}}</p>
+      {{/if}}
+    </div>
+  </:body>
+</DModal>

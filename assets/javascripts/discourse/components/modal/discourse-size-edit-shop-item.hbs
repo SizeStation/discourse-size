@@ -5,12 +5,10 @@
 >
   <:body>
     <div class="edit-shop-item-form">
-      {{#unless (eq this.itemData.item_type "header")}}
-        <div class="control-group">
-          <label>{{i18n "discourse_size.shop.fields.key"}}</label>
-          <Input @value={{this.itemData.key}} />
-        </div>
-      {{/unless}}
+      <div class="control-group">
+        <label>{{i18n "discourse_size.shop.fields.key"}}</label>
+        <Input @value={{this.itemData.key}} />
+      </div>
 
       <div class="control-group">
         <label>{{i18n "discourse_size.shop.fields.name"}}</label>
@@ -25,33 +23,15 @@
         />
       </div>
 
-      <div class="row">
-        <div class="control-group half">
-          <label>{{i18n "discourse_size.shop.fields.item_type"}}</label>
-          {{combo-box
-            content=this.itemTypeOptions
-            value=this.itemData.item_type
-            onChange=(fn this.updateValue "itemData.item_type")
-          }}
-        </div>
-        {{#if (eq this.itemData.item_type "header")}}
-          <div class="control-group half">
-            <label>{{i18n "discourse_size.shop.fields.color"}}</label>
-            <Input @value={{this.itemData.color}} placeholder="#ff0000 or red" />
-          </div>
-        {{else}}
-          <div class="control-group half">
-            <label>{{i18n "discourse_size.shop.fields.enabled"}}</label>
-            <label class="checkbox-label">
-              <Input @type="checkbox" @checked={{this.itemData.enabled}} />
-              {{i18n "discourse_size.shop.fields.is_enabled"}}
-            </label>
-          </div>
-        {{/if}}
+      <div class="control-group half">
+        <label>{{i18n "discourse_size.shop.fields.enabled"}}</label>
+        <label class="checkbox-label">
+          <Input @type="checkbox" @checked={{this.itemData.enabled}} />
+          {{i18n "discourse_size.shop.fields.is_enabled"}}
+        </label>
       </div>
 
-      {{#if (eq this.itemData.item_type "item")}}
-        <div class="row">
+      <div class="row">
           <div class="control-group half">
             <label>{{i18n "discourse_size.shop.fields.price"}}</label>
             <Input @type="number" @value={{this.itemData.price}} />
@@ -127,13 +107,6 @@
           </label>
         </div>
 
-        <div class="control-group checkbox">
-          <label>
-            <Input @type="checkbox" @checked={{this.itemData.enabled}} />
-            {{i18n "discourse_size.shop.fields.enabled"}}
-          </label>
-        </div>
-      {{/if}}
     </div>
   </:body>
   <:footer>

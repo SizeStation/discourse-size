@@ -27,7 +27,9 @@ class DiscourseSizeCharacterSerializer < ApplicationSerializer
              :show_comparison,
              :folder_id,
              :position,
-             :site_sink
+             :properties,
+             :triggers,
+             :roleplay_memberships
 
   has_many :actions, serializer: DiscourseSizeActionSerializer, embed: :objects
 
@@ -44,6 +46,41 @@ class DiscourseSizeCharacterSerializer < ApplicationSerializer
     return [] if object.blocked_user_ids.blank?
     User.where(id: object.blocked_user_ids).map do |user|
       BasicUserSerializer.new(user, scope: scope, root: false).as_json
+    end
+  end
+
+  def properties
+    object.discourse_size_character_properties.map do |prop|
+      {
+        id: prop.id,
+        name: prop.name,
+        property_type: prop.property_type,
+        value: prop.value,
+        effective_value: prop.effective_value,
+        linked_to_size: prop.linked_to_size,
+        link_ratio: prop.link_ratio
+      }
+    end
+  end
+
+  def triggers
+    object.discourse_size_character_triggers.map do |t|
+      {
+        id: t.id,
+        name: t.name,
+        js_code: t.js_code
+      }
+    end
+  end
+
+  def roleplay_memberships
+    object.discourse_size_roleplay_members.map do |m|
+      {
+        id: m.id,
+        roleplay_id: m.roleplay_id,
+        roleplay_name: m.discourse_size_roleplay.name,
+        status: m.status
+      }
     end
   end
 

@@ -1,0 +1,73 @@
+<DModal @title="Trigger Scripting Help" class="discourse-size-trigger-help-modal">
+  <:body>
+    <div class="trigger-help-content">
+      <section>
+        <h3>Character Actions</h3>
+        <p>Actions are queued and execute sequentially.</p>
+        <ul>
+          <li><code>character.grow(amount, duration_seconds?)</code>: Grow the character.
+            <pre><code>character.grow(50, 600); // Grow 50cm over 600 seconds</code></pre>
+          </li>
+          <li><code>character.shrink(amount, duration_seconds?)</code>: Shrink the character.
+            <pre><code>character.shrink(20, 300); // Shrink 20cm over 300 seconds</code></pre>
+          </li>
+          <li><code>character.setSize(total_cm, duration_seconds?)</code>: Set absolute size.
+            <pre><code>character.setSize(200); // Set to exactly 200cm immediately
+character.setSize(300, 600); // Grow to 300cm over 600 seconds</code></pre>
+          </li>
+          <li><code>character.size()</code>: Get current size in cm.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h3>Character Info</h3>
+        <ul>
+          <li><code>character.species()</code>: Returns character's species.</li>
+          <li><code>character.age()</code>: Returns character's age.</li>
+          <li><code>character.pronouns()</code>: Returns character's pronouns.</li>
+          <li><code>character.property("name")</code>: Get custom property value.</li>
+          <li><code>character.setProperty("name", "value")</code>: Set custom property value.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h3>Unit Conversion Helpers</h3>
+        <p>All size functions use centimeters. Convert from imperial units:</p>
+        <ul>
+          <li><code>inchesToCm(inches)</code>: Inches to centimeters.</li>
+          <li><code>feetToCm(feet)</code>: Feet to centimeters.</li>
+          <li><code>feetAndInchesToCm(feet, inches)</code>: Feet and inches to centimeters.</li>
+          <li><code>milesToCm(miles)</code>: Miles to centimeters.</li>
+        </ul>
+        <pre><code>character.setSize(feetToCm(5) + inchesToCm(6));
+character.grow(feetAndInchesToCm(0, 6), 600);
+character.shrink(milesToCm(0.1), 120);</code></pre>
+      </section>
+
+      <section>
+        <h3>User / Points</h3>
+        <p>Points are read-only for scripts.</p>
+        <ul>
+          <li><code>user.points()</code>: Get your current points.</li>
+          <pre><code>if (user.points() >= 100) {
+  character.grow(10, 0);
+}</code></pre>
+        </ul>
+      </section>
+
+      <section>
+        <h3>Advanced Logic</h3>
+        <p>Use standard JavaScript logic (if, Math, etc.)</p>
+        <pre><code>let current = character.size();
+if (current &lt; 100) {
+  character.setSize(current * 2);
+} else {
+  character.grow(current * 0.1, 1800);
+}</code></pre>
+      </section>
+    </div>
+  </:body>
+  <:footer>
+    <DButton @action={{this.close}} @label="Close" class="btn-primary" />
+  </:footer>
+</DModal>
