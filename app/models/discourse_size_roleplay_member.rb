@@ -47,12 +47,13 @@ end
 #
 # Table name: discourse_size_roleplay_members
 #
-#  id           :bigint           not null, primary key
-#  status       :string           default("accepted"), not null
-#  created_at   :datetime         not null
-#  updated_at   :datetime         not null
-#  character_id :bigint           not null
-#  roleplay_id  :bigint           not null
+#  id            :bigint           not null, primary key
+#  override_data :jsonb            not null
+#  status        :string           default("accepted"), not null
+#  created_at    :datetime         not null
+#  updated_at    :datetime         not null
+#  character_id  :bigint           not null
+#  roleplay_id   :bigint           not null
 #
 # Indexes
 #

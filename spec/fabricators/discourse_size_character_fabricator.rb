@@ -4,7 +4,7 @@ Fabricator(:discourse_size_character) do
   user
   name { sequence(:name) { |i| "Character #{i}" } }
   base_size 170.0
-  character_type DiscourseSizeCharacter::TYPE_FREEFORM
+  character_type DiscourseSizeCharacter::TYPE_NORMAL
   current_offset 0.0
   start_offset 0.0
   target_offset 0.0
