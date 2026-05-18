@@ -14,13 +14,15 @@
   {{/if}}
 {{/if}}
 
-{{#if this.isRoleplay}}
-  {{#each @character.triggers as |trigger|}}
-    <DButton
-      @action={{fn this.runTrigger trigger.name}}
-      class="btn-default trigger-btn"
-    >
-      {{trigger.name}}
-    </DButton>
-  {{/each}}
-{{/if}}
+{{#unless this.siteSettings.discourse_size_disable_triggers}}
+  {{#if this.isNormal}}
+    {{#each @character.triggers as |trigger|}}
+      <DButton
+        @action={{fn this.runTrigger trigger.name}}
+        class="btn-default trigger-btn"
+      >
+        {{trigger.name}}
+      </DButton>
+    {{/each}}
+  {{/if}}
+{{/unless}}

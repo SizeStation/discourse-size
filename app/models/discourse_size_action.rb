@@ -5,14 +5,37 @@ class DiscourseSizeAction < ActiveRecord::Base
   belongs_to :user
   
   belongs_to :parent_action, class_name: "DiscourseSizeAction", optional: true
-  has_one :child_action, class_name: "DiscourseSizeAction", foreign_key: :parent_action_id, dependent: :destroy
+  has_many :child_actions, class_name: "DiscourseSizeAction", foreign_key: :parent_action_id, dependent: :destroy
+
+  before_destroy :revert_effects, if: -> { action_type == "trigger" }
+
+  def revert_effects
+    child_actions.each do |child|
+      char = child.character
+      next unless char
+
+      if %w[set_size grow shrink].include?(child.action_type)
+        char.sync_offset!
+        off = child.start_offset.to_f
+        char.current_offset = off
+        char.target_offset = off
+        char.start_offset = off
+        char.offset_updated_at = Time.now
+        char.save!
+      elsif child.action_type == "property_change" && child.item_key.present?
+        prop = char.discourse_size_character_properties.find_by(name: child.item_key)
+        next unless prop
+        prop.update_column(:value, child.start_offset.to_s)
+      end
+    end
+  end
 
   validates :character_id, presence: true
   validates :user_id, presence: true
   validates :action_type,
             presence: true,
             inclusion: {
-              in: %w[grow shrink reset boost_speed set_main unset_main set_size trigger],
+              in: %w[grow shrink reset boost_speed set_main unset_main set_size trigger property_change],
             }
   validates :size_change, presence: true
 

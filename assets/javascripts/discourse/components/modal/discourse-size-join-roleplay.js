@@ -23,7 +23,7 @@ export default class DiscourseSizeJoinRoleplay extends Component {
       const result = await ajax(`/size/characters`);
       const existingCharacterIds = (this.args.model.roleplay?.members || []).map(m => m.character_id);
       this.myCharacters = result.characters.filter(c => 
-        c.character_type === 'roleplay' && !existingCharacterIds.includes(c.id)
+        !existingCharacterIds.includes(c.id)
       );
     } catch (e) {
       popupAjaxError(e);

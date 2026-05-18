@@ -6,6 +6,7 @@ import {
   calculateSize,
   isAnimating,
   getTimeRemaining,
+  calculatePropertyValue,
 } from "../lib/size-calculator";
 import {
   formatSize,
@@ -41,8 +42,8 @@ export default class DiscourseSizeCharacterCard extends Component {
 
     this._timer = setInterval(() => {
       const now = new Date();
+      this._currentTime = now;
       if (this.isAnimating) {
-        this._currentTime = now;
         this._tickWords(now);
       }
       this._checkForNewActions();
@@ -157,7 +158,7 @@ export default class DiscourseSizeCharacterCard extends Component {
     }
 
     // Freeform characters only allow owner/admin to take actions
-    if (char.character_type === "freeform") return false;
+    if (char.character_type === "normal") return false;
 
     // Show actions for everyone logged in (the component handles the blocked button)
     return true;
@@ -230,7 +231,26 @@ export default class DiscourseSizeCharacterCard extends Component {
   }
 
   get timeRemaining() {
-    return getTimeRemaining(this.args?.character, this._currentTime);
+    const c = this.args?.character;
+    if (!c || !c.actions) return null;
+    const now = this._currentTime;
+    const actions = c.actions
+      .filter(
+        (a) => a.start_time && a.end_time && a.action_type !== "property_change"
+      )
+      .sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
+    const activeAction = actions.find((a) => {
+      const start = new Date(a.start_time);
+      const end = new Date(a.end_time);
+      return now >= start && now < end;
+    });
+    if (!activeAction) return null;
+    const remaining = new Date(activeAction.end_time) - now;
+    if (remaining <= 0) return null;
+    const mins = Math.floor(remaining / 60000);
+    const secs = Math.floor((remaining % 60000) / 1000);
+    if (mins > 0) return `${mins}m ${secs}s`;
+    return `${secs}s`;
   }
 
   get activeAction() {
@@ -239,14 +259,134 @@ export default class DiscourseSizeCharacterCard extends Component {
     const now = this._currentTime;
     return (c.actions || []).find((a) => {
       if (!a.start_time || !a.end_time) return false;
+      if (a.action_type === "property_change") return false;
       const start = new Date(a.start_time);
       const end = new Date(a.end_time);
       return now >= start && now < end;
     });
   }
 
+  get allPropertyActions() {
+    const c = this.args?.character;
+    if (!c || !c.actions) return [];
+    const now = this._currentTime;
+
+    const all = c.actions.filter((a) => a.action_type === "property_change");
+    const grouped = {};
+    all.forEach((a) => {
+      if (!grouped[a.item_key]) {
+        grouped[a.item_key] = {
+          name: a.item_key,
+          active: null,
+          queued: [],
+          all: [],
+        };
+      }
+      grouped[a.item_key].all.push(a);
+    });
+
+    return Object.values(grouped).map((group) => {
+      group.all.sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
+
+      const activeIdx = group.all.findIndex((a) => {
+        if (!a.start_time || !a.end_time) return false;
+        const start = new Date(a.start_time);
+        const end = new Date(a.end_time);
+        return now >= start && now < end;
+      });
+
+      if (activeIdx >= 0) {
+        group.active = group.all[activeIdx];
+        group.queued = group.all.slice(activeIdx + 1);
+
+        const startT = new Date(group.active.start_time);
+        const endT = new Date(group.active.end_time);
+        const total = endT - startT;
+        group._progress =
+          total <= 0
+            ? 100
+            : Math.min(100, Math.max(0, ((now - startT) / total) * 100));
+
+        const parent = c.actions.find(
+          (p) => p.id === group.active.parent_action_id
+        );
+        group._triggerName = parent?.item_name;
+        group._direction =
+          parseFloat(group.active.end_offset) >
+          parseFloat(group.active.start_offset)
+            ? "Growing"
+            : "Shrinking";
+      } else {
+        const futureIdx = group.all.findIndex((a) => {
+          if (!a.start_time) return false;
+          return new Date(a.start_time) > now;
+        });
+        if (futureIdx >= 0) {
+          group.queued = group.all.slice(futureIdx);
+        }
+      }
+
+      group._queueText = (group.queued || [])
+        .map((q) => {
+          const parent = c.actions.find((a) => a.id === q.parent_action_id);
+          return parent?.item_name || parent?.item_key || q.item_name || q.item_key;
+        })
+        .join(", ");
+
+      return group;
+    });
+  }
+
+  get activePropertyActions() {
+    return this.allPropertyActions
+      .filter((g) => g.active)
+      .map((g) => ({
+        ...g.active,
+        _progress: g._progress,
+        _triggerName: g._triggerName,
+        _direction: g._direction,
+      }));
+  }
+
+  get allActiveProgressBars() {
+    const bars = [];
+    if (this.activeAction) {
+      bars.push({ type: "size", action: this.activeAction });
+    }
+    this.activePropertyActions.forEach((a) => {
+      bars.push({ type: "property", action: a });
+    });
+    return bars;
+  }
+
+  get effectiveProperties() {
+    const props = this.args?.character?.properties || [];
+    const actions = this.args?.character?.actions || [];
+    const now = this._currentTime;
+    return props.map((prop) => {
+      const interpolated = calculatePropertyValue(
+        this.args.character,
+        prop.name,
+        now
+      );
+      if (interpolated !== undefined) {
+        const effectiveValue =
+          prop.property_type === "size" || prop.property_type === "number"
+            ? interpolated.toString()
+            : Math.round(interpolated).toString();
+        return { ...prop, effective_value: effectiveValue };
+      }
+      return prop;
+    });
+  }
+
   get activeActionType() {
-    return this.activeAction?.action_type;
+    const action = this.activeAction;
+    if (!action) return null;
+    if (action.action_type === "set_size") {
+      return parseFloat(action.size_change) >= 0 ? "grow" : "shrink";
+    }
+    return action.action_type;
   }
 
   get currentRateCmPerDay() {
@@ -285,7 +425,15 @@ export default class DiscourseSizeCharacterCard extends Component {
   }
 
   get activeActionItemName() {
-    return this.activeAction?.item_name || I18n.t("discourse_size.unknown");
+    const action = this.activeAction;
+    if (!action) return I18n.t("discourse_size.unknown");
+    if (action.parent_action_id) {
+      const parent = (this.args?.character?.actions || []).find(
+        (a) => a.id === action.parent_action_id
+      );
+      if (parent?.item_name) return parent.item_name;
+    }
+    return action.item_name || I18n.t("discourse_size.unknown");
   }
 
   get queuedActions() {
@@ -296,7 +444,10 @@ export default class DiscourseSizeCharacterCard extends Component {
 
     return (c.actions || [])
       .filter((a) => {
-        if (!a.start_time || !["grow", "shrink"].includes(a.action_type))
+        if (
+          !a.start_time ||
+          !["grow", "shrink", "set_size"].includes(a.action_type)
+        )
           return false;
         const start = new Date(a.start_time);
         return start > now && (!active || a.id !== active.id);
@@ -308,17 +459,9 @@ export default class DiscourseSizeCharacterCard extends Component {
     const c = this.args?.character;
     if (!c) return "";
 
-    const system = this.preferredSystem;
     return this.queuedActions
       .map((a) => {
-        const baseSize = parseFloat(c.base_size) || 0;
-        const endOffset = parseFloat(a.end_offset) || 0;
-        const targetSize = baseSize + endOffset;
-
-        return `${a.item_name || I18n.t("discourse_size.unknown")} (${formatSize(
-          targetSize,
-          system
-        )})`;
+        return a.item_name || I18n.t("discourse_size.unknown");
       })
       .join(", ");
   }
@@ -341,7 +484,9 @@ export default class DiscourseSizeCharacterCard extends Component {
   }
 
   get recentActions() {
-    return (this.args.character.actions || []).slice(0, 5);
+    const actions = this.args?.character?.actions || [];
+    const topLevel = actions.filter((a) => !a.parent_action_id);
+    return topLevel.slice(0, 5);
   }
 
   get pendingRoleplayInvites() {

@@ -8,7 +8,6 @@ module DiscourseSize
     def index
       if params[:q].present?
         characters = DiscourseSizeCharacter.where("name ILIKE ?", "%#{params[:q]}%")
-        characters = characters.where(character_type: 'roleplay') if params[:roleplay_only]
         return render json: { characters: serialize_data(characters.limit(20), DiscourseSizeCharacterSerializer) }
       end
 
@@ -137,8 +136,8 @@ module DiscourseSize
 
     def set_size
       character = DiscourseSizeCharacter.find(params[:id])
-      unless character.freeform? || character.roleplay? || current_user.admin?
-        return render json: failed_json.merge(error: "Only Static or Roleplay characters can set size directly"), status: :forbidden
+      unless character.normal? || current_user.admin?
+        return render json: failed_json.merge(error: "Only Normal characters can set size directly"), status: :forbidden
       end
 
       unless character.user_id == current_user.id || current_user.admin?
@@ -155,9 +154,20 @@ module DiscourseSize
     end
 
     def trigger
+      if SiteSetting.discourse_size_disable_triggers
+        return render json: failed_json.merge(error: "Triggers are disabled"), status: :forbidden
+      end
+
       character = DiscourseSizeCharacter.find(params[:id])
       unless character.user_id == current_user.id || current_user.admin?
-        raise Discourse::InvalidAccess
+        rp_ids = character.discourse_size_roleplay_members.where(status: "accepted").pluck(:roleplay_id)
+        user_char_ids = DiscourseSizeCharacter.where(user_id: current_user.id).pluck(:id)
+        shared_rp = DiscourseSizeRoleplayMember.where(
+          character_id: user_char_ids,
+          roleplay_id: rp_ids,
+          status: "accepted"
+        ).exists?
+        raise Discourse::InvalidAccess unless shared_rp
       end
 
       result = DiscourseSize::TriggerExecutor.execute(character, params[:trigger_name], current_user)
@@ -225,14 +235,16 @@ module DiscourseSize
       end
 
       # Handle linked child action state sync
-      child = action.child_action
-      child_char = child&.character
+      children = action.child_actions.to_a
+      child_chars = children.map(&:character).compact.uniq
       
-      action.destroy # This will also destroy the child action via dependent: :destroy
-      
+      action.destroy # dependent: :destroy deletes children
+
       # Refresh character states
+      child_chars.each do |cc|
+        cc.reload.recalculate_pending_actions!
+      end
       character.reload.recalculate_pending_actions!
-      child_char.reload.recalculate_pending_actions! if child_char
 
       render json: {
                character: serialize_data(character.reload, DiscourseSizeCharacterSerializer),
@@ -295,7 +307,7 @@ module DiscourseSize
         :show_comparison,
         blocked_item_keys: [],
         blocked_user_ids: [],
-        discourse_size_character_properties_attributes: [:id, :name, :property_type, :value, :linked_to_size, :_destroy],
+        discourse_size_character_properties_attributes: [:id, :name, :property_type, :value, :_destroy],
         discourse_size_character_triggers_attributes: [:id, :name, :js_code, :_destroy]
       )
     end

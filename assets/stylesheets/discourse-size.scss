@@ -376,10 +376,22 @@
 
         .prop-type {
           flex: 1;
+          margin: 0 !important;
         }
 
         .prop-value {
           flex: 1;
+        }
+
+        .prop-value-size {
+          flex: 1;
+          min-width: 80px;
+        }
+
+        .prop-value-unit {
+          flex: 0 0 auto;
+          width: auto;
+          min-width: 60px;
         }
 
         .link-to-size {
@@ -703,12 +715,17 @@
       background: var(--success-medium);
     }
 
-    .freeform-badge {
-      background: #9b59b6; // Purple for Static
+    .normal-badge {
+      background: #9b59b6; // Purple for Normal
     }
 
-    .roleplay-badge {
-      background: #3498db; // Blue for Roleplay
+    .deviation-badge {
+      background: #e67e22;
+      color: #fff;
+      font-size: 0.75rem;
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-weight: 600;
     }
 
     .character-size-row {
@@ -869,6 +886,40 @@
             background: var(--tertiary);
             box-shadow: 0 0 10px var(--tertiary-low);
             transition: width 0.3s ease-out;
+          }
+        }
+      }
+
+      .property-progress-bar-wrapper {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+
+        .property-bar-label {
+          text-align: center;
+          font-size: 0.8em;
+          font-weight: 700;
+          color: var(--primary);
+          margin-bottom: 4px;
+        }
+
+        .property-progress-row {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          width: 100%;
+
+          .prop-bound {
+            font-size: 0.8em;
+            min-width: 40px;
+          }
+
+          .property-bar {
+            .property-progress-fill {
+              background: var(--success);
+              box-shadow: 0 0 10px var(--success-low);
+            }
           }
         }
       }
@@ -1446,8 +1497,31 @@
 
                     .d-icon {
                       font-size: 0.9em;
-                    }
-                  }
+    }
+
+    .graph-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 8px 12px;
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--primary);
+
+        .legend-swatch {
+          display: inline-block;
+          width: 12px;
+          height: 12px;
+          border-radius: 3px;
+        }
+      }
+    }
+  }
 
                   .lb-target-size {
                     color: var(--primary-medium);
@@ -2233,34 +2307,34 @@
       height: 150px;
     }
   }
-}
 
-.discourse-size-growth-graph-modal {
-  .growth-graph-container {
-    gap: 15px;
-  }
+  .discourse-size-growth-graph-modal {
+    .growth-graph-container {
+      gap: 15px;
+    }
 
-  .modal-contributors {
-    .contributor-row {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 5px;
+    .modal-contributors {
+      .contributor-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
 
-      .contributor-stats {
-        width: 100%;
-        justify-content: space-between;
+        .contributor-stats {
+          width: 100%;
+          justify-content: space-between;
+        }
       }
     }
-  }
 
-  .modal-activity-list {
-    li {
-      flex-direction: column;
-      gap: 8px;
+    .modal-activity-list {
+      li {
+        flex-direction: column;
+        gap: 8px;
 
-      .activity-details {
-        width: 100%;
-        flex-wrap: wrap;
+        .activity-details {
+          width: 100%;
+          flex-wrap: wrap;
+        }
       }
     }
   }
@@ -4156,6 +4230,16 @@
         flex: 1;
         margin-bottom: 0;
       }
+
+      .prop-value-unit {
+        flex: 0 0 auto;
+        width: auto;
+        min-width: 60px;
+        border-radius: 8px;
+        border: 1px solid var(--primary-low);
+        padding: 8px 12px;
+        background: var(--secondary);
+      }
     }
   }
 
@@ -4946,4 +5030,16 @@
     margin-top: -2px;
     display: block;
   }
+}
+
+.wide-control-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.control-group label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }

@@ -18,7 +18,7 @@ export default class DiscourseSizeCharacterActions extends Component {
 
   constructor() {
     super(...arguments);
-    if (this.args.character.character_type === "freeform" || this.args.character.character_type === "roleplay") {
+    if (this.args.character.character_type === "normal") {
       this.manualSizeInput = (
         this.args.character.current_size || this.args.character.base_size
       ).toString();
@@ -39,16 +39,12 @@ export default class DiscourseSizeCharacterActions extends Component {
     return this.args.character.character_type === "game";
   }
 
-  get isFreeform() {
-    return this.args.character.character_type === "freeform";
-  }
-
-  get isRoleplay() {
-    return this.args.character.character_type === "roleplay";
+  get isNormal() {
+    return this.args.character.character_type === "normal";
   }
 
   get isManual() {
-    return this.isFreeform || this.isRoleplay;
+    return this.isNormal;
   }
 
   get canEdit() {

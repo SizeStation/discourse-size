@@ -26,7 +26,25 @@ export default class SizeRoleplayController extends Controller {
   }
 
   get acceptedMembers() {
-    return (this.roleplay?.members || []).filter(m => m.status === 'accepted');
+    return (this.roleplay?.members || [])
+      .filter(m => m.status === 'accepted')
+      .map(m => {
+        const ov = m.override_data || {};
+        const base = m.character || {};
+        const arrKeys = ['properties', 'triggers', 'blocked_item_keys', 'blocked_user_ids'];
+        const eff = {};
+        for (const k of Object.keys(base)) {
+          eff[k] = base[k];
+        }
+        for (const k of Object.keys(ov)) {
+          if (arrKeys.includes(k)) {
+            if (Array.isArray(ov[k])) eff[k] = ov[k];
+          } else {
+            eff[k] = ov[k];
+          }
+        }
+        return { ...m, effectiveCharacter: eff };
+      });
   }
 
   get myPendingInvites() {
@@ -165,10 +183,11 @@ export default class SizeRoleplayController extends Controller {
   }
 
   @action
-  editCharacter(character) {
+  editCharacter(member, _character) {
     this.modal.show(DiscourseSizeEditCharacter, {
       model: {
-        character,
+        character: member.character,
+        member,
         onSave: () => {
           this.refreshRoleplay();
         },

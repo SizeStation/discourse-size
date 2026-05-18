@@ -5,7 +5,7 @@ module ::DiscourseSize
     QUESTS = [
       { id: "topic_created", type: :topic_created, min: 1, max: 2, reward: 15, emoji: "📝" },
       { id: "topic_created_conv", type: :topic_created, category_group: :conversation, min: 1, max: 2, reward: 15, emoji: "💬" },
-      { id: "topic_created_content", type: :topic_created, category_group: :content, min: 1, max: 2, reward: 15, emoji: "🎨" },
+      { id: "topic_created_content", type: :topic_created, category_group: :content, min: 1, max: 1, reward: 15, emoji: "🎨" },
       { id: "post_created", type: :post_created, min: 1, max: 4, reward: 10, emoji: "✍️" },
       { id: "post_created_conv", type: :post_created, category_group: :conversation, min: 1, max: 4, reward: 10, emoji: "🗣️" },
       { id: "post_created_content", type: :post_created, category_group: :content, min: 1, max: 4, reward: 10, emoji: "🖼️" },

@@ -39,63 +39,162 @@ export default class DiscourseSizeEditCharacter extends Component {
   constructor() {
     super(...arguments);
     const char = this.args?.model?.character || {};
-    this.name = char.name || "";
-    this.picture = char.picture || "";
-    this.infoPost = char.info_post || "";
-    this.gender = char.gender || "";
-    this.pronouns = char.pronouns || "";
-    this.age = char.age || "";
-    this.species = char.species || "";
-    this.description = char.description || "";
-    this.baseSize = char.base_size || 170.0;
-    this.isMain = char.is_main || false;
+    const member = this.args?.model?.member;
+    this.member = member;
+    const ov = member?.override_data || {};
+
+    this.name = ov.name ?? char.name ?? "";
+    this.picture = ov.picture ?? char.picture ?? "";
+    this.infoPost = ov.info_post ?? char.info_post ?? "";
+    this.gender = ov.gender ?? char.gender ?? "";
+    this.pronouns = ov.pronouns ?? char.pronouns ?? "";
+    this.age = ov.age ?? char.age ?? "";
+    this.species = ov.species ?? char.species ?? "";
+    this.description = ov.description ?? char.description ?? "";
+    this.baseSize = ov.base_size != null ? parseFloat(ov.base_size) : (char.base_size || 170.0);
+    this.isMain = ov.is_main ?? (char.is_main || false);
     this.characterType = char.character_type || "game";
-    this.showComparison = char.show_comparison !== false;
-    this.blockedItemKeys = char.blocked_item_keys || [];
-    this.blockedUserIds = (char.blocked_user_ids || []).map((id) =>
+    this.showComparison = ov.show_comparison ?? (char.show_comparison !== false);
+    this.blockedItemKeys = Array.isArray(ov.blocked_item_keys) ? ov.blocked_item_keys : (char.blocked_item_keys || []);
+    this.blockedUserIds = ((ov.blocked_user_ids ?? char.blocked_user_ids) || []).map((id) =>
       parseInt(id, 10)
     );
     this.blockedUsers = char.blocked_users || [];
-    this.properties = (char.properties || []).map((p) => ({ ...p }));
-    this.triggers = (char.triggers || []).map((t) => ({ ...t }));
+    this.properties = ((Array.isArray(ov.properties) ? ov.properties : (char.properties || []))).map((p) => ({
+      ...p,
+      _valueUnit: p.property_type === "size" ? "cm" : undefined,
+    }));
+    this.triggers = (Array.isArray(ov.triggers) ? ov.triggers : (char.triggers || [])).map((t) => ({ ...t }));
 
     if (this.characterType === "game") {
       this.fetchAvailableItems();
     }
 
-    const unit = getBestUnit(this.baseSize);
+    const initialSize = this.baseSize;
+    const unit = getBestUnit(initialSize);
     this.sizeUnit = unit.id;
-    this.displaySize = parseFloat((this.baseSize / unit.factor).toPrecision(5));
+    this.displaySize = parseFloat((initialSize / unit.factor).toPrecision(5));
 
     this._initialDisplaySize = this.displaySize;
     this._initialSizeUnit = this.sizeUnit;
   }
 
+  get isRoleplayEdit() {
+    return !!this.member;
+  }
+
+  _triggersEqual(a, b) {
+    if (a.length !== b.length) return false;
+    return a.every((t, i) => {
+      const u = b[i];
+      return t.name === u.name && t.js_code === u.js_code && t._destroy === u._destroy;
+    });
+  }
+
+  _propsEqual(a, b) {
+    if (a.length !== b.length) return false;
+    return a.every((p, i) => {
+      const q = b[i];
+      return p.name === q.name && p.property_type === q.property_type && p.value === q.value;
+    });
+  }
+
+  @action
+  deviates(field) {
+    if (!this.isRoleplayEdit) return false;
+    const char = this.args?.model?.character || {};
+    const parent = (key) => char[key];
+    if (field === "base_size") {
+      const originalSize = parseFloat(parent("base_size") || 0);
+      return Math.abs(this.baseSizeInCm - originalSize) > 0.0001;
+    }
+    if (field === "properties") {
+      const orig = Array.isArray(char.properties) ? char.properties : [];
+      return !this._propsEqual(this.properties, orig);
+    }
+    if (field === "triggers") {
+      const orig = Array.isArray(char.triggers) ? char.triggers : [];
+      return !this._triggersEqual(this.triggers, orig);
+    }
+    if (field === "blockedItemKeys") {
+      const orig = Array.isArray(char.blocked_item_keys) ? char.blocked_item_keys : [];
+      return JSON.stringify(this.blockedItemKeys) !== JSON.stringify(orig);
+    }
+    const map = {
+      infoPost: "info_post",
+      showComparison: "show_comparison",
+      isMain: "is_main",
+    };
+    const key = map[field] || field;
+    return String(this[field]) !== String(parent(key));
+  }
+
+  @action
+  resetField(field) {
+    const char = this.args?.model?.character || {};
+    if (field === "base_size") {
+      const originalSize = parseFloat(char.base_size || 170.0);
+      this.baseSize = originalSize;
+      const unit = getBestUnit(originalSize);
+      this.sizeUnit = unit.id;
+      this.displaySize = parseFloat((originalSize / unit.factor).toPrecision(5));
+      return;
+    }
+    if (field === "properties") {
+      this.properties = (Array.isArray(char.properties) ? char.properties : []).map((p) => ({
+        ...p,
+        _valueUnit: p.property_type === "size" ? "cm" : undefined,
+      }));
+      return;
+    }
+    if (field === "triggers") {
+      this.triggers = (Array.isArray(char.triggers) ? char.triggers : []).map((t) => ({ ...t }));
+      return;
+    }
+    if (field === "blockedItemKeys") {
+      this.blockedItemKeys = [...(Array.isArray(char.blocked_item_keys) ? char.blocked_item_keys : [])];
+      return;
+    }
+    const apiName = {
+      infoPost: "info_post",
+      showComparison: "show_comparison",
+      isMain: "is_main",
+    }[field] || field;
+    if (char[apiName] !== undefined) {
+      this[field] = char[apiName];
+    }
+  }
+
   get isDirty() {
     const char = this.args?.model?.character || {};
-    const initialShowComparison = char.show_comparison !== false;
+    const ov = this.member?.override_data || {};
+    const orig = (key) => ov[key] ?? char[key];
+    const origArr = (key) => {
+      const ovv = ov[key];
+      const cv = char[key];
+      return Array.isArray(ovv) ? ovv : (Array.isArray(cv) ? cv : []);
+    };
 
     return (
-      this.name !== (char.name || "") ||
-      this.picture !== (char.picture || "") ||
-      this.infoPost !== (char.info_post || "") ||
-      this.gender !== (char.gender || "") ||
-      this.pronouns !== (char.pronouns || "") ||
-      this.age !== (char.age || "") ||
-      this.species !== (char.species || "") ||
-      this.species !== (char.species || "") ||
-      this.description !== (char.description || "") ||
+      this.name !== (orig("name") || "") ||
+      this.picture !== (orig("picture") || "") ||
+      this.infoPost !== (orig("info_post") || "") ||
+      this.gender !== (orig("gender") || "") ||
+      this.pronouns !== (orig("pronouns") || "") ||
+      this.age !== (orig("age") || "") ||
+      this.species !== (orig("species") || "") ||
+      this.description !== (orig("description") || "") ||
       JSON.stringify(this.blockedItemKeys) !==
-        JSON.stringify(char.blocked_item_keys || []) ||
+        JSON.stringify(origArr("blocked_item_keys")) ||
       JSON.stringify(this.blockedUserIds) !==
-        JSON.stringify(char.blocked_user_ids || []) ||
-      this.showComparison !== initialShowComparison ||
-      this.isMain !== (char.is_main || false) ||
+        JSON.stringify(origArr("blocked_user_ids")) ||
+      this.showComparison !== (orig("show_comparison") ?? true) ||
+      this.isMain !== (orig("is_main") || false) ||
       this.characterType !== (char.character_type || "game") ||
       parseFloat(this.displaySize) !== parseFloat(this._initialDisplaySize) ||
       this.sizeUnit !== this._initialSizeUnit ||
-      JSON.stringify(this.properties) !== JSON.stringify(char.properties || []) ||
-      JSON.stringify(this.triggers) !== JSON.stringify(char.triggers || [])
+      !this._propsEqual(this.properties, origArr("properties")) ||
+      !this._triggersEqual(this.triggers, origArr("triggers"))
     );
   }
 
@@ -256,13 +355,20 @@ export default class DiscourseSizeEditCharacter extends Component {
     }
     this.sizeError = null;
 
+    // For non-game modes, the input shows total size.
+    // Convert so base_size + offset = desired total.
+    if (this.characterType !== "game" && !this.isRoleplayEdit) {
+      const initialTotal = this.args?.model?.character?.current_size || this.baseSize;
+      const offset = initialTotal - this.baseSize;
+      valCm = valCm - offset;
+    }
+
     this.isSaving = true;
 
     const data = {
       name: this.name,
       picture: this.picture,
       info_post: this.infoPost,
-      base_size: valCm,
       base_size: valCm,
       blocked_item_keys: this.blockedItemKeys,
       blocked_user_ids: this.blockedUserIds,
@@ -274,17 +380,18 @@ export default class DiscourseSizeEditCharacter extends Component {
       description: this.description,
       show_comparison: this.showComparison,
       is_main: this.isMain,
-      discourse_size_character_properties_attributes: this.properties.map((p) => {
-        const attr = {
-          name: p.name,
-          property_type: p.property_type,
-          value: p.value,
-          linked_to_size: p.linked_to_size,
-        };
-        if (p.id) attr.id = p.id;
-        if (p._destroy) attr._destroy = true;
-        return attr;
-      }),
+      discourse_size_character_properties_attributes: this.properties.map(
+        (p) => {
+          const attr = {
+            name: p.name,
+            property_type: p.property_type,
+            value: p.value,
+          };
+          if (p.id) attr.id = p.id;
+          if (p._destroy) attr._destroy = true;
+          return attr;
+        }
+      ),
       discourse_size_character_triggers_attributes: this.triggers.map((t) => {
         const attr = {
           name: t.name,
@@ -298,7 +405,65 @@ export default class DiscourseSizeEditCharacter extends Component {
 
     try {
       let result;
-      if (this.args?.model?.isNew) {
+      if (this.isRoleplayEdit) {
+        const char = this.args?.model?.character || {};
+        const priorOv = this.member?.override_data || {};
+        const changed = (key) => priorOv[key] !== undefined;
+        const overrideData = {};
+
+        const _set = (k, cur, orig) => {
+          if (cur !== orig) overrideData[k] = cur;
+          else if (priorOv[k] !== undefined) overrideData[k] = null;
+        };
+        const parentArr = (key) => Array.isArray(char[key]) ? char[key] : [];
+        const priorArr = (key) => Array.isArray(priorOv[key]) ? priorOv[key] : [];
+        _set("name", this.name, char.name || "");
+        _set("base_size", valCm, char.base_size || 0);
+        _set("gender", this.gender, char.gender || "");
+        _set("pronouns", this.pronouns, char.pronouns || "");
+        _set("age", this.age, char.age || "");
+        _set("species", this.species, char.species || "");
+        _set("description", this.description, char.description || "");
+        _set("picture", this.picture, char.picture || "");
+        _set("info_post", this.infoPost, char.info_post || "");
+        _set("show_comparison", this.showComparison, char.show_comparison !== false);
+        _set("is_main", this.isMain, char.is_main || false);
+
+        if (!this._propsEqual(this.properties, parentArr("properties"))) {
+          overrideData.properties = this.properties.map((p) => ({
+            name: p.name, property_type: p.property_type, value: p.value,
+            ...(p.id ? { id: p.id } : {}),
+            ...(p._destroy ? { _destroy: true } : {}),
+          }));
+        } else if (priorArr("properties").length > 0) {
+          overrideData.properties = null;
+        }
+        if (!this._triggersEqual(this.triggers, parentArr("triggers"))) {
+          overrideData.triggers = this.triggers.map((t) => ({
+            name: t.name, js_code: t.js_code,
+            ...(t.id ? { id: t.id } : {}),
+            ...(t._destroy ? { _destroy: true } : {}),
+          }));
+        } else if (priorArr("triggers").length > 0) {
+          overrideData.triggers = null;
+        }
+        if (JSON.stringify(this.blockedItemKeys) !== JSON.stringify(parentArr("blocked_item_keys"))) {
+          overrideData.blocked_item_keys = this.blockedItemKeys;
+        } else if (priorArr("blocked_item_keys").length > 0) {
+          overrideData.blocked_item_keys = null;
+        }
+        const rpId = this.member.roleplay_id;
+        await ajax(
+          `/size/roleplays/${rpId}/update_member_overrides`,
+          {
+            type: "PUT",
+            contentType: "application/json",
+            processData: false,
+            data: JSON.stringify({ ...overrideData, member_id: this.member.id })
+          }
+        );
+        result = this.args?.model?.character;
+      } else if (this.args?.model?.isNew) {
         result = await ajax("/size/characters", { type: "POST", data });
       } else {
         result = await ajax(
@@ -510,25 +675,8 @@ export default class DiscourseSizeEditCharacter extends Component {
         name: "",
         property_type: "text",
         value: "",
-        linked_to_size: false,
       },
     ];
-  }
-
-  @action
-  removeProperty(prop) {
-    if (prop.id) {
-      prop._destroy = true;
-      this.properties = [...this.properties];
-    } else {
-      this.properties = this.properties.filter((p) => p !== prop);
-    }
-  }
-
-  @action
-  updateProperty(prop, field, value) {
-    prop[field] = value;
-    this.properties = [...this.properties];
   }
 
   @action
@@ -537,7 +685,7 @@ export default class DiscourseSizeEditCharacter extends Component {
       ...this.triggers,
       {
         name: "",
-        js_code: "// character.setSize(character.getSize() * 1.1);",
+        js_code: "// character.setSize(character.size() * 1.1);\n// character.grow(10, 60);\n// character.queueSizeAnimation(300, 120);",
       },
     ];
   }
@@ -545,8 +693,9 @@ export default class DiscourseSizeEditCharacter extends Component {
   @action
   removeTrigger(trigger) {
     if (trigger.id) {
-      trigger._destroy = true;
-      this.triggers = [...this.triggers];
+      this.triggers = this.triggers.map((t) =>
+        t === trigger ? { ...t, _destroy: true } : t
+      );
     } else {
       this.triggers = this.triggers.filter((t) => t !== trigger);
     }
@@ -560,7 +709,7 @@ export default class DiscourseSizeEditCharacter extends Component {
   @action
   async initCodeMirror(trigger, element) {
     if (!element) return;
-    
+
     try {
       // 1. Try to load CodeMirror if not present
       if (!window.CodeMirror) {
@@ -570,8 +719,9 @@ export default class DiscourseSizeEditCharacter extends Component {
           window.CodeMirror = mod.default;
         } catch (e) {
           // Fallback to CDN for reliability
-          const CDN_BASE = "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13";
-          
+          const CDN_BASE =
+            "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13";
+
           if (!document.getElementById("codemirror-css")) {
             const link = document.createElement("link");
             link.id = "codemirror-css";
@@ -582,7 +732,9 @@ export default class DiscourseSizeEditCharacter extends Component {
 
           // We use standard script injection since loadScript might not be easily imported
           await this._loadExternalScript(`${CDN_BASE}/codemirror.min.js`);
-          await this._loadExternalScript(`${CDN_BASE}/mode/javascript/javascript.min.js`);
+          await this._loadExternalScript(
+            `${CDN_BASE}/mode/javascript/javascript.min.js`
+          );
         }
       }
 
@@ -613,7 +765,8 @@ export default class DiscourseSizeEditCharacter extends Component {
     text.className = "trigger-code-fallback";
     text.style.width = "100%";
     text.style.minHeight = "120px";
-    text.oninput = (ev) => this.updateTrigger(trigger, "js_code", ev.target.value);
+    text.oninput = (ev) =>
+      this.updateTrigger(trigger, "js_code", ev.target.value);
     element.appendChild(text);
   }
 
@@ -636,8 +789,50 @@ export default class DiscourseSizeEditCharacter extends Component {
   }
 
   @action
+  resetToDefaultsWithConfirm() {
+    this.resetToDefaults();
+  }
+
+  @action
+  resetToDefaults() {
+    const char = this.args?.model?.character || {};
+    const parentArr = (key) => Array.isArray(char[key]) ? char[key] : [];
+    this.name = char.name || "";
+    this.picture = char.picture || "";
+    this.infoPost = char.info_post || "";
+    this.gender = char.gender || "";
+    this.pronouns = char.pronouns || "";
+    this.age = char.age || "";
+    this.species = char.species || "";
+    this.description = char.description || "";
+    this.baseSize = parseFloat(char.base_size || 170.0);
+    const unit = getBestUnit(this.baseSize);
+    this.sizeUnit = unit.id;
+    this.displaySize = parseFloat((this.baseSize / unit.factor).toPrecision(5));
+    this.properties = parentArr("properties").map((p) => ({
+      ...p,
+      _valueUnit: p.property_type === "size" ? "cm" : undefined,
+    }));
+    this.triggers = parentArr("triggers").map((t) => ({ ...t }));
+    this.blockedItemKeys = [...parentArr("blocked_item_keys")];
+    const bid = parentArr("blocked_user_ids");
+    this.blockedUserIds = bid.map((id) => parseInt(id, 10));
+    this.showComparison = char.show_comparison ?? true;
+    this.isMain = char.is_main || false;
+  }
+
+  @action
+  discoverTriggers() {
+    const slug = this.siteSettings.discourse_size_trigger_category_slug;
+    if (slug) {
+      window.open(`/c/${slug}`, "_blank");
+    }
+  }
+
+  @action
   updateTrigger(trigger, field, value) {
-    trigger[field] = value;
-    this.triggers = [...this.triggers];
+    const newValue = value?.target?.value ?? value;
+    trigger[field] = newValue;
+    this.triggers = this.triggers.slice();
   }
 }

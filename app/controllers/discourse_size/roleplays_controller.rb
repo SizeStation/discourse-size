@@ -2,6 +2,13 @@
 
 module DiscourseSize
   class RoleplaysController < ::ApplicationController
+    OVERRIDE_KEYS = %w[
+      name base_size gender pronouns age species description picture
+      info_post show_comparison is_main
+      blocked_item_keys blocked_user_ids
+      properties triggers
+    ].freeze
+
     requires_plugin DiscourseSize::PLUGIN_NAME
     before_action :ensure_logged_in
 
@@ -138,10 +145,45 @@ module DiscourseSize
       render json: success_json
     end
 
+    def update_member_overrides
+      roleplay = find_roleplay
+      member = roleplay.discourse_size_roleplay_members.find(params[:member_id])
+      raise Discourse::InvalidAccess unless member.character.user_id == current_user.id || current_user.admin?
+
+      overrides = member.override_data.merge(
+        JSON.parse(params.permit!.to_json).slice(*OVERRIDE_KEYS)
+      )
+      overrides = normalize_override_arrays(overrides)
+      overrides.delete_if { |_, v| v.nil? }
+      member.update!(override_data: overrides)
+
+      render json: { member: serialize_data(member.reload, RoleplayMemberSerializer) }
+    end
+
+    def reset_member_overrides
+      roleplay = find_roleplay
+      member = roleplay.discourse_size_roleplay_members.find(params[:member_id])
+      raise Discourse::InvalidAccess unless member.character.user_id == current_user.id || current_user.admin?
+
+      member.reset_all_overrides!
+
+      render json: { member: serialize_data(member, RoleplayMemberSerializer) }
+    end
+
     private
 
     def find_roleplay
       DiscourseSizeRoleplay.find_by(uuid: params[:id]) || DiscourseSizeRoleplay.find_by(id: params[:id]) || (raise Discourse::NotFound)
+    end
+
+    def normalize_override_arrays(hash)
+      hash.transform_values do |v|
+        if v.is_a?(Hash) && v.keys.all? { |k| k.to_s.match?(/\A\d+\z/) }
+          v.values_at(*v.keys.sort_by(&:to_i))
+        else
+          v
+        end
+      end
     end
 
     def roleplay_params

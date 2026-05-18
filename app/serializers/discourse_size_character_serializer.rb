@@ -14,9 +14,9 @@ class DiscourseSizeCharacterSerializer < ApplicationSerializer
              :offset_updated_at,
              :current_size,
              :blocked_item_keys,
-             :blocked_users,
-             :blocked_user_ids,
-             :measurement_system,
+              :blocked_users,
+              :blocked_user_ids,
+              :measurement_system,
              :is_main,
              :character_type,
              :gender,
@@ -57,8 +57,6 @@ class DiscourseSizeCharacterSerializer < ApplicationSerializer
         property_type: prop.property_type,
         value: prop.value,
         effective_value: prop.effective_value,
-        linked_to_size: prop.linked_to_size,
-        link_ratio: prop.link_ratio
       }
     end
   end

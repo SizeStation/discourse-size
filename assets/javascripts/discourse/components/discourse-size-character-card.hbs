@@ -54,15 +54,6 @@
           {{#if @character.is_main}}
             <span class="badge main-badge">Main Character</span>
           {{/if}}
-          {{#if (eq @character.character_type "freeform")}}
-            <span class="badge freeform-badge">{{i18n
-                "discourse_size.modes.freeform_name"
-              }}</span>
-          {{else if (eq @character.character_type "roleplay")}}
-            <span class="badge roleplay-badge">{{i18n
-                "discourse_size.modes.roleplay_name"
-              }}</span>
-          {{/if}}
         </h2>
 
         <div class="owner-actions">
@@ -128,21 +119,23 @@
             <span class="value">{{@character.species}}</span>
           </span>
         {{/if}}
-        {{#each @character.properties as |prop|}}
-          <span class="header-meta-card custom-prop {{prop.property_type}}">
-            <span class="label">{{prop.name}}</span>
-            <span class="value">
-              {{#if (eq prop.property_type "size")}}
-                {{format-size
-                  prop.effective_value
-                  @character.measurement_system
-                }}
-              {{else}}
-                {{prop.value}}
-              {{/if}}
+        {{#unless this.siteSettings.discourse_size_disable_properties}}
+          {{#each this.effectiveProperties as |prop|}}
+            <span class="header-meta-card custom-prop {{prop.property_type}}">
+              <span class="label">{{prop.name}}</span>
+              <span class="value">
+                {{#if (eq prop.property_type "size")}}
+                  {{format-size
+                    prop.effective_value
+                    @character.measurement_system
+                  }}
+                {{else}}
+                  {{prop.effective_value}}
+                {{/if}}
+              </span>
             </span>
-          </span>
-        {{/each}}
+          {{/each}}
+        {{/unless}}
       </div>
 
       {{#if this.isAnimating}}
@@ -195,14 +188,67 @@
                 </div>
                 <span class="size-bound">{{this.formattedTargetSize}}</span>
               </div>
+              {{#if this.formattedQueuedActions}}
+                <div class="queued-actions">
+                  {{i18n "discourse_size.queued"}}
+                  {{this.formattedQueuedActions}}
+                </div>
+              {{/if}}
             {{/if}}
 
-            {{#if this.formattedQueuedActions}}
-              <div class="queued-actions">
-                {{i18n "discourse_size.queued"}}
-                {{this.formattedQueuedActions}}
+            {{#unless this.siteSettings.discourse_size_disable_properties}}
+              {{#each this.allPropertyActions as |prop|}}
+                <div class="property-progress-bar-wrapper">
+                {{#if prop.active}}
+                  <div class="growth-status-label">
+                    <span
+                      class="{{if
+                          (gt prop.active.end_offset prop.active.start_offset)
+                          'growing'
+                          'shrinking'
+                        }}"
+                    >
+                      {{#if
+                        (gt prop.active.end_offset prop.active.start_offset)
+                      }}
+                        {{d-icon "arrow-up"}}
+                      {{else}}
+                        {{d-icon "arrow-down"}}
+                      {{/if}}
+                      {{prop._direction}}
+                      {{prop.name}}
+                      {{#if prop._triggerName}}
+                        from
+                        {{prop._triggerName}}
+                      {{/if}}
+                    </span>
+                  </div>
+                  <div class="progress-bar-wrapper">
+                    <span class="size-bound">{{format-size
+                        prop.active.start_offset
+                      }}</span>
+                    <div class="progress-bar-mini">
+                      <div
+                        class="progress-fill"
+                        style={{html-safe
+                          (concat "width: " prop._progress "%")
+                        }}
+                      ></div>
+                    </div>
+                    <span class="size-bound">{{format-size
+                        prop.active.end_offset
+                      }}</span>
+                  </div>
+                {{/if}}
+                {{#if prop._queueText}}
+                  <div class="queued-actions">
+                    {{i18n "discourse_size.queued"}}
+                    {{prop._queueText}}
+                  </div>
+                {{/if}}
               </div>
-            {{/if}}
+            {{/each}}
+            {{/unless}}
           </div>
         </div>
       {{/if}}
@@ -356,6 +402,11 @@
                   "discourse_size.activity.run_trigger"
                   trigger=action.item_name
                   character=@character.name
+                }}
+              {{else if (eq action.action_type "property_change")}}
+                {{i18n
+                  "discourse_size.activity.property_change"
+                  property=action.item_name
                 }}
               {{else if (eq action.action_type "boost_speed")}}
                 {{i18n "discourse_size.activity.boost_speed"}}

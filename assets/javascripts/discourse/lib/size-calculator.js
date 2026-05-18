@@ -6,9 +6,9 @@ export function calculateOffset(character, time = new Date()) {
   if (!character || !character.actions || character.actions.length === 0) {
     return parseFloat(character?.current_offset) || 0;
   }
-  
+
   const actions = character.actions
-    .filter(a => ["grow", "shrink", "set_size"].includes(a.action_type))
+    .filter((a) => ["grow", "shrink", "set_size"].includes(a.action_type))
     .sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
 
   if (actions.length === 0) return parseFloat(character.current_offset) || 0;
@@ -50,7 +50,10 @@ export function calculateOffset(character, time = new Date()) {
   }
 
   // We are in a gap between actions. The size should be the end_offset of the most recent past action.
-  const lastPastAction = actions.slice().reverse().find(a => new Date(a.end_time) <= time);
+  const lastPastAction = actions
+    .slice()
+    .reverse()
+    .find((a) => new Date(a.end_time) <= time);
   if (lastPastAction) {
     return parseFloat(lastPastAction.end_offset) || 0;
   }
@@ -63,10 +66,62 @@ export function calculateSize(character, time = new Date()) {
   return parseFloat(character.base_size) + calculateOffset(character, time);
 }
 
+export function calculatePropertyValue(
+  character,
+  propertyName,
+  time = new Date()
+) {
+  if (!character || !character.actions) return;
+
+  const candidates = character.actions
+    .filter(
+      (a) =>
+        a.action_type === "property_change" &&
+        a.item_key === propertyName &&
+        a.start_time &&
+        a.end_time
+    );
+
+  if (candidates.length === 0) return;
+
+  // Find active action (start_time <= now < end_time)
+  const active = candidates.find((a) => {
+    const start = new Date(a.start_time);
+    const end = new Date(a.end_time);
+    return time >= start && time < end;
+  });
+
+  if (active) {
+    const startT = new Date(active.start_time);
+    const endT = new Date(active.end_time);
+    const total = endT.getTime() - startT.getTime();
+    if (total <= 0) return parseFloat(active.end_offset) || 0;
+    const progress = (time.getTime() - startT.getTime()) / total;
+    return (
+      (parseFloat(active.start_offset) || 0) +
+      ((parseFloat(active.end_offset) || 0) -
+        (parseFloat(active.start_offset) || 0)) *
+        progress
+    );
+  }
+
+  // No active — find most recently expired action
+  const expired = candidates
+    .filter((a) => new Date(a.end_time) <= time)
+    .sort((a, b) => new Date(b.end_time) - new Date(a.end_time));
+
+  if (expired.length > 0) {
+    return parseFloat(expired[0].end_offset) || 0;
+  }
+
+  // All future — fall through to serialized
+  return;
+}
+
 export function isAnimating(character, time = new Date()) {
   if (!character || !character.actions) return false;
-  
-  return character.actions.some(a => {
+
+  return character.actions.some((a) => {
     if (!a.end_time) return false;
     return new Date(a.end_time) > time;
   });
@@ -74,12 +129,12 @@ export function isAnimating(character, time = new Date()) {
 
 export function getTimeRemaining(character, time = new Date()) {
   if (!character || !character.actions) return null;
-  
+
   const actions = character.actions
-    .filter(a => a.start_time && a.end_time)
+    .filter((a) => a.start_time && a.end_time)
     .sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
 
-  const activeAction = actions.find(a => {
+  const activeAction = actions.find((a) => {
     const start = new Date(a.start_time);
     const end = new Date(a.end_time);
     return time >= start && time < end;

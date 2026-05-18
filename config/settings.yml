@@ -2,6 +2,12 @@ plugins:
   discourse_size_enabled:
     default: true
     client: true
+  discourse_size_disable_properties:
+    default: false
+    client: true
+  discourse_size_disable_triggers:
+    default: false
+    client: true
   discourse_size_min_base_size:
     default: 100
     client: true
@@ -31,6 +37,9 @@ plugins:
     default: 24
     type: integer
   discourse_size_help_url:
+    default: ""
+    client: true
+  discourse_size_trigger_category_slug:
     default: ""
     client: true
   discourse_size_shop_name:

@@ -6,6 +6,11 @@ import { formatSize } from "../../lib/size-formatter";
 import { ajax } from "discourse/lib/ajax";
 import { inject as service } from "@ember/service";
 
+const SERIES_COLORS = [
+  "#e74c3c", "#2ecc71", "#f39c12", "#9b59b6", "#1abc9c",
+  "#e67e22", "#3498db", "#e91e63", "#00bcd4", "#8bc34a",
+];
+
 export default class DiscourseSizeGrowthGraph extends Component {
   @tracked hoveredPoint = null;
   @tracked _character = null;
@@ -29,7 +34,7 @@ export default class DiscourseSizeGrowthGraph extends Component {
   }
 
   get actions() {
-    return this.character?.actions || [];
+    return (this.character?.actions || []).filter((a) => !a.parent_action_id);
   }
 
   get canManageCharacter() {
@@ -39,13 +44,7 @@ export default class DiscourseSizeGrowthGraph extends Component {
     );
   }
 
-  get oldestFirstActions() {
-    if (!this.args) return [];
-    return this.actions.slice().reverse();
-  }
-
   get newestFirstActions() {
-    if (!this.args) return [];
     return this.actions;
   }
 
@@ -55,146 +54,193 @@ export default class DiscourseSizeGrowthGraph extends Component {
     return this.currentUser.id === char?.user_id || this.currentUser.admin;
   }
 
-  get history() {
-    if (!this.args) return [];
+  get series() {
     const char = this.character;
-    if (!char) return [];
-    const history = [];
-    let cumulativeSize = parseFloat(char.base_size);
+    if (!char || !char.actions) return [];
 
-    // 1. Creation Point
-    history.push({
+    const allActions = char.actions || [];
+    const result = [];
+
+    // --- Size series ---
+    const sizeActions = allActions
+      .filter(
+        (a) =>
+          ["grow", "shrink", "set_size"].includes(a.action_type) &&
+          a.start_time &&
+          a.end_time
+      )
+      .sort(
+        (a, b) => new Date(a.start_time) - new Date(b.start_time)
+      );
+
+    const sizePoints = [];
+    sizePoints.push({
       date: new Date(char.created_at),
-      size: cumulativeSize,
+      value: parseFloat(char.base_size) || 0,
       label: "Created",
-      isProjection: false,
     });
-
-    // 2. Action Points
-    this.oldestFirstActions.forEach((action) => {
-      if (
-        action.action_type === "grow" ||
-        action.action_type === "shrink" ||
-        action.action_type === "set_size"
-      ) {
-        // Use the absolute end_offset from the action to ensure perfect sync
-        cumulativeSize = parseFloat(char.base_size) + parseFloat(action.end_offset || 0);
-      }
-      history.push({
-        date: new Date(action.created_at),
-        size: cumulativeSize,
-        action,
-        isProjection: false,
+    sizeActions.forEach((a) => {
+      const val = (parseFloat(char.base_size) || 0) + (parseFloat(a.end_offset) || 0);
+      sizePoints.push({
+        date: new Date(a.end_time),
+        value: val,
+        action: a,
       });
     });
 
-    // 3. Target Point (Projection)
-    const currentSize = parseFloat(char.current_size);
-    const targetSize =
-      parseFloat(char.base_size) + parseFloat(char.target_offset);
-    if (Math.abs(targetSize - currentSize) > 0.1) {
-      // Calculate how long it will take to reach target
-      const rate =
-        char.growth_rate_override ||
-        this.siteSettings.discourse_size_default_max_growth_rate;
-      const multiplier = char.growth_speed_multiplier || 1.0;
-      const effectiveRate = rate * multiplier;
-
-      if (effectiveRate > 0) {
-        const diff = Math.abs(targetSize - currentSize);
-        const daysToTarget = diff / effectiveRate;
-        const targetDate = new Date();
-        targetDate.setTime(targetDate.getTime() + daysToTarget * 86400000);
-
-        history.push({
-          date: targetDate,
-          size: targetSize,
-          label: "Target",
-          isProjection: true,
-        });
-      }
+    if (sizePoints.length > 0) {
+      result.push({
+        name: "Size",
+        key: "__size__",
+        points: sizePoints,
+        color: null,
+      });
     }
 
-    return history;
+    // --- Property series ---
+    const propNames = [
+      ...new Set(
+        allActions
+          .filter((a) => a.action_type === "property_change")
+          .map((a) => a.item_key)
+      ),
+    ];
+
+    propNames.forEach((name, idx) => {
+      const propActions = allActions
+        .filter(
+          (a) =>
+            a.action_type === "property_change" &&
+            a.item_key === name &&
+            a.start_time &&
+            a.end_time
+        )
+        .sort(
+          (a, b) => new Date(a.start_time) - new Date(b.start_time)
+        );
+
+      if (propActions.length === 0) return;
+
+      const points = [];
+      points.push({
+        date: new Date(propActions[0].start_time),
+        value: parseFloat(propActions[0].start_offset || 0),
+      });
+      propActions.forEach((a) => {
+        points.push({
+          date: new Date(a.end_time),
+          value: parseFloat(a.end_offset || 0),
+          action: a,
+        });
+      });
+
+      result.push({
+        name,
+        key: name,
+        points,
+        color: SERIES_COLORS[idx % SERIES_COLORS.length],
+      });
+    });
+
+    return result;
   }
 
   get graphData() {
-    const history = this.history;
-    if (history.length < 2) return null;
+    const allSeries = this.series;
+    if (allSeries.length === 0 || allSeries.every((s) => s.points.length < 2))
+      return null;
 
     const width = 800;
     const height = 400;
     const paddingX = 80;
     const paddingY = 60;
 
-    const minSize = Math.max(0, Math.min(...history.map((h) => h.size)));
-    const maxSize = Math.max(...history.map((h) => h.size));
-    const sizeRange = maxSize - minSize || 1;
-
-    // Use equal spacing for X to prevent clustering as requested
-    const points = history.map((h, i) => {
-      const x = paddingX + (i / (history.length - 1)) * (width - 2 * paddingX);
-      const y =
-        height -
-        paddingY -
-        (sizeRange > 0
-          ? ((h.size - minSize) / sizeRange) * (height - 2 * paddingY)
-          : height / 2 - paddingY);
-
-      return {
-        x,
-        y,
-        size: h.size,
-        date: h.date,
-        action: h.action,
-        label: h.label,
-        isProjection: h.isProjection,
-        tooltipX: x,
-        tooltipY: y - 70,
-        tooltipNameX: x + 10,
-        tooltipNameY: y - 45,
-        tooltipSizeX: x + 10,
-        tooltipSizeY: y - 25,
-        formattedSize: formatSize(h.size, this.preferredSystem),
-      };
+    // Collect all values and dates across all series
+    let allValues = [];
+    let allDates = [];
+    allSeries.forEach((s) => {
+      s.points.forEach((p) => {
+        allValues.push(p.value);
+        allDates.push(p.date);
+      });
     });
 
-    let mainPath = `M ${points[0].x} ${points[0].y}`;
-    let projectionPath = "";
+    const minVal = Math.min(...allValues);
+    const maxVal = Math.max(...allValues);
+    const valRange = maxVal - minVal || 1;
+    const earliest = new Date(Math.min(...allDates));
+    const latest = new Date(Math.max(...allDates));
+    const timeRange = latest.getTime() - earliest.getTime() || 1;
 
-    for (let i = 1; i < points.length; i++) {
-      if (points[i].isProjection) {
-        if (!projectionPath)
-          projectionPath = `M ${points[i - 1].x} ${points[i - 1].y}`;
-        projectionPath += ` L ${points[i].x} ${points[i].y}`;
-      } else {
-        mainPath += ` L ${points[i].x} ${points[i].y}`;
+    const seriesPaths = [];
+    const flatPoints = [];
+
+    allSeries.forEach((s) => {
+      const pts = s.points.map((p, i) => {
+        const x =
+          paddingX +
+          ((p.date.getTime() - earliest.getTime()) / timeRange) *
+            (width - 2 * paddingX);
+        const y =
+          height -
+          paddingY -
+          ((p.value - minVal) / valRange) * (height - 2 * paddingY);
+        const tooltipX = Math.min(x + 10, width - 190);
+        const tooltipY = Math.max(y - 70, 10);
+
+        return {
+          x,
+          y,
+          value: p.value,
+          date: p.date,
+          action: p.action,
+          label: p.label,
+          seriesKey: s.key,
+          seriesName: s.name,
+          tooltipX,
+          tooltipY,
+          tooltipNameX: tooltipX + 10,
+          tooltipNameY: tooltipY + 20,
+          tooltipSizeX: tooltipX + 10,
+          tooltipSizeY: tooltipY + 40,
+          formattedSize: formatSize(p.value, this.preferredSystem),
+        };
+      });
+
+      let path = "";
+      for (let i = 0; i < pts.length; i++) {
+        path += i === 0 ? `M ${pts[i].x} ${pts[i].y}` : ` L ${pts[i].x} ${pts[i].y}`;
       }
-    }
+
+      seriesPaths.push({
+        key: s.key,
+        name: s.name,
+        path,
+        color: s.color,
+        points: pts,
+      });
+
+      pts.forEach((p) => flatPoints.push(p));
+    });
+
+    flatPoints.sort((a, b) => b.date - a.date);
 
     return {
-      points,
-      mainPath,
-      projectionPath,
+      seriesPaths,
+      points: flatPoints,
       width,
       height,
-      minSize,
-      maxSize,
+      minVal,
+      maxVal,
     };
   }
 
-  get formattedMinSize() {
-    return formatSize(
-      this.graphData?.minSize || 0,
-      this.preferredSystem
-    );
+  get formattedMinVal() {
+    return formatSize(this.graphData?.minVal || 0, this.preferredSystem);
   }
 
-  get formattedMaxSize() {
-    return formatSize(
-      this.graphData?.maxSize || 0,
-      this.preferredSystem
-    );
+  get formattedMaxVal() {
+    return formatSize(this.graphData?.maxVal || 0, this.preferredSystem);
   }
 
   get topContributors() {
@@ -210,9 +256,7 @@ export default class DiscourseSizeGrowthGraph extends Component {
         return;
       }
       const userId = action.user_id || action.user?.id;
-      if (!userId) {
-        return;
-      }
+      if (!userId) return;
       if (!byUser[userId]) {
         byUser[userId] = {
           user: action.user,
@@ -235,10 +279,7 @@ export default class DiscourseSizeGrowthGraph extends Component {
           this.character.blocked_user_ids
             ?.map((id) => Number(id))
             .includes(Number(entry.user.id)),
-        formattedSize: formatSize(
-          entry.totalImpactCm,
-          this.preferredSystem
-        ),
+        formattedSize: formatSize(entry.totalImpactCm, this.preferredSystem),
       }));
   }
 
@@ -259,9 +300,7 @@ export default class DiscourseSizeGrowthGraph extends Component {
         ? "discourse_size.delete_action_with_return_confirm"
         : "discourse_size.delete_action_confirm";
 
-    if (!confirm(i18n(key))) {
-      return;
-    }
+    if (!confirm(i18n(key))) return;
 
     try {
       const result = await ajax(`/size/actions/${actionItem.id}`, {
@@ -270,15 +309,14 @@ export default class DiscourseSizeGrowthGraph extends Component {
       if (result.character) {
         this.args.model.onActionDeleted?.(result.character);
       }
-      
+
       this.character.actions = this.character.actions.filter(
         (action) => action.id !== actionItem.id
       );
-      notifyPropertyChange(this, "history");
+      notifyPropertyChange(this, "series");
       notifyPropertyChange(this, "graphData");
       notifyPropertyChange(this, "actions");
       notifyPropertyChange(this, "newestFirstActions");
-      notifyPropertyChange(this, "oldestFirstActions");
       notifyPropertyChange(this, "topContributors");
     } catch (e) {
       alert("Error deleting action");
@@ -293,18 +331,13 @@ export default class DiscourseSizeGrowthGraph extends Component {
           username: user.username,
         })
       )
-    ) {
-      return;
-    }
+    ) return;
 
     try {
-      const result = await ajax(
-        `/size/characters/${this.character.id}/block_user`,
-        {
-          type: "POST",
-          data: { user_id: user.id },
-        }
-      );
+      await ajax(`/size/characters/${this.character.id}/block_user`, {
+        type: "POST",
+        data: { user_id: user.id },
+      });
       this.character.blocked_user_ids.push(user.id);
       notifyPropertyChange(this, "topContributors");
     } catch (e) {
@@ -316,22 +349,17 @@ export default class DiscourseSizeGrowthGraph extends Component {
   async unblockUser(user) {
     if (
       !confirm(
-        I18n.t("discourse_size.blocking.confirm_unblock_user", {
+        I18n.t("discourse_size.blocking.confirm_block_user", {
           username: user.username,
         })
       )
-    ) {
-      return;
-    }
+    ) return;
 
     try {
-      const result = await ajax(
-        `/size/characters/${this.character.id}/unblock_user`,
-        {
-          type: "POST",
-          data: { user_id: user.id },
-        }
-      );
+      await ajax(`/size/characters/${this.character.id}/unblock_user`, {
+        type: "POST",
+        data: { user_id: user.id },
+      });
       this.character.blocked_user_ids = this.character.blocked_user_ids.filter(
         (id) => id !== user.id
       );

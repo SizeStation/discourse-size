@@ -28,6 +28,8 @@ DiscourseSize::Engine.routes.draw do
     post "accept_invite", on: :member
     post "decline_invite", on: :member
     post "remove_member", on: :member
+    put "update_member_overrides", on: :member
+    post "reset_member_overrides", on: :member
   end
 
   get "directory" => "leaderboard#index"

@@ -6,6 +6,7 @@ en:
           discourse_size: "Discourse Size"
   js:
     discourse_size:
+      gender_placeholder: "Gender"
       how_does_this_work: "How does this work?"
       help: "Help"
       size_history: "Size History"
@@ -191,10 +192,8 @@ en:
         help: "Choose how your character's size is managed. This cannot be changed later."
         game_name: "Game Mode"
         game_desc: "Earn and use coins to grow or shrink your character, or let others grow/shrink your character."
-        freeform_name: "Static Mode"
-        freeform_desc: "Manually set your character's size to any number instantly."
-        roleplay_name: "Roleplay Mode"
-        roleplay_desc: "Use JavaScript triggers and participate in roleplay groups."
+        normal_name: "Normal Mode"
+        normal_desc: "Instantly set your character's size and use JavaScript triggers."
         cannot_change: "(Mode cannot be changed after creation)"
       options:
         title: "Additional Options"
@@ -241,6 +240,7 @@ en:
         to_shrink: "to shrink"
         set_size_to: "set their size to"
         boost_speed: "increased growth speed by"
+        property_change: "property %{property} is changing"
         unknown: "performed action: %{type}"
       coins:
         one: "%{count} Coin"
@@ -337,6 +337,10 @@ en:
         confirm_remove_invite: "Are you sure you want to revoke this invitation?"
         confirm_delete: "Are you sure you want to delete this roleplay? This action cannot be undone."
         search_placeholder: "Search roleplays by name..."
+        deviates: "Modified"
+        reset_field: "Reset to original"
+        reset_to_defaults: "Reset to Defaults"
+        confirm_reset: "Reset all fields to their original values? This cannot be undone."
         copy_link: "Copy Link"
         link_copied: "Link copied to clipboard!"
         is_public: "Public (discoverable with share link)"
@@ -374,8 +378,7 @@ en:
         type: "Type"
         value: "Value"
         value_placeholder: "Value"
-        linked_to_size: "Linked to Size"
-        linked_to_size_help: "Property value will scale with character size."
+
         types:
           text: "Text"
           number: "Number"
@@ -384,6 +387,7 @@ en:
         title: "JavaScript Triggers"
         instructions: "Write scripts to automate your character's behavior."
         add_trigger: "Add Trigger"
+        discover_triggers: "Discover Triggers"
         name: "Trigger Name"
         name_placeholder: "Trigger Name (e.g. Daily Growth)"
         js_code: "JavaScript Code"

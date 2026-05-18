@@ -126,7 +126,7 @@ class DiscourseSizeActionSerializer < ApplicationSerializer
       return object.item_key
     end
     return nil unless object.item_key
-    DiscourseSizeShopItem.find_by(key: object.item_key)&.name
+    DiscourseSizeShopItem.find_by(key: object.item_key)&.name || object.item_key
   end
 
   def is_user_blocked

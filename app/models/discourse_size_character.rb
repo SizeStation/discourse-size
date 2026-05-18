@@ -57,21 +57,16 @@ class DiscourseSizeCharacter < ActiveRecord::Base
   has_many :discourse_size_actions, foreign_key: "character_id", dependent: :destroy
 
   TYPE_GAME = 'game'
-  TYPE_FREEFORM = 'freeform'
-  TYPE_ROLEPLAY = 'roleplay'
+  TYPE_NORMAL = 'normal'
 
-  validates :character_type, inclusion: { in: [TYPE_GAME, TYPE_FREEFORM, TYPE_ROLEPLAY] }
+  validates :character_type, inclusion: { in: [TYPE_GAME, TYPE_NORMAL] }
 
   def game?
     character_type == TYPE_GAME
   end
 
-  def freeform?
-    character_type == TYPE_FREEFORM
-  end
-
-  def roleplay?
-    character_type == TYPE_ROLEPLAY
+  def normal?
+    character_type == TYPE_NORMAL
   end
 
   MAX_SIZE = 1e120 # Cap at a googol-plus to prevent Infinity overflow
@@ -127,14 +122,6 @@ class DiscourseSizeCharacter < ActiveRecord::Base
       end_time: Time.now
     )
 
-    # Scale linked properties
-    if old_total_cm > 0 && new_total_cm > 0
-      factor = new_total_cm / old_total_cm
-      discourse_size_character_properties.where(property_type: "size", linked_to_size: true).each do |prop|
-        current_val = prop.value.to_f
-        prop.update!(value: (current_val * factor).to_s)
-      end
-    end
   end
 
   def current_size

@@ -19,3 +19,5 @@ en:
     discourse_size_help_url: "URL for the 'How does this work?' link"
     discourse_size_shop_name: "Name of the size shop"
     discourse_size_shop_items: "JSON list of shop items"
+    discourse_size_disable_properties: "Disable custom properties for all characters"
+    discourse_size_disable_triggers: "Disable JavaScript triggers for all characters"

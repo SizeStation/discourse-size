@@ -106,11 +106,11 @@
     {{#each this.acceptedMembers as |member|}}
       <div class="member-card-wrapper">
         <DiscourseSizeCharacterCard
-          @character={{member.character}}
+          @character={{member.effectiveCharacter}}
           @isCurrentUser={{eq member.character.user_id this.currentUser.id}}
           @userPoints={{this.currentUser.discourse_size_points}}
           @onAction={{this.refreshRoleplay}}
-          @onUpdate={{this.editCharacter}}
+          @onUpdate={{fn this.editCharacter member}}
         />
         {{#if
           (or this.isCreator (eq member.character.user_id this.currentUser.id))
