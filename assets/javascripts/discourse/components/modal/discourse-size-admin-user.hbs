@@ -4,6 +4,35 @@
   class="discourse-size-admin-user-modal"
 >
   <:body>
+    <section class="admin-section mass-points-management">
+      <h3>{{i18n "discourse_size.admin.mass_points_title"}}</h3>
+      <p class="mass-points-description">{{i18n "discourse_size.admin.mass_points_description"}}</p>
+      <div class="control-group">
+        <label>{{i18n "discourse_size.admin.mass_points_amount"}}</label>
+        <Input @type="number" @value={{this.massAmount}} class="points-input" />
+      </div>
+      <div class="control-group">
+        <label>{{i18n "discourse_size.admin.mass_points_reason"}}</label>
+        <Input @value={{this.massDescription}} placeholder="Site-wide distribution..." />
+      </div>
+      <div class="mass-points-buttons">
+        <DButton
+          @label="discourse_size.admin.mass_points_add"
+          @action={{this.massAddPoints}}
+          @disabled={{this.isMassSaving}}
+          class="btn-primary"
+        />
+        <DButton
+          @label="discourse_size.admin.mass_points_remove"
+          @action={{this.massRemovePoints}}
+          @disabled={{this.isMassSaving}}
+          class="btn-danger"
+        />
+      </div>
+    </section>
+
+    <hr />
+
     <section class="admin-section points-management">
       <h3>{{i18n "discourse_size.admin.manage_points"}}</h3>
       <div class="control-group">

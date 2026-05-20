@@ -133,6 +133,34 @@ module DiscourseSize
       render json: success_json
     end
 
+    def mass_update_points
+      amount = params[:amount].to_i
+      raise Discourse::InvalidParameters.new("Amount must not be zero") if amount == 0
+
+      description = params[:description].presence || "Mass admin distribution"
+      source_type = amount > 0 ? "admin_mass_add" : "admin_mass_remove"
+
+      User.human_users.find_each do |user|
+        if amount > 0
+          DiscourseSize::PointsManager.add_points(
+            user,
+            amount,
+            source_type: source_type,
+            description: description
+          )
+        else
+          DiscourseSize::PointsManager.remove_points(
+            user,
+            amount.abs,
+            source_type: source_type,
+            description: description
+          )
+        end
+      end
+
+      render json: success_json
+    end
+
     def reset_quests
       QuestManager.reset_quests(current_user)
       render json: success_json

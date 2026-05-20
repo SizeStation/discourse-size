@@ -51,6 +51,7 @@ DiscourseSize::Engine.routes.draw do
   post "admin/users/:user_id/inventory" => "admin#add_inventory_item"
   delete "admin/users/:user_id/inventory/:id" => "admin#remove_inventory_item"
   post "admin/users/:user_id/clear_daily_reward" => "admin#clear_daily_reward"
+  post "admin/users/mass_points" => "admin#mass_update_points"
 
   post "admin/shop_items" => "shop#create"
   put "admin/shop_items/:id" => "shop#update"

@@ -17,6 +17,9 @@ export default class DiscourseSizeAdminUser extends Component {
   @tracked loadingInventory = true;
   @tracked loadingHistory = true;
   @tracked selectedItemKey = null;
+  @tracked massAmount = 0;
+  @tracked massDescription = "";
+  @tracked isMassSaving = false;
 
   constructor() {
     super(...arguments);
@@ -120,6 +123,68 @@ export default class DiscourseSizeAdminUser extends Component {
       alert(I18n.t("discourse_size.admin.clear_reward_success"));
     } catch (e) {
       alert(I18n.t("discourse_size.error_generic"));
+    }
+  }
+
+  @action
+  async massAddPoints() {
+    const amount = parseInt(this.massAmount, 10);
+    if (!amount || amount <= 0) return;
+
+    if (
+      !confirm(
+        I18n.t("discourse_size.admin.mass_points_add_confirm", { amount })
+      )
+    )
+      return;
+
+    this.isMassSaving = true;
+    try {
+      await ajax("/size/admin/users/mass_points", {
+        type: "POST",
+        data: {
+          amount,
+          description: this.massDescription || undefined,
+        },
+      });
+      alert(I18n.t("discourse_size.admin.mass_points_success", { amount }));
+      this.massAmount = 0;
+      this.massDescription = "";
+    } catch (e) {
+      alert(I18n.t("discourse_size.error_generic"));
+    } finally {
+      this.isMassSaving = false;
+    }
+  }
+
+  @action
+  async massRemovePoints() {
+    const amount = parseInt(this.massAmount, 10);
+    if (!amount || amount <= 0) return;
+
+    if (
+      !confirm(
+        I18n.t("discourse_size.admin.mass_points_remove_confirm", { amount })
+      )
+    )
+      return;
+
+    this.isMassSaving = true;
+    try {
+      await ajax("/size/admin/users/mass_points", {
+        type: "POST",
+        data: {
+          amount: -amount,
+          description: this.massDescription || undefined,
+        },
+      });
+      alert(I18n.t("discourse_size.admin.mass_points_success", { amount }));
+      this.massAmount = 0;
+      this.massDescription = "";
+    } catch (e) {
+      alert(I18n.t("discourse_size.error_generic"));
+    } finally {
+      this.isMassSaving = false;
     }
   }
 }
