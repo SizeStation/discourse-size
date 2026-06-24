@@ -2346,10 +2346,7 @@
   .table {
     font-size: 0.9em;
 
-    th:nth-child(1),
-    td:nth-child(1) {
-      display: none; // Hide Rank on tiny screens
-    }
+
   }
 
   .lb-character-info {

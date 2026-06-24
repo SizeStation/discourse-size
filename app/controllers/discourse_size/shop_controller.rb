@@ -64,29 +64,32 @@ module DiscourseSize
     end
 
     def claim_reward
-      last_reward_date = current_user.custom_fields["discourse_size_last_daily_reward_date"]
       today = Date.today.to_s
       
-      if last_reward_date == today
-        return render json: { failed: true, message: "Reward already collected today." }, status: :unprocessable_content
+      DistributedMutex.synchronize("discourse_size_daily_reward_#{current_user.id}") do
+        last_reward_date = current_user.custom_fields["discourse_size_last_daily_reward_date"]
+        
+        if last_reward_date == today
+          return render json: { failed: true, message: "Reward already collected today." }, status: :unprocessable_content
+        end
+
+        amount = SiteSetting.discourse_size_daily_reward_amount
+        current_user.custom_fields["discourse_size_last_daily_reward_date"] = today
+        current_user.save_custom_fields(true)
+        
+        ::DiscourseSize::PointsManager.add_points(
+          current_user,
+          amount,
+          source_type: "daily_reward",
+          description: "Daily reward collection"
+        )
+
+        render json: { 
+          success: true, 
+          amount: amount,
+          current_points: ::DiscourseSize::PointsManager.get_points(current_user)
+        }
       end
-
-      amount = SiteSetting.discourse_size_daily_reward_amount
-      current_user.custom_fields["discourse_size_last_daily_reward_date"] = today
-      current_user.save_custom_fields(true)
-      
-      ::DiscourseSize::PointsManager.add_points(
-        current_user,
-        amount,
-        source_type: "daily_reward",
-        description: "Daily reward collection"
-      )
-
-      render json: { 
-        success: true, 
-        amount: amount,
-        current_points: ::DiscourseSize::PointsManager.get_points(current_user)
-      }
     end
 
 

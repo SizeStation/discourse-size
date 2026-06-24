@@ -74,20 +74,22 @@ module ::DiscourseSize
         end
       end
 
-      character.add_queued_action(
+      capped_type = nil
+      action_result = character.add_queued_action(
         action_type: item.effect,
         size_change: size_change,
         duration_minutes: item.duration_minutes.to_f,
         user_id: user.id,
         item_key: item.key
       )
+      capped_type = action_result[:capped] if action_result[:capped]
 
       # Send notification
       notification_id = NotificationManager.send_growth_notification(
         user,
         character,
         item.effect,
-        size_change,
+        action_result[:size_change],
         item_name: item.name
       )
 
@@ -95,14 +97,14 @@ module ::DiscourseSize
       action = character.discourse_size_actions.where(item_key: item.key, user_id: user.id).order(created_at: :desc).first
       action.update_column(:notification_id, notification_id) if notification_id && action
 
-      # Apply self-effect if configured and applicable
-      if main_char
+      # Apply self-effect if configured and applicable (only for game type main characters)
+      if main_char&.game?
         self_start_offset = main_char.target_offset
         self_current_total = main_char.base_size + self_start_offset
         self_new_total = self_current_total * (1.0 + (item.self_effect == "shrink" ? -item.self_amount.to_f : item.self_amount.to_f) / 100.0)
         self_size_change = self_new_total - self_current_total
 
-        main_char.add_queued_action(
+        self_action_result = main_char.add_queued_action(
           action_type: item.self_effect,
           size_change: self_size_change,
           duration_minutes: item.duration_minutes.to_f,
@@ -110,6 +112,7 @@ module ::DiscourseSize
           item_key: item.key,
           parent_action_id: action&.id
         )
+        capped_type = self_action_result[:capped] if self_action_result[:capped] && !capped_type
       end
 
 
@@ -123,7 +126,7 @@ module ::DiscourseSize
         end
       end
 
-      { success: true, character: character }
+      { success: true, character: character, capped_type: capped_type }
     end
     def self.return_item(user, item_key)
       item_def = DiscourseSizeShopItem.find_by(key: item_key)

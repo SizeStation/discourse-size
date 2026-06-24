@@ -46,14 +46,33 @@ module DiscourseSize
       c.sync_offset!
       seconds_left = c.time_remaining_seconds
 
-      prefers_growing = !c.blocked_item_keys.include?("__all_growing__") && !c.blocked_item_keys.include?("__all__")
-      prefers_shrinking = !c.blocked_item_keys.include?("__all_shrinking__") && !c.blocked_item_keys.include?("__all__")
+      keys = c.blocked_item_keys
+      full_block = keys.include?("__all__")
+      grow_blocked = keys.include?("__all_growing__") || full_block
+      shrink_blocked = keys.include?("__all_shrinking__") || full_block
+
+      prefers_growing = !grow_blocked
+      prefers_shrinking = !shrink_blocked
+
+      # When both are fully blocked → neither
+      # When one is fully blocked and the other is partially → prefer the unblocked one
+      if grow_blocked && shrink_blocked
+        prefers_growing = false
+        prefers_shrinking = false
+      elsif grow_blocked
+        prefers_growing = false
+        prefers_shrinking = true
+      elsif shrink_blocked
+        prefers_growing = true
+        prefers_shrinking = false
+      end
 
       {
         id: c.id,
         user_id: c.user_id,
         name: c.name,
         picture: c.picture,
+        base_size: c.base_size,
         prefers_growing: prefers_growing,
         prefers_shrinking: prefers_shrinking,
         is_animating: (c.current_offset - c.target_offset).abs > 0.0001,

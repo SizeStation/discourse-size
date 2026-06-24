@@ -407,3 +407,6 @@ en:
         help_btn: "Help & Documentation"
         run: "Run Trigger"
       dismiss: "Dismiss"
+      size_limit_max: "You're max size!"
+      size_limit_min: "You're min size!"
+      size_limit_warning: "You've reached the size limit!"

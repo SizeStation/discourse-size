@@ -69,29 +69,28 @@ class DiscourseSizeCharacter < ActiveRecord::Base
     character_type == TYPE_NORMAL
   end
 
-  MAX_SIZE = 1e120 # Cap at a googol-plus to prevent Infinity overflow
+  MAX_SIZE = 1e120
+  MIN_SIZE = 1e-18
 
   def update_size_target(amount)
     sync_offset!
     self.start_offset = self.current_offset
     self.offset_updated_at = Time.now
     new_target = self.target_offset + amount
- 
-    # Cap total size
+
     if (self.base_size + new_target) > MAX_SIZE
       new_target = MAX_SIZE - self.base_size
     end
- 
-    # Floor total size at a nanoscopic value (1e-18 cm) to prevent true zero/negative
-    new_target = 1e-18 - self.base_size if (self.base_size + new_target) < 1e-18
- 
+
+    new_target = MIN_SIZE - self.base_size if (self.base_size + new_target) < MIN_SIZE
+
     self.target_offset = new_target
     save!
   end
 
   def update_size(new_total_cm, actor)
     new_total_cm = new_total_cm.to_f
-    new_total_cm = 1e-18 if new_total_cm < 1e-18
+    new_total_cm = MIN_SIZE if new_total_cm < MIN_SIZE
     new_total_cm = MAX_SIZE if new_total_cm > MAX_SIZE
 
     old_total_cm = self.current_size
@@ -184,7 +183,17 @@ class DiscourseSizeCharacter < ActiveRecord::Base
 
   def add_queued_action(action_type:, size_change:, duration_minutes:, user_id:, item_key: nil, parent_action_id: nil)
     sync_offset!
-    
+
+    capped_type = nil
+    new_total = base_size + target_offset + size_change
+    if new_total > MAX_SIZE
+      size_change = MAX_SIZE - (base_size + target_offset)
+      capped_type = :max
+    elsif new_total < MIN_SIZE
+      size_change = MIN_SIZE - (base_size + target_offset)
+      capped_type = :min
+    end
+
     DiscourseSizeAction.create!(
       character_id: id,
       user_id: user_id,
@@ -199,8 +208,10 @@ class DiscourseSizeCharacter < ActiveRecord::Base
       end_time: Time.now + 1.second, # Placeholder
       parent_action_id: parent_action_id
     )
-    
+
     recalculate_pending_actions!
+
+    { capped: capped_type, size_change: size_change }
   end
 
   def rebuild_offset_chain!

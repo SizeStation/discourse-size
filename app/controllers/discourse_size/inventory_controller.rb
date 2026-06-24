@@ -27,7 +27,8 @@ module DiscourseSize
       if result[:success]
         render json: { 
           success: true, 
-          character: serialize_data(result[:character], DiscourseSizeCharacterSerializer)
+          character: serialize_data(result[:character], DiscourseSizeCharacterSerializer),
+          capped_type: result[:capped_type]
         }
       else
         render json: { failed: true, message: result[:error] }, status: :unprocessable_content

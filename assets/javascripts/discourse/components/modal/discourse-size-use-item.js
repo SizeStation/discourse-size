@@ -132,6 +132,9 @@ export default class DiscourseSizeUseItem extends Component {
       });
 
       if (result.success) {
+        if (result.capped_type) {
+          alert(I18n.t(result.capped_type === "max" ? "discourse_size.size_limit_max" : "discourse_size.size_limit_min"));
+        }
         this.args.model.onAction?.(result);
         this.args.closeModal();
       }

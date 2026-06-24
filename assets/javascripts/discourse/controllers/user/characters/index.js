@@ -17,6 +17,7 @@ export default class UserCharactersIndexController extends Controller {
   @service modal;
   @service siteSettings;
 
+  @computed("currentUser.id", "user.id")
   get isCurrentUser() {
     return this.currentUser && this.currentUser.id === this.user?.id;
   }

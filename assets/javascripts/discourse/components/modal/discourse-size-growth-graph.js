@@ -74,16 +74,16 @@ export default class DiscourseSizeGrowthGraph extends Component {
       );
 
     const sizePoints = [];
-    sizePoints.push({
-      date: new Date(char.created_at),
-      value: parseFloat(char.base_size) || 0,
-      label: "Created",
-    });
-    sizeActions.forEach((a) => {
-      const val = (parseFloat(char.base_size) || 0) + (parseFloat(a.end_offset) || 0);
+    sizeActions.forEach((a, i) => {
+      if (i === 0) {
+        sizePoints.push({
+          date: new Date(a.start_time),
+          value: (parseFloat(char.base_size) || 0) + (parseFloat(a.start_offset) || 0),
+        });
+      }
       sizePoints.push({
         date: new Date(a.end_time),
-        value: val,
+        value: (parseFloat(char.base_size) || 0) + (parseFloat(a.end_offset) || 0),
         action: a,
       });
     });

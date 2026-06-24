@@ -98,6 +98,7 @@ export default class DiscourseSizeDailyQuests extends Component {
 
   @action
   async collectDailyReward() {
+    if (this.collectingDaily) return;
     this.collectingDaily = true;
     try {
       const response = await ajax("/size/shop/claim_reward", { type: "POST" });
@@ -115,6 +116,7 @@ export default class DiscourseSizeDailyQuests extends Component {
 
   @action
   async collectQuest(quest) {
+    if (this.collectingQuest) return;
     this.collectingQuest = true;
     try {
       const response = await ajax("/size/quests/collect", {
@@ -134,6 +136,7 @@ export default class DiscourseSizeDailyQuests extends Component {
 
   @action
   async collectBonusReward() {
+    if (this.collectingBonus) return;
     this.collectingBonus = true;
     try {
       const response = await ajax("/size/quests/collect_bonus", { type: "POST" });
