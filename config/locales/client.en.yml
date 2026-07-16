@@ -286,20 +286,20 @@ en:
             one: "Create %{count} new thread."
             other: "Create %{count} new threads."
           topic_created_conv:
-            one: "Create %{count} new thread in conversation categories."
-            other: "Create %{count} new threads in conversation categories."
+            one: "Create %{count} new thread in conversation categories (blue categories)."
+            other: "Create %{count} new threads in conversation categories (blue categories)."
           topic_created_content:
-            one: "Create %{count} new thread in content categories."
-            other: "Create %{count} new threads in content categories."
+            one: "Create %{count} new thread in content categories (green categories)."
+            other: "Create %{count} new threads in content categories (green categories)."
           post_created:
             one: "Write %{count} reply to any thread."
             other: "Write %{count} replies to any thread."
           post_created_conv:
-            one: "Write %{count} reply in conversation categories."
-            other: "Write %{count} replies in conversation categories."
+            one: "Write %{count} reply in conversation categories (blue categories)."
+            other: "Write %{count} replies in conversation categories (blue categories)."
           post_created_content:
-            one: "Write %{count} reply in content categories."
-            other: "Write %{count} replies in content categories."
+            one: "Write %{count} reply in content categories (green categories)."
+            other: "Write %{count} replies in content categories (green categories)."
           like_created:
             one: "Like %{count} post."
             other: "Like %{count} posts."
