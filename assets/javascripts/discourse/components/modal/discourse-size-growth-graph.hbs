@@ -13,20 +13,34 @@
           >
             {{! Grid lines }}
             <line
-              x1="60" y1="60" x2="60" y2="340"
-              stroke="var(--primary-low)" stroke-dasharray="4"
+              x1="60"
+              y1="60"
+              x2="60"
+              y2="340"
+              stroke="var(--primary-low)"
+              stroke-dasharray="4"
             />
             <line
-              x1="60" y1="340" x2="740" y2="340"
-              stroke="var(--primary-low)" stroke-dasharray="4"
+              x1="60"
+              y1="340"
+              x2="740"
+              y2="340"
+              stroke="var(--primary-low)"
+              stroke-dasharray="4"
             />
 
             {{! Labels }}
             <text
-              x="55" y="65" text-anchor="end" class="axis-label"
+              x="55"
+              y="65"
+              text-anchor="end"
+              class="axis-label"
             >{{this.formattedMaxVal}}</text>
             <text
-              x="55" y="345" text-anchor="end" class="axis-label"
+              x="55"
+              y="345"
+              text-anchor="end"
+              class="axis-label"
             >{{this.formattedMinVal}}</text>
 
             {{! Series paths }}
@@ -34,7 +48,7 @@
               <path
                 d="{{sp.path}}"
                 fill="none"
-                stroke="{{if sp.color sp.color "var(--tertiary)"}}"
+                stroke="{{if sp.color sp.color 'var(--tertiary)'}}"
                 stroke-width="3"
                 stroke-linejoin="round"
                 stroke-linecap="round"
@@ -42,8 +56,10 @@
               {{! Points for this series }}
               {{#each sp.points as |point|}}
                 <circle
-                  cx={{point.x}} cy={{point.y}} r="5"
-                  fill="{{if sp.color sp.color "var(--tertiary)"}}"
+                  cx={{point.x}}
+                  cy={{point.y}}
+                  r="5"
+                  fill="{{if sp.color sp.color 'var(--tertiary)'}}"
                   class="graph-point"
                   {{on "mouseenter" (fn this.setHoveredPoint point)}}
                   {{on "mouseleave" (fn this.setHoveredPoint null)}}
@@ -57,11 +73,12 @@
                 <rect
                   x={{this.hoveredPoint.tooltipX}}
                   y={{this.hoveredPoint.tooltipY}}
-                  width="180" height="70"
+                  width={{this.hoveredPoint.tooltipWidth}}
+                  height={{this.hoveredPoint.tooltipHeight}}
                   rx="8"
                   fill="var(--secondary)"
                   stroke="var(--tertiary)"
-                  stroke-width="2"
+                  stroke-width="1.5"
                 />
                 <text
                   x={{this.hoveredPoint.tooltipNameX}}
@@ -70,24 +87,23 @@
                 >
                   {{this.hoveredPoint.seriesName}}
                   {{#if this.hoveredPoint.action}}
-                    — {{this.hoveredPoint.action.user.username}}
+                    —
+                    {{this.hoveredPoint.action.user.username}}
                   {{/if}}
                 </text>
+                {{#if this.hoveredPoint.label}}
+                  <text
+                    x={{this.hoveredPoint.tooltipNameX}}
+                    y={{this.hoveredPoint.tooltipLabelY}}
+                    class="tooltip-label"
+                  >
+                    {{this.hoveredPoint.label}}
+                  </text>
+                {{/if}}
                 <text
                   x={{this.hoveredPoint.tooltipNameX}}
-                  y={{this.hoveredPoint.tooltipNameY}}
-                  class="tooltip-name"
-                  dy="20"
-                >
-                  {{#if this.hoveredPoint.label}}
-                    {{this.hoveredPoint.label}}
-                  {{/if}}
-                </text>
-                <text
-                  x={{this.hoveredPoint.tooltipSizeX}}
                   y={{this.hoveredPoint.tooltipSizeY}}
                   class="tooltip-size"
-                  dy="35"
                 >
                   {{this.hoveredPoint.formattedSize}}
                 </text>
@@ -191,7 +207,8 @@
                   {{#if action.parent_action_id}}
                     {{i18n "discourse_size.activity.used"}}
                     <LinkTo
-                      @route="size-shop" class="item-link"
+                      @route="size-shop"
+                      class="item-link"
                     >{{action.item_name}}</LinkTo>
                     {{#if (eq action.parent_action_type "grow")}}
                       {{i18n "discourse_size.activity.to_grow"}}
@@ -219,13 +236,30 @@
                       (abs action.size_change)
                       @model.character.measurement_system
                     }}
-                  {{else if (or (eq action.action_type "grow") (eq action.action_type "shrink"))}}
+                  {{else if
+                    (or
+                      (eq action.action_type "grow")
+                      (eq action.action_type "shrink")
+                    )
+                  }}
                     {{#if action.item_name}}
                       {{i18n "discourse_size.activity.used"}}
-                      <LinkTo @route="size-shop" class="item-link">{{action.item_name}}</LinkTo>
-                      {{i18n (concat "discourse_size.activity.to_" action.action_type)}}
+                      <LinkTo
+                        @route="size-shop"
+                        class="item-link"
+                      >{{action.item_name}}</LinkTo>
+                      {{i18n
+                        (concat
+                          "discourse_size.activity.to_" action.action_type
+                        )
+                      }}
                     {{else}}
-                      {{i18n (concat "discourse_size.activity." (if (eq action.action_type "grow") "grew" "shrunk"))}}
+                      {{i18n
+                        (concat
+                          "discourse_size.activity."
+                          (if (eq action.action_type "grow") "grew" "shrunk")
+                        )
+                      }}
                     {{/if}}
                     <LinkTo
                       @route="user.characters.index"
@@ -284,10 +318,13 @@
                 </span>
 
                 <span class="date">{{format-date
-                    action.created_at leaveAgo="true"
+                    action.created_at
+                    leaveAgo="true"
                   }}</span>
 
-                {{#if (and this.canManageCharacter (not action.parent_action_id))}}
+                {{#if
+                  (and this.canManageCharacter (not action.parent_action_id))
+                }}
                   <DButton
                     @action={{fn this.deleteAction action}}
                     @icon="clock-rotate-left"

@@ -1497,31 +1497,31 @@
 
                     .d-icon {
                       font-size: 0.9em;
-    }
+                    }
 
-    .graph-legend {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      padding: 8px 12px;
+                    .graph-legend {
+                      display: flex;
+                      flex-wrap: wrap;
+                      gap: 12px;
+                      padding: 8px 12px;
 
-      .legend-item {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 12px;
-        font-weight: 600;
-        color: var(--primary);
+                      .legend-item {
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
+                        font-size: 12px;
+                        font-weight: 600;
+                        color: var(--primary);
 
-        .legend-swatch {
-          display: inline-block;
-          width: 12px;
-          height: 12px;
-          border-radius: 3px;
-        }
-      }
-    }
-  }
+                        .legend-swatch {
+                          display: inline-block;
+                          width: 12px;
+                          height: 12px;
+                          border-radius: 3px;
+                        }
+                      }
+                    }
+                  }
 
                   .lb-target-size {
                     color: var(--primary-medium);
@@ -1987,9 +1987,14 @@
         }
 
         .tooltip-name {
-          font-size: 14px;
+          font-size: 13px;
           font-weight: 700;
           fill: var(--primary);
+        }
+
+        .tooltip-label {
+          font-size: 11px;
+          fill: var(--primary-medium);
         }
 
         .tooltip-size {
@@ -2345,8 +2350,6 @@
 
   .table {
     font-size: 0.9em;
-
-
   }
 
   .lb-character-info {
@@ -2977,6 +2980,10 @@
 
       .effect-tag.shrink {
         color: var(--danger);
+      }
+
+      .effect-tag.static {
+        color: var(--tertiary);
       }
     }
   }

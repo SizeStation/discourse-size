@@ -4,7 +4,8 @@ class DiscourseSizeShopItem < ActiveRecord::Base
   validates :key, presence: true, uniqueness: true
   validates :name, presence: true
   validates :price, numericality: { greater_than_or_equal_to: 0 }
-  validates :effect, inclusion: { in: %w[grow shrink] }
+  validates :effect, inclusion: { in: %w[grow shrink static] }
+  validates :self_effect, inclusion: { in: %w[grow shrink static] }, allow_nil: true, allow_blank: true
   validates :amount, numericality: { greater_than: 0 }
   validates :uses, numericality: { greater_than: 0 }
   validates :duration_minutes, numericality: { greater_than_or_equal_to: 0 }

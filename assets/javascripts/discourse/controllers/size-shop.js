@@ -18,6 +18,7 @@ export default class SizeShopController extends Controller {
   @tracked shopName = "Size Shop";
   @tracked currentPoints = 0;
   @tracked purchasing = null;
+  @tracked canManageShop = false;
 
   @action
   addShopItem() {

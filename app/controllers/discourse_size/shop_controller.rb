@@ -3,11 +3,11 @@
 module DiscourseSize
   class ShopController < ::ApplicationController
     requires_plugin DiscourseSize::PLUGIN_NAME
-    before_action :ensure_admin, only: [:create, :update, :destroy]
+    before_action :ensure_can_manage_shop, only: [:create, :update, :destroy, :reorder]
 
     def index
       items = DiscourseSizeShopItem.all
-      items = items.enabled unless current_user&.admin?
+      items = items.enabled unless can_manage_shop?
 
       respond_to do |format|
         format.html { render "default/empty" }
@@ -16,6 +16,7 @@ module DiscourseSize
             items: serialize_data(items, DiscourseSizeShopItemSerializer),
             shop_name: SiteSetting.discourse_size_shop_name,
             current_points: current_user ? PointsManager.get_points(current_user) : 0,
+            can_manage_shop: can_manage_shop?,
           }
         end
       end
@@ -109,6 +110,14 @@ module DiscourseSize
     end
 
     private
+
+    def ensure_can_manage_shop
+      raise Discourse::InvalidAccess unless can_manage_shop?
+    end
+
+    def can_manage_shop?
+      guardian.can_manage_size_shop?
+    end
 
     def shop_item_params
       params.permit(:key, :name, :description, :price, :effect, :amount, :duration_minutes, :uses, :picture, :stock, :enabled, :item_type, :color, :self_effect, :self_amount, :can_only_use_on_others)

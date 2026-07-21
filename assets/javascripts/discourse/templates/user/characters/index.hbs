@@ -17,7 +17,7 @@
         @href="/size/shop"
         class="btn-default"
       />
-      <DButton
+      {{!-- <DButton
         @action={{this.openRoleplaysModal}}
         class="btn-default btn-roleplays {{if this.currentUser.pending_roleplay_invites_count 'has-badge'}}"
       >
@@ -26,7 +26,7 @@
         {{#if this.currentUser.pending_roleplay_invites_count}}
           <span class="badge-notification pending-invites">{{this.currentUser.pending_roleplay_invites_count}}</span>
         {{/if}}
-      </DButton>
+      </DButton> --}}
       <DButton
         @action={{this.createNewFolder}}
         @icon="plus"
@@ -50,7 +50,10 @@
   </div>
 {{else}}
   <div class="user-characters-header">
-    <h3>{{i18n "discourse_size.user_characters" username=this.user.username}}</h3>
+    <h3>{{i18n
+        "discourse_size.user_characters"
+        username=this.user.username
+      }}</h3>
 
     <div class="header-buttons">
       {{#if this.siteSettings.discourse_size_help_url}}

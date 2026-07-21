@@ -25,7 +25,7 @@ export default class DiscourseSizeUseItem extends Component {
   get filteredInventory() {
     const char = this.args.model.character;
     const isOwnCharacter = char && char.user_id === this.currentUser.id;
-    
+
     return this.inventory.filter((item) => {
       if (this.isBlocked(item)) return false;
       if (isOwnCharacter && item.details.can_only_use_on_others) return false;
@@ -44,12 +44,8 @@ export default class DiscourseSizeUseItem extends Component {
     const char = this.args.model.character;
     const isOwnCharacter = char && char.user_id === this.currentUser.id;
     const usable = this.filteredInventory;
-    
-    return (
-      !this.loading &&
-      this.inventory.length > 0 &&
-      usable.length === 0
-    );
+
+    return !this.loading && this.inventory.length > 0 && usable.length === 0;
   }
 
   isBlocked(item) {
@@ -71,6 +67,14 @@ export default class DiscourseSizeUseItem extends Component {
       return true;
     if (effect === "shrink" && blockedKeys.includes("__all_shrinking__"))
       return true;
+    if (effect === "static") {
+      const currentSize = char.base_size + (char.target_offset || 0);
+      const targetSize = item.details.amount;
+      if (targetSize > currentSize && blockedKeys.includes("__all_growing__"))
+        return true;
+      if (targetSize < currentSize && blockedKeys.includes("__all_shrinking__"))
+        return true;
+    }
 
     return false;
   }
@@ -91,7 +95,7 @@ export default class DiscourseSizeUseItem extends Component {
   async useItem(item) {
     const char = this.args.model.character;
     const isOwnCharacter = char && char.user_id === this.currentUser.id;
-    
+
     let confirmMsg = I18n.t("discourse_size.inventory.use_confirm", {
       name: item.details.name,
     });
@@ -99,17 +103,29 @@ export default class DiscourseSizeUseItem extends Component {
     if (item.details.self_effect && item.details.self_amount) {
       if (isOwnCharacter) {
         confirmMsg +=
-          "\n\n" + I18n.t("discourse_size.inventory.self_effect_skipped_own_character_warning");
+          "\n\n" +
+          I18n.t(
+            "discourse_size.inventory.self_effect_skipped_own_character_warning"
+          );
       } else {
         const mainChar = this.currentUser.discourseSizeMainCharacter;
         if (mainChar) {
-          confirmMsg +=
-            "\n\n" +
-            I18n.t("discourse_size.inventory.self_effect_warning", {
-              character_name: mainChar.name,
-              effect: item.details.self_effect,
-              amount: item.details.self_amount,
-            });
+          if (item.details.self_effect === "static") {
+            confirmMsg +=
+              "\n\n" +
+              I18n.t("discourse_size.inventory.self_effect_static_warning", {
+                character_name: mainChar.name,
+                amount: item.details.self_amount,
+              });
+          } else {
+            confirmMsg +=
+              "\n\n" +
+              I18n.t("discourse_size.inventory.self_effect_warning", {
+                character_name: mainChar.name,
+                effect: item.details.self_effect,
+                amount: item.details.self_amount,
+              });
+          }
         } else {
           confirmMsg +=
             "\n\n" +
@@ -133,7 +149,13 @@ export default class DiscourseSizeUseItem extends Component {
 
       if (result.success) {
         if (result.capped_type) {
-          alert(I18n.t(result.capped_type === "max" ? "discourse_size.size_limit_max" : "discourse_size.size_limit_min"));
+          alert(
+            I18n.t(
+              result.capped_type === "max"
+                ? "discourse_size.size_limit_max"
+                : "discourse_size.size_limit_min"
+            )
+          );
         }
         this.args.model.onAction?.(result);
         this.args.closeModal();

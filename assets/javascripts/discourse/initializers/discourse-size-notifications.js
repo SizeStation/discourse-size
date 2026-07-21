@@ -28,17 +28,24 @@ export default {
                 const data = this.notificationData;
                 return (
                   data &&
-                  (data.character_name || data.returned || data.gift_received || data.invite)
+                  (data.character_name ||
+                    data.returned ||
+                    data.gift_received ||
+                    data.invite)
                 );
               }
 
               get linkTitle() {
                 const data = this.notificationData;
                 if (data.gift_received) {
-                  return I18n.t("js.discourse_size.notifications.gift_received_title");
+                  return I18n.t(
+                    "js.discourse_size.notifications.gift_received_title"
+                  );
                 }
                 if (data.invite) {
-                  return I18n.t("js.discourse_size.notifications.roleplay_invite_title");
+                  return I18n.t(
+                    "js.discourse_size.notifications.roleplay_invite_title"
+                  );
                 }
                 return I18n.t("js.discourse_size.notifications.title");
               }
@@ -62,15 +69,21 @@ export default {
                 if (data.gift_received) {
                   return "gift";
                 }
-                return data.action_type === "grow"
-                  ? "angle-double-up"
-                  : "angle-double-down";
+                if (data.action_type === "grow") {
+                  return "angle-double-up";
+                }
+                if (data.action_type === "shrink") {
+                  return "angle-double-down";
+                }
+                return "sync";
               }
 
               get label() {
                 const data = this.notificationData;
                 if (data.invite) {
-                  return I18n.t("js.discourse_size.notifications.roleplay_invite_label");
+                  return I18n.t(
+                    "js.discourse_size.notifications.roleplay_invite_label"
+                  );
                 }
                 if (data.returned) {
                   return I18n.t(
@@ -82,7 +95,9 @@ export default {
                     "js.discourse_size.notifications.gift_received_label"
                   );
                 }
-                return I18n.t("js.discourse_size.notifications.item_used_label");
+                return I18n.t(
+                  "js.discourse_size.notifications.item_used_label"
+                );
               }
 
               get description() {
@@ -92,10 +107,13 @@ export default {
                 }
 
                 if (data.invite) {
-                  return I18n.t("js.discourse_size.notifications.roleplay_invite", {
-                    character_name: data.character_name,
-                    roleplay_name: data.roleplay_name
-                  });
+                  return I18n.t(
+                    "js.discourse_size.notifications.roleplay_invite",
+                    {
+                      character_name: data.character_name,
+                      roleplay_name: data.roleplay_name,
+                    }
+                  );
                 }
 
                 if (data.returned) {

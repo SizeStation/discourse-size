@@ -21,3 +21,4 @@ en:
     discourse_size_shop_items: "JSON list of shop items"
     discourse_size_disable_properties: "Disable custom properties for all characters"
     discourse_size_disable_triggers: "Disable JavaScript triggers for all characters"
+    discourse_size_shop_manager_group: "Group allowed to manage shop items (creating, editing, deleting, reordering)"

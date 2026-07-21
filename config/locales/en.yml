@@ -13,3 +13,4 @@ en:
     discourse_size_content_category_ids: "Comma-separated list of category IDs for 'content' quests."
     discourse_size_chat_channel_id: "Specific chat channel ID for chat quests (0 for any)."
     discourse_size_leaderboard_trend_hours: "Hours of activity to consider for trend calculations."
+    discourse_size_shop_manager_group: "Group allowed to manage shop items (creating, editing, deleting, reordering)."

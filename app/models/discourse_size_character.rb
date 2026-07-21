@@ -154,7 +154,7 @@ class DiscourseSizeCharacter < ActiveRecord::Base
     end
   end
 
-  def is_blocked?(user, item_key: nil, action_type: nil)
+  def is_blocked?(user, item_key: nil, action_type: nil, amount: nil)
     return false if user.nil?
     return false if user.id == user_id # Owner is never blocked
 
@@ -170,10 +170,20 @@ class DiscourseSizeCharacter < ActiveRecord::Base
       return true
     end
 
-    if action_type == "grow"
+    effective_type = action_type
+    if action_type == "static" && amount.present?
+      current_total = base_size + target_offset
+      if amount.to_f > current_total
+        effective_type = "grow"
+      elsif amount.to_f < current_total
+        effective_type = "shrink"
+      end
+    end
+
+    if effective_type == "grow"
       return true if blocked_item_keys.include?("__all_growing__")
       return true if blocked_item_keys.include?("__direct_grow__")
-    elsif action_type == "shrink"
+    elsif effective_type == "shrink"
       return true if blocked_item_keys.include?("__all_shrinking__")
       return true if blocked_item_keys.include?("__direct_shrink__")
     end

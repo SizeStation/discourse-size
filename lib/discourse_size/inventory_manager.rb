@@ -48,7 +48,7 @@ module ::DiscourseSize
       return { error: "Item configuration missing (it may have been deleted)" } unless item
 
       # Check if blocked
-      if character.is_blocked?(user, item_key: inventory_item.item_key)
+      if character.is_blocked?(user, item_key: inventory_item.item_key, action_type: item.effect, amount: item.amount)
         return { error: "This character has blocked this item or you from performing actions." }
       end
 
@@ -56,13 +56,27 @@ module ::DiscourseSize
       # Sequential stacking logic
       start_offset = character.target_offset
       current_target_total = character.base_size + start_offset
-      new_target_total = current_target_total * (1.0 + (item.effect == "shrink" ? -item.amount.to_f : item.amount.to_f) / 100.0)
+      if item.effect == "static"
+        new_target_total = item.amount.to_f
+      elsif item.effect == "shrink"
+        new_target_total = current_target_total * (1.0 - item.amount.to_f / 100.0)
+      else
+        new_target_total = current_target_total * (1.0 + item.amount.to_f / 100.0)
+      end
       size_change = new_target_total - current_target_total
 
       # Track quest activity (only if targeting someone else)
       if character.user_id != user.id
-        quest_type = item.effect == "grow" ? :character_grow : :character_shrink
-        ::DiscourseSize::QuestManager.track_activity(user, quest_type)
+        quest_type = if item.effect == "grow"
+                       :character_grow
+                     elsif item.effect == "shrink"
+                       :character_shrink
+                     elsif size_change > 0
+                       :character_grow
+                     elsif size_change < 0
+                       :character_shrink
+                     end
+        ::DiscourseSize::QuestManager.track_activity(user, quest_type) if quest_type
       end
 
       # Handle self-effect validation first
@@ -76,7 +90,7 @@ module ::DiscourseSize
 
       capped_type = nil
       action_result = character.add_queued_action(
-        action_type: item.effect,
+        action_type: item.effect == "static" ? "set_size" : item.effect,
         size_change: size_change,
         duration_minutes: item.duration_minutes.to_f,
         user_id: user.id,
@@ -89,7 +103,7 @@ module ::DiscourseSize
         user,
         character,
         item.effect,
-        action_result[:size_change],
+        item.effect == "static" ? item.amount.to_f : action_result[:size_change],
         item_name: item.name
       )
 
@@ -101,11 +115,17 @@ module ::DiscourseSize
       if main_char&.game?
         self_start_offset = main_char.target_offset
         self_current_total = main_char.base_size + self_start_offset
-        self_new_total = self_current_total * (1.0 + (item.self_effect == "shrink" ? -item.self_amount.to_f : item.self_amount.to_f) / 100.0)
+        if item.self_effect == "static"
+          self_new_total = item.self_amount.to_f
+        elsif item.self_effect == "shrink"
+          self_new_total = self_current_total * (1.0 - item.self_amount.to_f / 100.0)
+        else
+          self_new_total = self_current_total * (1.0 + item.self_amount.to_f / 100.0)
+        end
         self_size_change = self_new_total - self_current_total
 
         self_action_result = main_char.add_queued_action(
-          action_type: item.self_effect,
+          action_type: item.self_effect == "static" ? "set_size" : item.self_effect,
           size_change: self_size_change,
           duration_minutes: item.duration_minutes.to_f,
           user_id: user.id,

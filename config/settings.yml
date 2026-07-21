@@ -49,3 +49,7 @@ plugins:
     default: "[]"
     client: true
     type: textarea
+  discourse_size_shop_manager_group:
+    default: ""
+    client: true
+    type: group

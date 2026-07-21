@@ -7,8 +7,16 @@ import { ajax } from "discourse/lib/ajax";
 import { inject as service } from "@ember/service";
 
 const SERIES_COLORS = [
-  "#e74c3c", "#2ecc71", "#f39c12", "#9b59b6", "#1abc9c",
-  "#e67e22", "#3498db", "#e91e63", "#00bcd4", "#8bc34a",
+  "#e74c3c",
+  "#2ecc71",
+  "#f39c12",
+  "#9b59b6",
+  "#1abc9c",
+  "#e67e22",
+  "#3498db",
+  "#e91e63",
+  "#00bcd4",
+  "#8bc34a",
 ];
 
 export default class DiscourseSizeGrowthGraph extends Component {
@@ -69,21 +77,22 @@ export default class DiscourseSizeGrowthGraph extends Component {
           a.start_time &&
           a.end_time
       )
-      .sort(
-        (a, b) => new Date(a.start_time) - new Date(b.start_time)
-      );
+      .sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
 
     const sizePoints = [];
     sizeActions.forEach((a, i) => {
       if (i === 0) {
         sizePoints.push({
           date: new Date(a.start_time),
-          value: (parseFloat(char.base_size) || 0) + (parseFloat(a.start_offset) || 0),
+          value:
+            (parseFloat(char.base_size) || 0) +
+            (parseFloat(a.start_offset) || 0),
         });
       }
       sizePoints.push({
         date: new Date(a.end_time),
-        value: (parseFloat(char.base_size) || 0) + (parseFloat(a.end_offset) || 0),
+        value:
+          (parseFloat(char.base_size) || 0) + (parseFloat(a.end_offset) || 0),
         action: a,
       });
     });
@@ -115,9 +124,7 @@ export default class DiscourseSizeGrowthGraph extends Component {
             a.start_time &&
             a.end_time
         )
-        .sort(
-          (a, b) => new Date(a.start_time) - new Date(b.start_time)
-        );
+        .sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
 
       if (propActions.length === 0) return;
 
@@ -185,8 +192,14 @@ export default class DiscourseSizeGrowthGraph extends Component {
           height -
           paddingY -
           ((p.value - minVal) / valRange) * (height - 2 * paddingY);
-        const tooltipX = Math.min(x + 10, width - 190);
-        const tooltipY = Math.max(y - 70, 10);
+        const tooltipWidth = 180;
+        const tooltipHeight = p.label ? 68 : 54;
+        const tooltipX = Math.min(
+          Math.max(x - tooltipWidth / 2, 10),
+          width - tooltipWidth - 10
+        );
+        const tooltipY =
+          y - tooltipHeight - 12 < 10 ? y + 15 : y - tooltipHeight - 12;
 
         return {
           x,
@@ -199,17 +212,20 @@ export default class DiscourseSizeGrowthGraph extends Component {
           seriesName: s.name,
           tooltipX,
           tooltipY,
-          tooltipNameX: tooltipX + 10,
-          tooltipNameY: tooltipY + 20,
-          tooltipSizeX: tooltipX + 10,
-          tooltipSizeY: tooltipY + 40,
+          tooltipWidth,
+          tooltipHeight,
+          tooltipNameX: tooltipX + 12,
+          tooltipNameY: tooltipY + 22,
+          tooltipLabelY: tooltipY + 38,
+          tooltipSizeY: p.label ? tooltipY + 54 : tooltipY + 42,
           formattedSize: formatSize(p.value, this.preferredSystem),
         };
       });
 
       let path = "";
       for (let i = 0; i < pts.length; i++) {
-        path += i === 0 ? `M ${pts[i].x} ${pts[i].y}` : ` L ${pts[i].x} ${pts[i].y}`;
+        path +=
+          i === 0 ? `M ${pts[i].x} ${pts[i].y}` : ` L ${pts[i].x} ${pts[i].y}`;
       }
 
       seriesPaths.push({
@@ -331,7 +347,8 @@ export default class DiscourseSizeGrowthGraph extends Component {
           username: user.username,
         })
       )
-    ) return;
+    )
+      return;
 
     try {
       await ajax(`/size/characters/${this.character.id}/block_user`, {
@@ -353,7 +370,8 @@ export default class DiscourseSizeGrowthGraph extends Component {
           username: user.username,
         })
       )
-    ) return;
+    )
+      return;
 
     try {
       await ajax(`/size/characters/${this.character.id}/unblock_user`, {

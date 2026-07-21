@@ -37,6 +37,7 @@ export default class DiscourseSizeEditShopItem extends Component {
     return [
       { id: "grow", name: "Grow" },
       { id: "shrink", name: "Shrink" },
+      { id: "static", name: "Static" },
     ];
   }
 
@@ -45,6 +46,7 @@ export default class DiscourseSizeEditShopItem extends Component {
       { id: null, name: "None" },
       { id: "grow", name: "Grow Self" },
       { id: "shrink", name: "Shrink Self" },
+      { id: "static", name: "Static Self" },
     ];
   }
 

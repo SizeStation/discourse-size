@@ -14,6 +14,7 @@ export default class SizeShopRoute extends DiscourseRoute {
       items: model.items,
       shopName: model.shop_name,
       currentPoints: model.current_points,
+      canManageShop: model.can_manage_shop,
     });
   }
 }

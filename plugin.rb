@@ -39,6 +39,22 @@ after_initialize do
   require_relative "app/models/discourse_size_user_quest"
   require_relative "lib/discourse_size/quest_manager"
 
+  add_to_class(:guardian, :can_manage_size_shop?) do
+    return false unless user
+    return true if user.admin?
+
+    group_setting = SiteSetting.discourse_size_shop_manager_group
+    return false if group_setting.blank?
+
+    group_id_match = group_setting.to_s.match?(/\A\d+\z/) ? group_setting.to_i : nil
+    group = Group.where("LOWER(name) = ?", group_setting.to_s.downcase)
+    group = group.or(Group.where(id: group_id_match)) if group_id_match
+    group = group.first
+    return false unless group
+
+    GroupUser.where(user_id: user.id, group_id: group.id).exists?
+  end
+
   # Settings serialization
   add_to_serializer(:user, :discourse_size_settings) do
     settings = DiscourseSizeUserSetting.for_user(object)
