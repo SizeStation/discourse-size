@@ -18,6 +18,45 @@ module ::DiscourseSize
       { id: "item_gifted", type: :item_gifted, min: 1, max: 1, reward: 15, emoji: "🎁" }
     ].freeze
 
+    MUTUALLY_EXCLUSIVE_TYPES = %i[topic_created post_created].freeze
+
+    def self.select_quests(count_needed, existing_quest_ids = [])
+      return [] if count_needed <= 0
+
+      existing_definitions = existing_quest_ids.map { |id| QUESTS.find { |q| q[:id] == id } }.compact
+      chosen_definitions = existing_definitions.dup
+      newly_selected = []
+
+      count_needed.times do
+        has_topic_or_post = chosen_definitions.any? { |q| MUTUALLY_EXCLUSIVE_TYPES.include?(q[:type].to_sym) }
+        chosen_ids = chosen_definitions.map { |q| q[:id] }
+
+        available_pool = QUESTS.select do |q|
+          next false if chosen_ids.include?(q[:id])
+
+          if q[:category_group] == :conversation
+            next false unless SiteSetting.discourse_size_conversation_category_ids.present?
+          elsif q[:category_group] == :content
+            next false unless SiteSetting.discourse_size_content_category_ids.present?
+          end
+
+          if MUTUALLY_EXCLUSIVE_TYPES.include?(q[:type].to_sym)
+            next false if has_topic_or_post
+          end
+
+          true
+        end
+
+        break if available_pool.empty?
+
+        picked = available_pool.sample
+        chosen_definitions << picked
+        newly_selected << picked
+      end
+
+      newly_selected
+    end
+
     def self.ensure_quests_for(user)
       return [] if user.nil?
 
@@ -27,17 +66,7 @@ module ::DiscourseSize
       # Generate new quests
       count = SiteSetting.discourse_size_daily_quests_count
 
-      pool = QUESTS.select do |q|
-        if q[:category_group] == :conversation
-          SiteSetting.discourse_size_conversation_category_ids.present?
-        elsif q[:category_group] == :content
-          SiteSetting.discourse_size_content_category_ids.present?
-        else
-          true
-        end
-      end
-
-      pool.sample(count).map do |q|
+      select_quests(count).map do |q|
         DiscourseSizeUserQuest.create!(
           user_id: user.id,
           quest_id: q[:id],
@@ -160,10 +189,8 @@ module ::DiscourseSize
       # Get IDs of quests to keep (collected or completed)
       kept_ids = DiscourseSizeUserQuest.where(user_id: user.id).select { |q| q.collected || q.completed? }.map(&:quest_id)
 
-      # Generate new quests to replace incomplete ones
-      available_pool = QUESTS.reject { |q| kept_ids.include?(q[:id]) }
-
-      new_quests = available_pool.sample(to_reroll.count)
+      # Generate new quests to replace incomplete ones using select_quests
+      new_quests = select_quests(to_reroll.count, kept_ids)
 
       DiscourseSizeUserQuest.transaction do
         DiscourseSizeUserQuest.where(id: to_reroll.map(&:id)).destroy_all
