@@ -39,7 +39,8 @@ describe DiscourseSize::InventoryManager do
         price: 10,
         effect: "grow",
         amount: 50.0,
-        uses: 1
+        uses: 1,
+        duration_minutes: 0
       )
       DiscourseSizeShopItem.create!(
         key: "grow_100",
@@ -47,7 +48,8 @@ describe DiscourseSize::InventoryManager do
         price: 20,
         effect: "grow",
         amount: 100.0,
-        uses: 1
+        uses: 1,
+        duration_minutes: 0
       )
       DiscourseSizeShopItem.create!(
         key: "shrink_20",
@@ -55,7 +57,8 @@ describe DiscourseSize::InventoryManager do
         price: 15,
         effect: "shrink",
         amount: 20.0,
-        uses: 1
+        uses: 1,
+        duration_minutes: 0
       )
     end
 
