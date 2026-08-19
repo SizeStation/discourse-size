@@ -477,29 +477,25 @@
               @action={{this.blockAll}}
               @label="discourse_size.blocking.block_all"
               class="btn-small
-                {{if (eq this.blockingMode 'all') 'btn-primary'}}
-                {{if (not (eq this.blockingMode 'all')) 'btn-default'}}"
+                {{if this.isAllBlocked 'btn-primary' 'btn-default'}}"
             />
             <DButton
               @action={{this.blockNone}}
               @label="discourse_size.blocking.block_none"
               class="btn-small
-                {{if (eq this.blockingMode 'none') 'btn-primary'}}
-                {{if (not (eq this.blockingMode 'none')) 'btn-default'}}"
+                {{if this.isNoneBlocked 'btn-primary' 'btn-default'}}"
             />
             <DButton
               @action={{this.blockAllGrowing}}
               @label="discourse_size.blocking.block_all_growing"
               class="btn-small
-                {{if (eq this.blockingMode 'growing') 'btn-primary'}}
-                {{if (not (eq this.blockingMode 'growing')) 'btn-default'}}"
+                {{if this.isAllGrowingBlocked 'btn-primary' 'btn-default'}}"
             />
             <DButton
               @action={{this.blockAllShrinking}}
               @label="discourse_size.blocking.block_all_shrinking"
               class="btn-small
-                {{if (eq this.blockingMode 'shrinking') 'btn-primary'}}
-                {{if (not (eq this.blockingMode 'shrinking')) 'btn-default'}}"
+                {{if this.isAllShrinkingBlocked 'btn-primary' 'btn-default'}}"
             />
           </div>
 
@@ -544,6 +540,30 @@
                       {{on "change" (fn this.toggleItemBlock item.key)}}
                     />
                     {{d-icon "angle-double-down" class="shrink-icon"}}
+                    <span>{{item.name}}</span>
+                  </label>
+                {{/each}}
+              </div>
+            </div>
+          {{/if}}
+
+          {{#if this.otherItems.length}}
+            <div class="blocking-section">
+              <span class="section-title">{{i18n
+                  "discourse_size.blocking.other_items"
+                }}</span>
+              <div class="blocking-items-grid">
+                {{#each this.otherItems as |item|}}
+                  <label
+                    class="blocking-item-card
+                      {{if (this.isItemBlocked item.key) 'blocked'}}"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={{this.isItemBlocked item.key}}
+                      {{on "change" (fn this.toggleItemBlock item.key)}}
+                    />
+                    {{d-icon "wrench" class="other-icon"}}
                     <span>{{item.name}}</span>
                   </label>
                 {{/each}}

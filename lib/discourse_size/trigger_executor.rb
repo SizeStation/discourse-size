@@ -19,7 +19,7 @@ module ::DiscourseSize
           prop.update_column(:value, action.end_offset.to_s) if prop.value != action.end_offset.to_s
         end
 
-      context = MiniRacer::Context.new
+      context = MiniRacer::Context.new(timeout: 5000)
 
       # Track side effects — all created as child actions of the trigger action.
       # Use a local Hash so concurrent executions don't share state.
@@ -33,7 +33,7 @@ module ::DiscourseSize
       context.attach("character.size", -> { character.current_size })
 
       context.attach("character.setSize", ->(new_size, duration_seconds = nil) {
-        if duration_seconds
+        if duration_seconds && duration_seconds.to_f > 0
           character.sync_offset!
           state[:size_animations] << {
             action_type: "set_size",
@@ -202,7 +202,7 @@ module ::DiscourseSize
         # Apply instant size change (setSize, grow, shrink without duration)
         old_target_offset = character.target_offset
         size_change = 0
-        end_offset = 0
+        end_offset = old_target_offset
 
         if state[:new_size]
           character.sync_offset!
@@ -242,6 +242,21 @@ module ::DiscourseSize
           start_time: Time.now,
           end_time: Time.now
         )
+
+        if state[:new_size]
+          DiscourseSizeAction.create!(
+            character_id: character.id,
+            user_id: actor.id,
+            action_type: "set_size",
+            size_change: size_change,
+            start_offset: old_target_offset,
+            end_offset: end_offset,
+            duration_minutes: 0,
+            start_time: Time.now,
+            end_time: Time.now,
+            parent_action_id: trigger_action.id
+          )
+        end
 
         # Create child actions for animated size changes
         state[:size_animations].each do |anim|
@@ -287,9 +302,14 @@ module ::DiscourseSize
           start_time = existing ? existing.end_time : Time.now
           intended_start = anim[:start_value].to_f
           intended_end = anim[:end_value].to_f
-          ratio = intended_start > 0 ? intended_end / intended_start : 1.0
           start_val = existing ? existing.end_offset.to_f : intended_start
-          end_val = start_val * ratio
+          if intended_start > 0
+            ratio = intended_end / intended_start
+            end_val = start_val * ratio
+          else
+            diff = intended_end - intended_start
+            end_val = start_val + diff
+          end
           end_time = start_time + anim[:duration_seconds].seconds
 
           DiscourseSizeAction.create!(
@@ -305,6 +325,10 @@ module ::DiscourseSize
             end_time: end_time,
             parent_action_id: trigger_action.id
           )
+        end
+
+        if state[:size_animations].any? || state[:property_animations].any?
+          character.recalculate_pending_actions!
         end
 
         { success: true, result: result }

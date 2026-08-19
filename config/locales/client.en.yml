@@ -228,6 +228,7 @@ en:
         block_all_growing: "Block All Growing"
         growing_items: "Growing Items"
         shrinking_items: "Shrinking Items"
+        other_items: "Other Items"
         save_blocking: "Save Blocking Settings"
         username_placeholder: "Enter username to block..."
         block_btn: "Block User"

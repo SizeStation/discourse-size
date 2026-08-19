@@ -51,20 +51,28 @@ export default class DiscourseSizeEditCharacter extends Component {
     this.age = ov.age ?? char.age ?? "";
     this.species = ov.species ?? char.species ?? "";
     this.description = ov.description ?? char.description ?? "";
-    this.baseSize = ov.base_size != null ? parseFloat(ov.base_size) : (char.base_size || 170.0);
+    this.baseSize =
+      ov.base_size != null ? parseFloat(ov.base_size) : char.base_size || 170.0;
     this.isMain = ov.is_main ?? (char.is_main || false);
     this.characterType = char.character_type || "game";
-    this.showComparison = ov.show_comparison ?? (char.show_comparison !== false);
-    this.blockedItemKeys = Array.isArray(ov.blocked_item_keys) ? ov.blocked_item_keys : (char.blocked_item_keys || []);
-    this.blockedUserIds = ((ov.blocked_user_ids ?? char.blocked_user_ids) || []).map((id) =>
-      parseInt(id, 10)
-    );
+    this.showComparison = ov.show_comparison ?? char.show_comparison !== false;
+    this.blockedItemKeys = Array.isArray(ov.blocked_item_keys)
+      ? ov.blocked_item_keys
+      : char.blocked_item_keys || [];
+    this.blockedUserIds = (
+      (ov.blocked_user_ids ?? char.blocked_user_ids) ||
+      []
+    ).map((id) => parseInt(id, 10));
     this.blockedUsers = char.blocked_users || [];
-    this.properties = ((Array.isArray(ov.properties) ? ov.properties : (char.properties || []))).map((p) => ({
+    this.properties = (
+      Array.isArray(ov.properties) ? ov.properties : char.properties || []
+    ).map((p) => ({
       ...p,
       _valueUnit: p.property_type === "size" ? "cm" : undefined,
     }));
-    this.triggers = (Array.isArray(ov.triggers) ? ov.triggers : (char.triggers || [])).map((t) => ({ ...t }));
+    this.triggers = (
+      Array.isArray(ov.triggers) ? ov.triggers : char.triggers || []
+    ).map((t) => ({ ...t }));
 
     if (this.characterType === "game") {
       this.fetchAvailableItems();
@@ -87,7 +95,11 @@ export default class DiscourseSizeEditCharacter extends Component {
     if (a.length !== b.length) return false;
     return a.every((t, i) => {
       const u = b[i];
-      return t.name === u.name && t.js_code === u.js_code && t._destroy === u._destroy;
+      return (
+        t.name === u.name &&
+        t.js_code === u.js_code &&
+        t._destroy === u._destroy
+      );
     });
   }
 
@@ -95,7 +107,11 @@ export default class DiscourseSizeEditCharacter extends Component {
     if (a.length !== b.length) return false;
     return a.every((p, i) => {
       const q = b[i];
-      return p.name === q.name && p.property_type === q.property_type && p.value === q.value;
+      return (
+        p.name === q.name &&
+        p.property_type === q.property_type &&
+        p.value === q.value
+      );
     });
   }
 
@@ -117,7 +133,9 @@ export default class DiscourseSizeEditCharacter extends Component {
       return !this._triggersEqual(this.triggers, orig);
     }
     if (field === "blockedItemKeys") {
-      const orig = Array.isArray(char.blocked_item_keys) ? char.blocked_item_keys : [];
+      const orig = Array.isArray(char.blocked_item_keys)
+        ? char.blocked_item_keys
+        : [];
       return JSON.stringify(this.blockedItemKeys) !== JSON.stringify(orig);
     }
     const map = {
@@ -137,29 +155,40 @@ export default class DiscourseSizeEditCharacter extends Component {
       this.baseSize = originalSize;
       const unit = getBestUnit(originalSize);
       this.sizeUnit = unit.id;
-      this.displaySize = parseFloat((originalSize / unit.factor).toPrecision(5));
+      this.displaySize = parseFloat(
+        (originalSize / unit.factor).toPrecision(5)
+      );
       return;
     }
     if (field === "properties") {
-      this.properties = (Array.isArray(char.properties) ? char.properties : []).map((p) => ({
+      this.properties = (
+        Array.isArray(char.properties) ? char.properties : []
+      ).map((p) => ({
         ...p,
         _valueUnit: p.property_type === "size" ? "cm" : undefined,
       }));
       return;
     }
     if (field === "triggers") {
-      this.triggers = (Array.isArray(char.triggers) ? char.triggers : []).map((t) => ({ ...t }));
+      this.triggers = (Array.isArray(char.triggers) ? char.triggers : []).map(
+        (t) => ({ ...t })
+      );
       return;
     }
     if (field === "blockedItemKeys") {
-      this.blockedItemKeys = [...(Array.isArray(char.blocked_item_keys) ? char.blocked_item_keys : [])];
+      this.blockedItemKeys = [
+        ...(Array.isArray(char.blocked_item_keys)
+          ? char.blocked_item_keys
+          : []),
+      ];
       return;
     }
-    const apiName = {
-      infoPost: "info_post",
-      showComparison: "show_comparison",
-      isMain: "is_main",
-    }[field] || field;
+    const apiName =
+      {
+        infoPost: "info_post",
+        showComparison: "show_comparison",
+        isMain: "is_main",
+      }[field] || field;
     if (char[apiName] !== undefined) {
       this[field] = char[apiName];
     }
@@ -172,7 +201,7 @@ export default class DiscourseSizeEditCharacter extends Component {
     const origArr = (key) => {
       const ovv = ov[key];
       const cv = char[key];
-      return Array.isArray(ovv) ? ovv : (Array.isArray(cv) ? cv : []);
+      return Array.isArray(ovv) ? ovv : Array.isArray(cv) ? cv : [];
     };
 
     return (
@@ -358,7 +387,8 @@ export default class DiscourseSizeEditCharacter extends Component {
     // For non-game modes, the input shows total size.
     // Convert so base_size + offset = desired total.
     if (this.characterType !== "game" && !this.isRoleplayEdit) {
-      const initialTotal = this.args?.model?.character?.current_size || this.baseSize;
+      const initialTotal =
+        this.args?.model?.character?.current_size || this.baseSize;
       const offset = initialTotal - this.baseSize;
       valCm = valCm - offset;
     }
@@ -415,8 +445,9 @@ export default class DiscourseSizeEditCharacter extends Component {
           if (cur !== orig) overrideData[k] = cur;
           else if (priorOv[k] !== undefined) overrideData[k] = null;
         };
-        const parentArr = (key) => Array.isArray(char[key]) ? char[key] : [];
-        const priorArr = (key) => Array.isArray(priorOv[key]) ? priorOv[key] : [];
+        const parentArr = (key) => (Array.isArray(char[key]) ? char[key] : []);
+        const priorArr = (key) =>
+          Array.isArray(priorOv[key]) ? priorOv[key] : [];
         _set("name", this.name, char.name || "");
         _set("base_size", valCm, char.base_size || 0);
         _set("gender", this.gender, char.gender || "");
@@ -426,12 +457,18 @@ export default class DiscourseSizeEditCharacter extends Component {
         _set("description", this.description, char.description || "");
         _set("picture", this.picture, char.picture || "");
         _set("info_post", this.infoPost, char.info_post || "");
-        _set("show_comparison", this.showComparison, char.show_comparison !== false);
+        _set(
+          "show_comparison",
+          this.showComparison,
+          char.show_comparison !== false
+        );
         _set("is_main", this.isMain, char.is_main || false);
 
         if (!this._propsEqual(this.properties, parentArr("properties"))) {
           overrideData.properties = this.properties.map((p) => ({
-            name: p.name, property_type: p.property_type, value: p.value,
+            name: p.name,
+            property_type: p.property_type,
+            value: p.value,
             ...(p.id ? { id: p.id } : {}),
             ...(p._destroy ? { _destroy: true } : {}),
           }));
@@ -440,28 +477,29 @@ export default class DiscourseSizeEditCharacter extends Component {
         }
         if (!this._triggersEqual(this.triggers, parentArr("triggers"))) {
           overrideData.triggers = this.triggers.map((t) => ({
-            name: t.name, js_code: t.js_code,
+            name: t.name,
+            js_code: t.js_code,
             ...(t.id ? { id: t.id } : {}),
             ...(t._destroy ? { _destroy: true } : {}),
           }));
         } else if (priorArr("triggers").length > 0) {
           overrideData.triggers = null;
         }
-        if (JSON.stringify(this.blockedItemKeys) !== JSON.stringify(parentArr("blocked_item_keys"))) {
+        if (
+          JSON.stringify(this.blockedItemKeys) !==
+          JSON.stringify(parentArr("blocked_item_keys"))
+        ) {
           overrideData.blocked_item_keys = this.blockedItemKeys;
         } else if (priorArr("blocked_item_keys").length > 0) {
           overrideData.blocked_item_keys = null;
         }
         const rpId = this.member.roleplay_id;
-        await ajax(
-          `/size/roleplays/${rpId}/update_member_overrides`,
-          {
-            type: "PUT",
-            contentType: "application/json",
-            processData: false,
-            data: JSON.stringify({ ...overrideData, member_id: this.member.id })
-          }
-        );
+        await ajax(`/size/roleplays/${rpId}/update_member_overrides`, {
+          type: "PUT",
+          contentType: "application/json",
+          processData: false,
+          data: JSON.stringify({ ...overrideData, member_id: this.member.id }),
+        });
         result = this.args?.model?.character;
       } else if (this.args?.model?.isNew) {
         result = await ajax("/size/characters", { type: "POST", data });
@@ -538,17 +576,52 @@ export default class DiscourseSizeEditCharacter extends Component {
     }
   }
 
+  get isAllGrowingBlocked() {
+    return (
+      this.blockedItemKeys.includes("__all_growing__") ||
+      this.blockedItemKeys.includes("__all__")
+    );
+  }
+
+  get isAllShrinkingBlocked() {
+    return (
+      this.blockedItemKeys.includes("__all_shrinking__") ||
+      this.blockedItemKeys.includes("__all__")
+    );
+  }
+
+  get isAllBlocked() {
+    return (
+      this.blockedItemKeys.includes("__all__") ||
+      (this.isAllGrowingBlocked && this.isAllShrinkingBlocked)
+    );
+  }
+
+  get isNoneBlocked() {
+    return this.blockedItemKeys.length === 0;
+  }
+
   get blockingMode() {
-    if (this.blockedItemKeys.includes("__all__")) return "all";
-    if (this.blockedItemKeys.includes("__all_growing__")) return "growing";
-    if (this.blockedItemKeys.includes("__all_shrinking__")) return "shrinking";
-    if (this.blockedItemKeys.length === 0) return "none";
+    if (this.isAllBlocked) {
+      return "all";
+    }
+    if (this.isAllGrowingBlocked && !this.isAllShrinkingBlocked) {
+      return "growing";
+    }
+    if (this.isAllShrinkingBlocked && !this.isAllGrowingBlocked) {
+      return "shrinking";
+    }
+    if (this.blockedItemKeys.length === 0) {
+      return "none";
+    }
     return "custom";
   }
 
   @action
   isItemBlocked(key) {
-    if (this.blockedItemKeys.includes("__all__")) return true;
+    if (this.blockedItemKeys.includes("__all__")) {
+      return true;
+    }
     const item = this.availableItems.find((i) => i.key === key);
     if (item) {
       if (
@@ -569,28 +642,68 @@ export default class DiscourseSizeEditCharacter extends Component {
 
   @action
   toggleItemBlock(key) {
-    let newKeys = [...this.blockedItemKeys];
+    const item = this.availableItems.find((i) => i.key === key);
+    const currentlyBlocked = this.isItemBlocked(key);
+    let keys = [...this.blockedItemKeys];
 
-    // If we were in a special mode, "explode" it to individual keys first
-    if (newKeys.includes("__all__")) {
-      newKeys = this.availableItems.map((i) => i.key);
-    } else if (newKeys.includes("__all_growing__")) {
-      newKeys = this.availableItems
-        .filter((i) => i.effect === "grow")
-        .map((i) => i.key);
-    } else if (newKeys.includes("__all_shrinking__")) {
-      newKeys = this.availableItems
-        .filter((i) => i.effect === "shrink")
-        .map((i) => i.key);
-    }
-
-    if (newKeys.includes(key)) {
-      newKeys = newKeys.filter((k) => k !== key);
+    if (currentlyBlocked) {
+      // Unblocking this item
+      if (keys.includes("__all__")) {
+        keys = keys.filter((k) => k !== "__all__");
+        if (item?.effect === "grow") {
+          keys.push("__all_shrinking__");
+          const otherGrowKeys = this.growingItems
+            .filter((i) => i.key !== key)
+            .map((i) => i.key);
+          keys.push(...otherGrowKeys);
+          const otherNonGrowOrShrink = this.otherItems
+            .filter((i) => i.key !== key)
+            .map((i) => i.key);
+          keys.push(...otherNonGrowOrShrink);
+        } else if (item?.effect === "shrink") {
+          keys.push("__all_growing__");
+          const otherShrinkKeys = this.shrinkingItems
+            .filter((i) => i.key !== key)
+            .map((i) => i.key);
+          keys.push(...otherShrinkKeys);
+          const otherNonGrowOrShrink = this.otherItems
+            .filter((i) => i.key !== key)
+            .map((i) => i.key);
+          keys.push(...otherNonGrowOrShrink);
+        } else {
+          keys.push("__all_growing__");
+          keys.push("__all_shrinking__");
+          const otherNonGrowOrShrink = this.otherItems
+            .filter((i) => i.key !== key)
+            .map((i) => i.key);
+          keys.push(...otherNonGrowOrShrink);
+        }
+      } else if (item?.effect === "grow" && keys.includes("__all_growing__")) {
+        keys = keys.filter((k) => k !== "__all_growing__");
+        const otherGrowKeys = this.growingItems
+          .filter((i) => i.key !== key)
+          .map((i) => i.key);
+        keys.push(...otherGrowKeys);
+      } else if (
+        item?.effect === "shrink" &&
+        keys.includes("__all_shrinking__")
+      ) {
+        keys = keys.filter((k) => k !== "__all_shrinking__");
+        const otherShrinkKeys = this.shrinkingItems
+          .filter((i) => i.key !== key)
+          .map((i) => i.key);
+        keys.push(...otherShrinkKeys);
+      } else {
+        keys = keys.filter((k) => k !== key);
+      }
     } else {
-      newKeys.push(key);
+      // Blocking this item: preserve category tokens!
+      if (!keys.includes(key)) {
+        keys.push(key);
+      }
     }
 
-    this.blockedItemKeys = newKeys;
+    this.blockedItemKeys = Array.from(new Set(keys));
   }
 
   @action
@@ -605,12 +718,44 @@ export default class DiscourseSizeEditCharacter extends Component {
 
   @action
   blockAllGrowing() {
-    this.blockedItemKeys = ["__all_growing__"];
+    let keys = [...this.blockedItemKeys];
+
+    if (keys.includes("__all__")) {
+      keys = keys.filter((k) => k !== "__all__");
+      keys.push("__all_shrinking__");
+    } else if (keys.includes("__all_growing__")) {
+      const growKeys = this.growingItems.map((i) => i.key);
+      keys = keys.filter(
+        (k) => k !== "__all_growing__" && !growKeys.includes(k)
+      );
+    } else {
+      const growKeys = this.growingItems.map((i) => i.key);
+      keys = keys.filter((k) => !growKeys.includes(k));
+      keys.push("__all_growing__");
+    }
+
+    this.blockedItemKeys = Array.from(new Set(keys));
   }
 
   @action
   blockAllShrinking() {
-    this.blockedItemKeys = ["__all_shrinking__"];
+    let keys = [...this.blockedItemKeys];
+
+    if (keys.includes("__all__")) {
+      keys = keys.filter((k) => k !== "__all__");
+      keys.push("__all_growing__");
+    } else if (keys.includes("__all_shrinking__")) {
+      const shrinkKeys = this.shrinkingItems.map((i) => i.key);
+      keys = keys.filter(
+        (k) => k !== "__all_shrinking__" && !shrinkKeys.includes(k)
+      );
+    } else {
+      const shrinkKeys = this.shrinkingItems.map((i) => i.key);
+      keys = keys.filter((k) => !shrinkKeys.includes(k));
+      keys.push("__all_shrinking__");
+    }
+
+    this.blockedItemKeys = Array.from(new Set(keys));
   }
 
   @action
@@ -685,7 +830,8 @@ export default class DiscourseSizeEditCharacter extends Component {
       ...this.triggers,
       {
         name: "",
-        js_code: "// character.setSize(character.size() * 1.1);\n// character.grow(10, 60);\n// character.queueSizeAnimation(300, 120);",
+        js_code:
+          "// character.setSize(character.size() * 1.1);\n// character.grow(10, 60);\n// character.queueSizeAnimation(300, 120);",
       },
     ];
   }
@@ -796,7 +942,7 @@ export default class DiscourseSizeEditCharacter extends Component {
   @action
   resetToDefaults() {
     const char = this.args?.model?.character || {};
-    const parentArr = (key) => Array.isArray(char[key]) ? char[key] : [];
+    const parentArr = (key) => (Array.isArray(char[key]) ? char[key] : []);
     this.name = char.name || "";
     this.picture = char.picture || "";
     this.infoPost = char.info_post || "";

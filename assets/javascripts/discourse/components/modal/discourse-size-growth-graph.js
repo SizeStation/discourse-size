@@ -323,12 +323,15 @@ export default class DiscourseSizeGrowthGraph extends Component {
         type: "DELETE",
       });
       if (result.character) {
+        this.character = result.character;
         this.args.model.onActionDeleted?.(result.character);
+      } else {
+        this.character.actions = this.character.actions.filter(
+          (action) => action.id !== actionItem.id
+        );
       }
 
-      this.character.actions = this.character.actions.filter(
-        (action) => action.id !== actionItem.id
-      );
+      notifyPropertyChange(this, "character");
       notifyPropertyChange(this, "series");
       notifyPropertyChange(this, "graphData");
       notifyPropertyChange(this, "actions");
@@ -343,19 +346,23 @@ export default class DiscourseSizeGrowthGraph extends Component {
   async blockUser(user) {
     if (
       !confirm(
-        I18n.t("discourse_size.blocking.confirm_block_user", {
+        i18n("discourse_size.blocking.confirm_block_user", {
           username: user.username,
         })
       )
-    )
+    ) {
       return;
+    }
 
     try {
       await ajax(`/size/characters/${this.character.id}/block_user`, {
         type: "POST",
         data: { user_id: user.id },
       });
-      this.character.blocked_user_ids.push(user.id);
+      this.character.blocked_user_ids = [
+        ...(this.character.blocked_user_ids || []),
+        user.id,
+      ];
       notifyPropertyChange(this, "topContributors");
     } catch (e) {
       alert("Error blocking user");
@@ -366,21 +373,22 @@ export default class DiscourseSizeGrowthGraph extends Component {
   async unblockUser(user) {
     if (
       !confirm(
-        I18n.t("discourse_size.blocking.confirm_block_user", {
+        i18n("discourse_size.blocking.confirm_unblock_user", {
           username: user.username,
         })
       )
-    )
+    ) {
       return;
+    }
 
     try {
       await ajax(`/size/characters/${this.character.id}/unblock_user`, {
         type: "POST",
         data: { user_id: user.id },
       });
-      this.character.blocked_user_ids = this.character.blocked_user_ids.filter(
-        (id) => id !== user.id
-      );
+      this.character.blocked_user_ids = (
+        this.character.blocked_user_ids || []
+      ).filter((id) => id !== user.id);
       notifyPropertyChange(this, "topContributors");
     } catch (e) {
       alert("Error unblocking user");

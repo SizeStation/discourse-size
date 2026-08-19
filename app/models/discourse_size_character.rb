@@ -92,11 +92,9 @@ class DiscourseSizeCharacter < ActiveRecord::Base
     new_total_cm = new_total_cm.to_f
     new_total_cm = MIN_SIZE if new_total_cm < MIN_SIZE
     new_total_cm = MAX_SIZE if new_total_cm > MAX_SIZE
-
-    old_total_cm = self.current_size
     
-    # Stop all pending growth/shrinking
-    discourse_size_actions.where(action_type: ["grow", "shrink"]).where("end_time > ?", Time.now).destroy_all
+    # Stop all pending growth/shrinking/set_size
+    discourse_size_actions.where(action_type: ["grow", "shrink", "set_size"]).where("end_time > ?", Time.now).destroy_all
 
     old_target_offset = target_offset
     new_offset = new_total_cm - base_size
@@ -158,16 +156,21 @@ class DiscourseSizeCharacter < ActiveRecord::Base
     return false if user.nil?
     return false if user.id == user_id # Owner is never blocked
 
-    if blocked_user_ids.include?(user.id)
+    if blocked_user_ids&.map(&:to_i)&.include?(user.id.to_i)
       return true
     end
 
-    if blocked_item_keys.include?("__all__")
-      return true
-    end
+    keys = blocked_item_keys || []
 
-    if item_key.present? && blocked_item_keys.include?(item_key)
-      return true
+    return true if keys.include?("__all__")
+    return true if item_key.present? && keys.include?(item_key)
+
+    if item_key.present? && (action_type.nil? || (action_type == "static" && amount.nil?))
+      item = DiscourseSizeShopItem.find_by(key: item_key)
+      if item
+        action_type ||= item.effect
+        amount ||= item.amount
+      end
     end
 
     effective_type = action_type
@@ -181,11 +184,11 @@ class DiscourseSizeCharacter < ActiveRecord::Base
     end
 
     if effective_type == "grow"
-      return true if blocked_item_keys.include?("__all_growing__")
-      return true if blocked_item_keys.include?("__direct_grow__")
+      return true if keys.include?("__all_growing__")
+      return true if keys.include?("__direct_grow__")
     elsif effective_type == "shrink"
-      return true if blocked_item_keys.include?("__all_shrinking__")
-      return true if blocked_item_keys.include?("__direct_shrink__")
+      return true if keys.include?("__all_shrinking__")
+      return true if keys.include?("__direct_shrink__")
     end
 
     false
@@ -228,14 +231,50 @@ class DiscourseSizeCharacter < ActiveRecord::Base
     # Get all actions that affect size
     actions = discourse_size_actions
                .where(action_type: ["grow", "shrink", "set_size"])
-               .order(created_at: :asc)
+               .order(created_at: :asc, id: :asc)
     
     current_chain_offset = 0.0
     
     actions.each do |action|
+      item = action.item_key.present? ? DiscourseSizeShopItem.find_by(key: action.item_key) : nil
+      current_total = base_size + current_chain_offset
+      size_change = action.size_change
+
+      if item
+        if action.parent_action_id.present? && item.self_effect.present?
+          effect = item.self_effect
+          amount = item.self_amount.to_f
+        else
+          effect = item.effect
+          amount = item.amount.to_f
+        end
+
+        if effect == "static"
+          new_target_total = amount
+        elsif effect == "shrink"
+          new_target_total = current_total * (1.0 - amount / 100.0)
+        else
+          new_target_total = current_total * (1.0 + amount / 100.0)
+        end
+        size_change = new_target_total - current_total
+      elsif action.action_type == "set_size"
+        target_total = action.end_offset.present? ? (base_size + action.end_offset) : (current_total + size_change)
+        size_change = target_total - current_total
+      end
+
+      # Cap to MIN_SIZE and MAX_SIZE
+      new_total = current_total + size_change
+      if new_total > MAX_SIZE
+        size_change = MAX_SIZE - current_total
+      elsif new_total < MIN_SIZE
+        size_change = MIN_SIZE - current_total
+      end
+
+      action.size_change = size_change
       action.start_offset = current_chain_offset
-      action.end_offset = current_chain_offset + action.size_change
+      action.end_offset = current_chain_offset + size_change
       action.save!
+      
       current_chain_offset = action.end_offset
     end
     
@@ -249,6 +288,7 @@ class DiscourseSizeCharacter < ActiveRecord::Base
   def recalculate_pending_actions!
     # Always rebuild from the beginning to ensure absolute sync with the log
     rebuild_offset_chain!
+    recalculate_properties!
     
     current_chain_offset = self.current_calculated_offset
     current_chain_time = Time.now
@@ -256,7 +296,7 @@ class DiscourseSizeCharacter < ActiveRecord::Base
     # All actions that haven't finished yet
     pending = discourse_size_actions.where(action_type: ["grow", "shrink", "set_size"])
                                      .where("end_time > ?", current_chain_time)
-                                     .order(created_at: :asc)
+                                     .order(created_at: :asc, id: :asc)
     
     first_action = true
     pending.each do |action|
@@ -287,7 +327,23 @@ class DiscourseSizeCharacter < ActiveRecord::Base
     end
     
     self.target_offset = current_chain_offset
+    self.start_offset = self.current_calculated_offset if pending.empty?
     save!
+  end
+
+  def recalculate_properties!
+    discourse_size_character_properties.each do |prop|
+      prop_actions = discourse_size_actions
+        .where(action_type: "property_change", item_key: prop.name)
+        .order(created_at: :asc, id: :asc)
+
+      latest_expired = prop_actions.where("end_time <= ?", Time.now).last
+      if latest_expired
+        prop.update_column(:value, latest_expired.end_offset.to_s)
+      elsif prop_actions.any?
+        prop.update_column(:value, prop_actions.first.start_offset.to_s)
+      end
+    end
   end
 
   private

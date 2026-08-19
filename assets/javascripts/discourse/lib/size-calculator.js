@@ -4,14 +4,24 @@
  */
 export function calculateOffset(character, time = new Date()) {
   if (!character || !character.actions || character.actions.length === 0) {
-    return parseFloat(character?.current_offset) || 0;
+    return (
+      parseFloat(character?.target_offset) ||
+      parseFloat(character?.current_offset) ||
+      0
+    );
   }
 
   const actions = character.actions
     .filter((a) => ["grow", "shrink", "set_size"].includes(a.action_type))
     .sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
 
-  if (actions.length === 0) return parseFloat(character.current_offset) || 0;
+  if (actions.length === 0) {
+    return (
+      parseFloat(character?.target_offset) ||
+      parseFloat(character?.current_offset) ||
+      0
+    );
+  }
 
   // Find the active action at this specific time
   const activeAction = actions.find((a) => {
@@ -63,7 +73,9 @@ export function calculateOffset(character, time = new Date()) {
 
 export function calculateSize(character, time = new Date()) {
   if (!character) return 0;
-  return parseFloat(character.base_size) + calculateOffset(character, time);
+  return (
+    (parseFloat(character.base_size) || 0) + calculateOffset(character, time)
+  );
 }
 
 export function calculatePropertyValue(
@@ -73,14 +85,13 @@ export function calculatePropertyValue(
 ) {
   if (!character || !character.actions) return;
 
-  const candidates = character.actions
-    .filter(
-      (a) =>
-        a.action_type === "property_change" &&
-        a.item_key === propertyName &&
-        a.start_time &&
-        a.end_time
-    );
+  const candidates = character.actions.filter(
+    (a) =>
+      a.action_type === "property_change" &&
+      a.item_key === propertyName &&
+      a.start_time &&
+      a.end_time
+  );
 
   if (candidates.length === 0) return;
 

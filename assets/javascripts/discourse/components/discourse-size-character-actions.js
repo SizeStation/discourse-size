@@ -70,7 +70,15 @@ export default class DiscourseSizeCharacterActions extends Component {
     }
 
     // Check if all interactions are blocked
-    if (char.blocked_item_keys?.includes("__all__")) return true;
+    if (char.blocked_item_keys?.includes("__all__")) {
+      return true;
+    }
+    if (
+      char.blocked_item_keys?.includes("__all_growing__") &&
+      char.blocked_item_keys?.includes("__all_shrinking__")
+    ) {
+      return true;
+    }
 
     return false;
   }
