@@ -19,6 +19,8 @@ class DiscourseSizeShopItemSerializer < ApplicationSerializer
              :self_effect,
              :self_amount,
              :can_only_use_on_others,
+             :can_only_use_on_self,
+             :warning_text,
              :owned_count
 
   def owned_count

@@ -52,6 +52,14 @@ module ::DiscourseSize
         return { error: "This character has blocked this item or you from performing actions." }
       end
 
+      if item.can_only_use_on_others && character.user_id == user.id
+        return { error: "This item can only be used on other users' characters." }
+      end
+
+      if item.can_only_use_on_self && character.user_id != user.id
+        return { error: "This item can only be used on your own characters." }
+      end
+
       # Apply effect
       # Sequential stacking logic
       start_offset = character.target_offset

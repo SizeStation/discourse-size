@@ -120,7 +120,7 @@ module DiscourseSize
     end
 
     def shop_item_params
-      params.permit(:key, :name, :description, :price, :effect, :amount, :duration_minutes, :uses, :picture, :stock, :enabled, :item_type, :color, :self_effect, :self_amount, :can_only_use_on_others)
+      params.permit(:key, :name, :description, :price, :effect, :amount, :duration_minutes, :uses, :picture, :stock, :enabled, :item_type, :color, :self_effect, :self_amount, :can_only_use_on_others, :can_only_use_on_self, :warning_text)
     end
   end
 end

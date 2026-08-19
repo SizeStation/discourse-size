@@ -48,6 +48,7 @@ end
 #  id                     :bigint           not null, primary key
 #  amount                 :float
 #  can_only_use_on_others :boolean          default(FALSE), not null
+#  can_only_use_on_self   :boolean          default(FALSE), not null
 #  color                  :string
 #  description            :text
 #  duration_minutes       :integer          default(60), not null
@@ -65,6 +66,7 @@ end
 #  speed                  :float            default(1.0), not null
 #  stock                  :integer          default(-1), not null
 #  uses                   :integer          default(1), not null
+#  warning_text           :text
 #  created_at             :datetime         not null
 #  updated_at             :datetime         not null
 #

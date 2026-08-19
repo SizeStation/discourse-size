@@ -130,6 +130,8 @@ en:
           self_effect: "Effect on Self"
           self_amount: "Amount on Self (% or cm)"
           can_only_use_on_others: "Can only use on others"
+          can_only_use_on_self: "Can only use on self"
+          warning_text: "Warning text"
           is_enabled: "Is Enabled"
         stats:
           amount: "Size"
@@ -143,8 +145,8 @@ en:
       inventory:
         my_inventory: "My Inventory"
         empty: "Your inventory is empty."
-        all_items_blocked: "You have items in your inventory, but they are all currently blocked by this character's owner."
-        blocked_items_title: "The following items you own are blocked:"
+        all_items_blocked: "You have items in your inventory, but none can currently be used on this character (they may be blocked by this character's owner or restricted to self-use only)."
+        blocked_items_title: "The following items you own cannot be used on this character:"
         use_on_character: "Use on Character"
         use_confirm: "Use %{name} on this character?"
         self_effect_warning: "WARNING: %{character_name} will also receive %{amount}%% %{effect} effect as part of this item."

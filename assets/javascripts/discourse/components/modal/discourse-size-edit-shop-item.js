@@ -1,11 +1,12 @@
 import Component from "@glimmer/component";
-import { action } from "@ember/object";
 import { tracked } from "@glimmer/tracking";
+import { action } from "@ember/object";
 import { ajax } from "discourse/lib/ajax";
 import I18n from "I18n";
 
 export default class DiscourseSizeEditShopItem extends Component {
-  @tracked itemData = {
+  @tracked
+  itemData = {
     key: "",
     name: "",
     description: "",
@@ -20,16 +21,34 @@ export default class DiscourseSizeEditShopItem extends Component {
     self_effect: null,
     self_amount: 0,
     can_only_use_on_others: false,
+    can_only_use_on_self: false,
+    warning_text: "",
   };
   @tracked isSaving = false;
 
   constructor() {
     super(...arguments);
-    if (this.args.model.item) {
-      this.itemData = { ...this.args.model.item };
+    if (this.args.model?.item) {
+      this.itemData = {
+        ...this.itemData,
+        ...this.args.model.item,
+      };
       if (this.itemData.self_effect === "") {
         this.itemData.self_effect = null;
       }
+      this.itemData.can_only_use_on_self = Boolean(
+        this.itemData.can_only_use_on_self
+      );
+      this.itemData.can_only_use_on_others = Boolean(
+        this.itemData.can_only_use_on_others
+      );
+      if (
+        this.itemData.warning_text === undefined ||
+        this.itemData.warning_text === null
+      ) {
+        this.itemData.warning_text = "";
+      }
+      this.itemData.self_amount = this.itemData.self_amount ?? 0;
     }
   }
 

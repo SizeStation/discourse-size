@@ -184,4 +184,48 @@ describe DiscourseSize::InventoryManager do
       expect(result[:success]).to be true
     end
   end
+
+  describe "self and others restrictions" do
+    fab!(:other_user, :user)
+    fab!(:other_character) { Fabricate(:discourse_size_character, user: other_user, base_size: 100.0, current_offset: 0.0, target_offset: 0.0, character_type: DiscourseSizeCharacter::TYPE_GAME) }
+
+    before do
+      DiscourseSizeShopItem.create!(
+        key: "self_only_potion",
+        name: "Self Only Potion",
+        price: 10,
+        effect: "grow",
+        amount: 20.0,
+        uses: 1,
+        can_only_use_on_self: true
+      )
+      DiscourseSizeShopItem.create!(
+        key: "others_only_potion",
+        name: "Others Only Potion",
+        price: 10,
+        effect: "grow",
+        amount: 20.0,
+        uses: 1,
+        can_only_use_on_others: true
+      )
+    end
+
+    it "allows can_only_use_on_self items on own character and rejects on others" do
+      inv_self = DiscourseSizeInventory.create!(user_id: user.id, item_key: "self_only_potion", uses_remaining: 1)
+      result_on_other = DiscourseSize::InventoryManager.use_item(user, inv_self.id, other_character.id)
+      expect(result_on_other[:error]).to eq("This item can only be used on your own characters.")
+
+      result_on_self = DiscourseSize::InventoryManager.use_item(user, inv_self.id, character.id)
+      expect(result_on_self[:success]).to be true
+    end
+
+    it "allows can_only_use_on_others items on other characters and rejects on own character" do
+      inv_others = DiscourseSizeInventory.create!(user_id: user.id, item_key: "others_only_potion", uses_remaining: 1)
+      result_on_self = DiscourseSize::InventoryManager.use_item(user, inv_others.id, character.id)
+      expect(result_on_self[:error]).to eq("This item can only be used on other users' characters.")
+
+      result_on_other = DiscourseSize::InventoryManager.use_item(user, inv_others.id, other_character.id)
+      expect(result_on_other[:success]).to be true
+    end
+  end
 end

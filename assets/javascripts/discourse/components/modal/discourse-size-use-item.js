@@ -23,26 +23,33 @@ export default class DiscourseSizeUseItem extends Component {
   }
 
   get filteredInventory() {
-    const char = this.args.model.character;
-    const isOwnCharacter = char && char.user_id === this.currentUser.id;
+    const char = this.args.model?.character;
+    const isOwnCharacter = char && char.user_id === this.currentUser?.id;
 
     return this.inventory.filter((item) => {
       if (this.isBlocked(item)) return false;
-      if (isOwnCharacter && item.details.can_only_use_on_others) return false;
+      if (isOwnCharacter && item.details?.can_only_use_on_others) return false;
+      if (!isOwnCharacter && item.details?.can_only_use_on_self) return false;
       return true;
     });
   }
 
   get blockedInventoryNames() {
+    const char = this.args.model?.character;
+    const isOwnCharacter = char && char.user_id === this.currentUser?.id;
+
     const names = this.inventory
-      .filter((item) => this.isBlocked(item))
-      .map((item) => item.details.name);
+      .filter((item) => {
+        if (this.isBlocked(item)) return true;
+        if (isOwnCharacter && item.details?.can_only_use_on_others) return true;
+        if (!isOwnCharacter && item.details?.can_only_use_on_self) return true;
+        return false;
+      })
+      .map((item) => item.details?.name || item.item_key);
     return [...new Set(names)];
   }
 
   get hasNoUsableItems() {
-    const char = this.args.model.character;
-    const isOwnCharacter = char && char.user_id === this.currentUser.id;
     const usable = this.filteredInventory;
 
     return !this.loading && this.inventory.length > 0 && usable.length === 0;
@@ -132,6 +139,13 @@ export default class DiscourseSizeUseItem extends Component {
             I18n.t("discourse_size.inventory.self_effect_no_main_warning");
         }
       }
+    }
+
+    if (
+      item.details.warning_text &&
+      item.details.warning_text.trim().length > 0
+    ) {
+      confirmMsg += "\n\n" + item.details.warning_text.trim();
     }
 
     if (!confirm(confirmMsg)) {
