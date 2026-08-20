@@ -2,9 +2,9 @@
 
 # name: discourse-size
 # about: A profile play plugin for the macro/micro and size community
-# version: 0.0.1
-# authors: Discourse Size Team
-# url: https://github.com/discourse/discourse-size
+# version: 1.0.0
+# authors: SizeStation Staff Team
+# url: https://github.com/SizeStation/discourse-size
 # required_version: 2.7.0
 
 enabled_site_setting :discourse_size_enabled

@@ -1,0 +1,132 @@
+import { Input } from "@ember/component";
+import { on } from "@ember/modifier";
+import RouteTemplate from "ember-route-template";
+import { and } from "truth-helpers";
+import DButton from "discourse/components/d-button";
+import icon from "discourse/helpers/d-icon";
+import { i18n } from "discourse-i18n";
+import ComboBox from "select-kit/components/combo-box";
+
+export default RouteTemplate(
+  <template>
+    <div class="container size-leaderboard">
+      <div class="leaderboard-header">
+        <h2>{{i18n "discourse_size.directory.title"}}</h2>
+        <div class="search-controls">
+          <Input
+            @type="text"
+            @value={{@controller.searchQuery}}
+            {{on "input" @controller.updateSearch}}
+            placeholder={{i18n "discourse_size.directory.search_placeholder"}}
+            class="directory-search-input"
+          />
+          <ComboBox
+            @content={{@controller.preferenceOptions}}
+            @value={{@controller.preferenceFilter}}
+            @onChange={{@controller.setPreferenceFilter}}
+            class="directory-preference-filter"
+          />
+        </div>
+      </div>
+
+      <div class="leaderboard-list">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Character</th>
+              <th>Owner</th>
+              <th>Preferences</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{#each @controller.characters as |character|}}
+              <tr>
+                <td>
+                  <div class="lb-character-info">
+                    {{#if character.picture}}
+                      <a
+                        href="/u/{{character.user.username}}/characters"
+                        class="lb-picture-link"
+                      >
+                        <img
+                          src={{character.picture}}
+                          alt={{character.name}}
+                          class="lb-picture"
+                        />
+                      </a>
+                    {{/if}}
+                    <a
+                      href="/u/{{character.user.username}}/characters"
+                    >{{character.name}}</a>
+                  </div>
+                </td>
+                <td>
+                  <a
+                    href="/u/{{character.user.username}}"
+                  >{{character.user.username}}</a>
+                </td>
+                <td class="lb-prefs-column">
+                  {{#if
+                    (and character.prefers_growing character.prefers_shrinking)
+                  }}
+                    <span
+                      class="badge-pref badge-pref-both"
+                      title={{i18n "discourse_size.directory.prefers_both"}}
+                    >
+                      {{icon "check"}}
+                      {{i18n "discourse_size.directory.prefers_both"}}
+                    </span>
+                  {{else if character.prefers_growing}}
+                    <span
+                      class="badge-pref badge-pref-grow"
+                      title={{i18n "discourse_size.directory.prefers_growing"}}
+                    >
+                      {{icon "arrow-up"}}
+                      {{i18n "discourse_size.directory.prefers_growing"}}
+                    </span>
+                  {{else if character.prefers_shrinking}}
+                    <span
+                      class="badge-pref badge-pref-shrink"
+                      title={{i18n
+                        "discourse_size.directory.prefers_shrinking"
+                      }}
+                    >
+                      {{icon "arrow-down"}}
+                      {{i18n "discourse_size.directory.prefers_shrinking"}}
+                    </span>
+                  {{else}}
+                    <span
+                      class="badge-pref badge-pref-none"
+                      title={{i18n "discourse_size.directory.prefers_neither"}}
+                    >
+                      {{icon "block"}}
+                      {{i18n "discourse_size.directory.prefers_neither"}}
+                    </span>
+                  {{/if}}
+                </td>
+              </tr>
+            {{else}}
+              <tr>
+                <td colspan="3" class="no-results">{{i18n
+                    "discourse_size.directory.no_results"
+                  }}</td>
+              </tr>
+            {{/each}}
+          </tbody>
+        </table>
+
+        {{#if @controller.more}}
+          <div class="directory-load-more">
+            <DButton
+              @action={{@controller.loadMore}}
+              @icon="chevron-down"
+              @label="discourse_size.directory.load_more"
+              @disabled={{@controller.loadingMore}}
+              class="btn-default"
+            />
+          </div>
+        {{/if}}
+      </div>
+    </div>
+  </template>
+);

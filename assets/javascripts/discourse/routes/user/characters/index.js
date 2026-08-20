@@ -1,5 +1,5 @@
-import DiscourseRoute from "discourse/routes/discourse";
 import { ajax } from "discourse/lib/ajax";
+import DiscourseRoute from "discourse/routes/discourse";
 
 export default class UserCharactersIndexRoute extends DiscourseRoute {
   model() {
@@ -10,7 +10,7 @@ export default class UserCharactersIndexRoute extends DiscourseRoute {
     }
     return ajax(`/size/characters?user_id=${user.id}`).then((result) => {
       return {
-        user: user,
+        user,
         characters: result.characters,
         folders: result.folders || [],
       };

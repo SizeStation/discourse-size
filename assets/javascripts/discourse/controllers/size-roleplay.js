@@ -1,44 +1,54 @@
+import { tracked } from "@glimmer/tracking";
 import Controller from "@ember/controller";
 import { action } from "@ember/object";
+import { service } from "@ember/service";
 import { htmlSafe } from "@ember/template";
-import { inject as service } from "@ember/service";
-import { tracked } from "@glimmer/tracking";
 import { ajax } from "discourse/lib/ajax";
 import { popupAjaxError } from "discourse/lib/ajax-error";
-import DiscourseSizeJoinRoleplay from "../components/modal/discourse-size-join-roleplay";
-import DiscourseSizeInviteToRoleplay from "../components/modal/discourse-size-invite-to-roleplay";
+import { i18n } from "discourse-i18n";
 import DiscourseSizeCreateRoleplay from "../components/modal/discourse-size-create-roleplay";
 import DiscourseSizeEditCharacter from "../components/modal/discourse-size-edit-character";
+import DiscourseSizeInviteToRoleplay from "../components/modal/discourse-size-invite-to-roleplay";
 import DiscourseSizeInvitedCharacters from "../components/modal/discourse-size-invited-characters";
-import I18n from "I18n";
+import DiscourseSizeJoinRoleplay from "../components/modal/discourse-size-join-roleplay";
 
 export default class SizeRoleplayController extends Controller {
   @service modal;
   @service currentUser;
   @service router;
+
   @tracked roleplay = null;
 
   get headerStyle() {
     if (this.roleplay?.picture) {
-      return htmlSafe(`background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url(${this.roleplay.picture});`);
+      return htmlSafe(
+        `background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url(${this.roleplay.picture});`
+      );
     }
     return "";
   }
 
   get acceptedMembers() {
     return (this.roleplay?.members || [])
-      .filter(m => m.status === 'accepted')
-      .map(m => {
+      .filter((m) => m.status === "accepted")
+      .map((m) => {
         const ov = m.override_data || {};
         const base = m.character || {};
-        const arrKeys = ['properties', 'triggers', 'blocked_item_keys', 'blocked_user_ids'];
+        const arrKeys = [
+          "properties",
+          "triggers",
+          "blocked_item_keys",
+          "blocked_user_ids",
+        ];
         const eff = {};
         for (const k of Object.keys(base)) {
           eff[k] = base[k];
         }
         for (const k of Object.keys(ov)) {
           if (arrKeys.includes(k)) {
-            if (Array.isArray(ov[k])) eff[k] = ov[k];
+            if (Array.isArray(ov[k])) {
+              eff[k] = ov[k];
+            }
           } else {
             eff[k] = ov[k];
           }
@@ -49,16 +59,20 @@ export default class SizeRoleplayController extends Controller {
 
   get myPendingInvites() {
     return (this.roleplay?.members || []).filter(
-      (m) => m.status === "pending" && m.character.user_id === this.currentUser.id
+      (m) =>
+        m.status === "pending" && m.character.user_id === this.currentUser.id
     );
   }
 
   get allPendingInvites() {
-    return (this.roleplay?.members || []).filter(m => m.status === 'pending');
+    return (this.roleplay?.members || []).filter((m) => m.status === "pending");
   }
 
   get isCreator() {
-    return this.roleplay?.creator_id === this.currentUser.id || this.currentUser.admin;
+    return (
+      this.roleplay?.creator_id === this.currentUser.id ||
+      this.currentUser.admin
+    );
   }
 
   @action
@@ -80,8 +94,8 @@ export default class SizeRoleplayController extends Controller {
         roleplay: this.roleplay,
         onInvite: () => {
           this.send("reloadModel");
-        }
-      }
+        },
+      },
     });
   }
 
@@ -91,19 +105,21 @@ export default class SizeRoleplayController extends Controller {
     this.modal.show(DiscourseSizeInvitedCharacters, {
       model: {
         roleplay: this.roleplay,
-        onUpdate: () => this.send("reloadModel")
-      }
+        onUpdate: () => this.send("reloadModel"),
+      },
     });
   }
 
   @action
   async removeMember(member) {
-    if (!confirm(I18n.t("discourse_size.roleplays.confirm_remove"))) return;
-    
+    if (!confirm(i18n("discourse_size.roleplays.confirm_remove"))) {
+      return;
+    }
+
     try {
       await ajax(`/size/roleplays/${this.roleplay.id}/remove_member`, {
         type: "POST",
-        data: { member_id: member.id }
+        data: { member_id: member.id },
       });
       this.send("reloadModel");
     } catch (e) {
@@ -113,11 +129,13 @@ export default class SizeRoleplayController extends Controller {
 
   @action
   async deleteRoleplay() {
-    if (!confirm(I18n.t("discourse_size.roleplays.confirm_delete"))) return;
+    if (!confirm(i18n("discourse_size.roleplays.confirm_delete"))) {
+      return;
+    }
 
     try {
       await ajax(`/size/roleplays/${this.roleplay.id}`, {
-        type: "DELETE"
+        type: "DELETE",
       });
       this.router.transitionTo("user.characters", this.currentUser.username);
     } catch (e) {
@@ -129,7 +147,7 @@ export default class SizeRoleplayController extends Controller {
   copyLink() {
     const url = `${window.location.origin}/size/roleplays/${this.roleplay.uuid}`;
     navigator.clipboard.writeText(url).then(() => {
-      alert(I18n.t("discourse_size.roleplays.link_copied"));
+      alert(i18n("discourse_size.roleplays.link_copied"));
     });
   }
 
@@ -140,8 +158,8 @@ export default class SizeRoleplayController extends Controller {
         roleplay: this.roleplay,
         onSave: (updatedRp) => {
           this.roleplay = updatedRp;
-        }
-      }
+        },
+      },
     });
   }
 
@@ -165,7 +183,7 @@ export default class SizeRoleplayController extends Controller {
         type: "POST",
         data: { character_id: member.character_id },
       });
-      
+
       // If private and no longer invited/member, we must redirect
       if (!this.roleplay.is_public) {
         this.router.transitionTo("size.roleplays");

@@ -1,19 +1,19 @@
+import { tracked } from "@glimmer/tracking";
 import Controller from "@ember/controller";
 import { action } from "@ember/object";
-import { inject as service } from "@ember/service";
+import { service } from "@ember/service";
 import { ajax } from "discourse/lib/ajax";
-import { tracked } from "@glimmer/tracking";
+import { i18n } from "discourse-i18n";
+import DiscourseSizeDailyQuests from "../components/modal/discourse-size-daily-quests";
+import DiscourseSizeEditShopItem from "../components/modal/discourse-size-edit-shop-item";
 import DiscourseSizeInventory from "../components/modal/discourse-size-inventory";
 import DiscourseSizePointHistory from "../components/modal/discourse-size-point-history";
-import I18n from "I18n";
-
-import DiscourseSizeEditShopItem from "../components/modal/discourse-size-edit-shop-item";
-import DiscourseSizeDailyQuests from "../components/modal/discourse-size-daily-quests";
 
 export default class SizeShopController extends Controller {
   @service currentUser;
   @service modal;
   @service router;
+
   @tracked items = [];
   @tracked shopName = "Size Shop";
   @tracked currentPoints = 0;
@@ -46,13 +46,13 @@ export default class SizeShopController extends Controller {
   @action
   async purchaseItem(item) {
     if (this.currentPoints < item.price) {
-      alert(I18n.t("discourse_size.shop.insufficient_points"));
+      alert(i18n("discourse_size.shop.insufficient_points"));
       return;
     }
 
     if (
       !confirm(
-        I18n.t("discourse_size.shop.purchase_confirm", {
+        i18n("discourse_size.shop.purchase_confirm", {
           name: item.name,
           price: item.price,
         })

@@ -1,16 +1,14 @@
 import Controller from "@ember/controller";
 import { action, computed, set } from "@ember/object";
-import { inject as service } from "@ember/service";
+import { service } from "@ember/service";
 import { ajax } from "discourse/lib/ajax";
-
+import { i18n } from "discourse-i18n";
+import DiscourseSizeAdminUser from "../../../components/modal/discourse-size-admin-user";
 import DiscourseSizeEditCharacter from "../../../components/modal/discourse-size-edit-character";
 import DiscourseSizeEditFolder from "../../../components/modal/discourse-size-edit-folder";
-import DiscourseSizePointHistory from "../../../components/modal/discourse-size-point-history";
-
-import DiscourseSizeAdminUser from "../../../components/modal/discourse-size-admin-user";
 import DiscourseSizeInventory from "../../../components/modal/discourse-size-inventory";
+import DiscourseSizePointHistory from "../../../components/modal/discourse-size-point-history";
 import DiscourseSizeRoleplaysModal from "../../../components/modal/discourse-size-roleplays-modal";
-import I18n from "I18n";
 
 export default class UserCharactersIndexController extends Controller {
   @service currentUser;
@@ -62,7 +60,7 @@ export default class UserCharactersIndexController extends Controller {
   async giftItemFlow(item) {
     let username = this.user?.username;
     if (!username || this.isCurrentUser) {
-      username = prompt(I18n.t("discourse_size.inventory.gift_prompt"));
+      username = prompt(i18n("discourse_size.inventory.gift_prompt"));
     }
 
     if (!username) {
@@ -71,7 +69,7 @@ export default class UserCharactersIndexController extends Controller {
 
     if (
       !confirm(
-        I18n.t("discourse_size.inventory.gift_confirm", {
+        i18n("discourse_size.inventory.gift_confirm", {
           item: item.details.name,
           user: username,
         })

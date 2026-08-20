@@ -122,6 +122,7 @@
     transform: scale(1);
     opacity: 0.8;
   }
+
   100% {
     transform: scale(var(--ping-scale, 1.4));
     opacity: 0;
@@ -133,6 +134,7 @@
     transform: scale(1);
     opacity: 0.8;
   }
+
   100% {
     transform: scale(calc(2 - var(--ping-scale, 1.4)));
     opacity: 0;
@@ -144,12 +146,15 @@
     transform: translate(-50%, -50%) scale(0.8) rotate(var(--rot));
     opacity: 0;
   }
+
   20% {
     opacity: 1;
   }
+
   80% {
     opacity: 1;
   }
+
   100% {
     transform: translate(var(--tx), var(--ty)) scale(1.2) rotate(var(--rot));
     opacity: 0;
@@ -161,12 +166,15 @@
     transform: translate(-50%, -50%) scale(1.2) rotate(var(--rot));
     opacity: 0;
   }
+
   20% {
     opacity: 1;
   }
+
   80% {
     opacity: 1;
   }
+
   100% {
     transform: translate(var(--tx), var(--ty)) scale(0.8) rotate(var(--rot));
     opacity: 0;
@@ -178,11 +186,13 @@
     transform: translate(var(--startX), var(--startY)) scale(0.1) rotate(0deg);
     opacity: 0;
   }
+
   30% {
     opacity: 1;
     transform: translate(calc(var(--startX) * 0.5), calc(var(--startY) * 0.5))
       scale(1) rotate(180deg);
   }
+
   100% {
     transform: translate(0, 0) scale(2) rotate(360deg);
     opacity: 0;
@@ -224,7 +234,7 @@
   font-weight: normal;
   text-transform: lowercase;
   z-index: 100;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  text-shadow: 0 1px 2px rgb(0, 0, 0, 0.2);
   white-space: nowrap;
   font-size: 1.1rem;
   font-style: italic;
@@ -257,7 +267,7 @@
     width: 100%;
     height: 100%;
     object-fit: contain;
-    filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.9));
+    filter: drop-shadow(0 0 15px rgb(255, 255, 255, 0.9));
   }
 }
 
@@ -841,6 +851,7 @@
 
         &.growing {
           color: var(--success) !important;
+
           .d-icon {
             color: var(--success);
           }
@@ -848,6 +859,7 @@
 
         &.shrinking {
           color: var(--danger) !important;
+
           .d-icon {
             color: var(--danger);
           }
@@ -3448,7 +3460,7 @@
     );
     border-radius: 12px;
     margin-bottom: 25px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 15px rgb(0, 0, 0, 0.05);
 
     .daily-collect-btn {
       min-width: 250px;
@@ -3460,10 +3472,11 @@
       transition: all 0.3s ease;
 
       &.btn-primary {
-        box-shadow: 0 4px 15px rgba(var(--tertiary-rgb), 0.3);
+        box-shadow: 0 4px 15px rgb(var(--tertiary-rgb), 0.3);
+
         &:hover {
           transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(var(--tertiary-rgb), 0.4);
+          box-shadow: 0 6px 20px rgb(var(--tertiary-rgb), 0.4);
         }
       }
     }
@@ -3571,7 +3584,7 @@
     align-items: center;
     gap: 10px;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 15px rgb(0, 0, 0, 0.05);
 
     &.collected {
       opacity: 0.6;
@@ -3608,10 +3621,11 @@
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 10px rgb(0, 0, 0, 0.1);
 
         &.btn-primary {
           background: var(--tertiary);
+
           &:hover {
             transform: scale(1.05);
           }
@@ -3675,15 +3689,15 @@
     font-size: 0.9em;
 
     &.climbing {
-      background: rgba(var(--success-rgb), 0.15);
+      background: rgb(var(--success-rgb), 0.15);
       color: var(--success);
-      border: 1px solid rgba(var(--success-rgb), 0.3);
+      border: 1px solid rgb(var(--success-rgb), 0.3);
     }
 
     &.descending {
-      background: rgba(var(--danger-rgb), 0.15);
+      background: rgb(var(--danger-rgb), 0.15);
       color: var(--danger);
-      border: 1px solid rgba(var(--danger-rgb), 0.3);
+      border: 1px solid rgb(var(--danger-rgb), 0.3);
     }
 
     .d-icon {
@@ -3737,7 +3751,7 @@
     position: absolute;
     top: 5px;
     right: 5px;
-    background: rgba(var(--secondary-rgb), 0.7);
+    background: rgb(var(--secondary-rgb), 0.7);
     border-radius: 4px;
     z-index: 5;
   }
@@ -3753,6 +3767,7 @@
     background: var(--success-low);
     color: var(--success);
   }
+
   &.shrink {
     background: var(--danger-low);
     color: var(--danger);
@@ -3786,20 +3801,25 @@
       color: var(--primary-medium);
       width: 120px;
     }
+
     .change {
       font-weight: bold;
       width: 50px;
+
       &.positive {
         color: var(--success);
       }
+
       &.negative {
         color: var(--danger);
       }
     }
+
     .source {
       font-weight: bold;
       width: 120px;
     }
+
     .reason {
       font-style: italic;
       color: var(--primary-medium);
@@ -3827,7 +3847,7 @@
 
 // ─── Mobile Responsiveness ───────────────────────────────────────────────────
 
-@media screen and (max-width: 767px) {
+@media screen and (width <= 767px) {
   .user-characters-header,
   .shop-header {
     flex-direction: column;
@@ -3961,7 +3981,6 @@
 }
 
 // ─── Roleplay Styles ─────────────────────────────────────────────────────────
-
 .size-roleplays-container {
   max-width: 1200px;
   margin: 0 auto;
@@ -3995,7 +4014,7 @@
     border: 1px solid var(--primary-low);
     padding: 25px;
     border-radius: 16px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 15px rgb(0, 0, 0, 0.05);
     transition:
       transform 0.2s ease,
       box-shadow 0.2s ease;
@@ -4005,7 +4024,7 @@
 
     &:hover {
       transform: translateY(-4px);
-      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+      box-shadow: 0 8px 25px rgb(0, 0, 0, 0.08);
       border-color: var(--tertiary-low);
     }
 
@@ -4119,7 +4138,7 @@
       padding: 12px 20px;
       border-radius: 12px;
       border: 1px solid var(--primary-low);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      box-shadow: 0 2px 8px rgb(0, 0, 0, 0.05);
 
       &.pending {
         background: var(--primary-very-low);
@@ -4132,7 +4151,7 @@
         border-radius: 50%;
         object-fit: cover;
         border: 2px solid var(--secondary);
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 5px rgb(0, 0, 0, 0.1);
       }
 
       .member-info {
@@ -4189,7 +4208,6 @@
 }
 
 // ─── Custom Properties & Triggers in Modal ───────────────────────────────────
-
 .custom-properties-group,
 .custom-triggers-group {
   .properties-list,
@@ -4290,14 +4308,13 @@
 }
 
 // ─── Enhanced Roleplay Styles ───────────────────────────────────────────────
-
 .rp-banner {
   width: 100%;
   max-height: 300px;
   object-fit: cover;
   border-radius: 16px;
   margin-bottom: 20px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 15px rgb(0, 0, 0, 0.1);
 }
 
 .rp-header-actions {
@@ -4445,7 +4462,6 @@
 }
 
 // ─── Header & Dialog Enhancements ──────────────────────────────────────────
-
 .size-roleplay-detail {
   .rp-header {
     margin: 0 0 30px 0;
@@ -4461,16 +4477,16 @@
 
     &.has-picture {
       color: #fff;
-      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+      text-shadow: 0 2px 4px rgb(0, 0, 0, 0.5);
 
       .btn-default {
-        background: rgba(255, 255, 255, 0.2);
+        background: rgb(255, 255, 255, 0.2);
         color: #fff;
-        border: 1px solid rgba(255, 255, 255, 0.3);
+        border: 1px solid rgb(255, 255, 255, 0.3);
         backdrop-filter: blur(5px);
 
         &:hover {
-          background: rgba(255, 255, 255, 0.3);
+          background: rgb(255, 255, 255, 0.3);
         }
       }
     }
@@ -4749,13 +4765,14 @@
     align-items: center;
     justify-content: center;
     border: 2px solid var(--secondary);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 4px rgb(0, 0, 0, 0.2);
   }
 }
 
 .discourse-size-invite-to-roleplay-modal {
   .character-list-item {
     cursor: default !important;
+
     &:hover {
       background: none !important;
       transform: none !important;
@@ -4853,13 +4870,15 @@
 
 @keyframes pulseBadge {
   0% {
-    box-shadow: 0 0 0 0 rgba(var(--tertiary-rgb), 0.4);
+    box-shadow: 0 0 0 0 rgb(var(--tertiary-rgb), 0.4);
   }
+
   70% {
-    box-shadow: 0 0 0 8px rgba(var(--tertiary-rgb), 0);
+    box-shadow: 0 0 0 8px rgb(var(--tertiary-rgb), 0);
   }
+
   100% {
-    box-shadow: 0 0 0 0 rgba(var(--tertiary-rgb), 0);
+    box-shadow: 0 0 0 0 rgb(var(--tertiary-rgb), 0);
   }
 }
 
@@ -4897,9 +4916,11 @@
   0% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.6;
   }
+
   100% {
     opacity: 1;
   }
@@ -4908,6 +4929,7 @@
 .discourse-size-invite-to-roleplay-modal {
   .character-list-item {
     cursor: default !important;
+
     &:hover {
       background: transparent !important;
     }
@@ -4920,7 +4942,7 @@
   border-radius: 12px;
   padding: 20px 24px;
   margin: 20px 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 8px rgb(0, 0, 0, 0.06);
 
   .invited-header {
     display: flex;

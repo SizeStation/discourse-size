@@ -478,7 +478,9 @@ export const UNITS = [
 
 export function getBestUnit(sizeCm) {
   const absSize = Math.abs(parseFloat(sizeCm));
-  if (isNaN(absSize) || absSize === 0) return UNITS.find((u) => u.id === "cm");
+  if (isNaN(absSize) || absSize === 0) {
+    return UNITS.find((u) => u.id === "cm");
+  }
 
   // Filter to reasonable units for editing
   const candidates = UNITS.filter((u) => u.id !== "atoms" && u.id !== "cells");
@@ -573,8 +575,9 @@ const SPEED_COMPARISONS = [
 ];
 
 function formatDuration(seconds) {
-  if (seconds < 60)
+  if (seconds < 60) {
     return `${Math.round(seconds)} second${Math.round(seconds) !== 1 ? "s" : ""}`;
+  }
   if (seconds < 3600) {
     const m = Math.round(seconds / 60);
     return `${m} minute${m !== 1 ? "s" : ""}`;
@@ -592,7 +595,9 @@ function formatDuration(seconds) {
 }
 
 export function getGrowthComparison(character, currentSize) {
-  if (!character || !currentSize) return null;
+  if (!character || !currentSize) {
+    return null;
+  }
 
   const c = character;
   const isMoving =
@@ -600,7 +605,9 @@ export function getGrowthComparison(character, currentSize) {
     (Array.isArray(c.actions) &&
       c.actions.some((a) => new Date(a.end_time) > Date.now()));
 
-  if (!isMoving) return null;
+  if (!isMoving) {
+    return null;
+  }
 
   const isGrowing = c.target_offset > c.current_offset;
 
@@ -674,7 +681,9 @@ export function getGrowthComparison(character, currentSize) {
 }
 
 export function getComparison(character) {
-  if (!character) return "";
+  if (!character) {
+    return "";
+  }
   const sizeCm = character.current_size;
   const name = character.name || "this character";
 
@@ -742,7 +751,9 @@ function smartFixed(val, system = "metric") {
 export function formatSize(sizeCm, system = "metric") {
   // We'll handle the default in the helper or component
   const parsedSize = parseFloat(sizeCm);
-  if (isNaN(parsedSize) || parsedSize === 0) return "0 cm";
+  if (isNaN(parsedSize) || parsedSize === 0) {
+    return "0 cm";
+  }
   const absSize = Math.abs(parsedSize);
 
   // Shared constants
@@ -757,42 +768,68 @@ export function formatSize(sizeCm, system = "metric") {
 
   // Absolute floor: Atoms
   if (absSize < 1e-8) {
-    if (atoms < 0.001) return `${sign}0.001 atoms`;
+    if (atoms < 0.001) {
+      return `${sign}0.001 atoms`;
+    }
     return `${sign}${atoms.toFixed(3)} atoms`;
   }
 
   if (system === "metric") {
-    if (absSize < 1e-7) return `${sign}${smartFixed(pm, system)} pm`;
-    if (absSize < 1e-5) return `${sign}${smartFixed(nm, system)} nm`;
-    if (absSize < 0.01) return `${sign}${smartFixed(cells, system)} cells`;
-    if (absSize < 100) return `${sign}${smartFixed(absSize, system)} cm`;
-    if (absSize < 100000)
+    if (absSize < 1e-7) {
+      return `${sign}${smartFixed(pm, system)} pm`;
+    }
+    if (absSize < 1e-5) {
+      return `${sign}${smartFixed(nm, system)} nm`;
+    }
+    if (absSize < 0.01) {
+      return `${sign}${smartFixed(cells, system)} cells`;
+    }
+    if (absSize < 100) {
+      return `${sign}${smartFixed(absSize, system)} cm`;
+    }
+    if (absSize < 100000) {
       return `${sign}${smartFixed(absSize / 100, system)} m`;
-    if (absSize < 9.461e17)
+    }
+    if (absSize < 9.461e17) {
       return `${sign}${smartFixed(absSize / 100000, system)} km`;
-    if (absSize < 8.8e28)
+    }
+    if (absSize < 8.8e28) {
       return `${sign}${smartFixed(lightyears, system)} lightyears`;
+    }
     return `${sign}${smartFixed(universes, system)} universes`;
   } else {
-    if (absSize < 1e-7) return `${sign}${smartFixed(pm, system)} pm`;
-    if (absSize < 1e-5) return `${sign}${smartFixed(nm, system)} nm`;
-    if (absSize < 0.01) return `${sign}${smartFixed(cells, system)} cells`;
+    if (absSize < 1e-7) {
+      return `${sign}${smartFixed(pm, system)} pm`;
+    }
+    if (absSize < 1e-5) {
+      return `${sign}${smartFixed(nm, system)} nm`;
+    }
+    if (absSize < 0.01) {
+      return `${sign}${smartFixed(cells, system)} cells`;
+    }
 
     const inches = absSize / 2.54;
-    if (inches < 12) return `${sign}${smartFixed(inches, system)}"`;
+    if (inches < 12) {
+      return `${sign}${smartFixed(inches, system)}"`;
+    }
 
     const feet = inches / 12;
     if (feet < 5280) {
       const ft = Math.floor(feet);
       const inc = Math.round((feet - ft) * 12);
-      if (inc === 12) return `${sign}${ft + 1}'0"`;
+      if (inc === 12) {
+        return `${sign}${ft + 1}'0"`;
+      }
       return `${sign}${ft}'${inc}"`;
     }
 
     const miles = feet / 5280;
-    if (absSize < 9.461e17) return `${sign}${smartFixed(miles, system)} mi`;
-    if (absSize < 8.8e28)
+    if (absSize < 9.461e17) {
+      return `${sign}${smartFixed(miles, system)} mi`;
+    }
+    if (absSize < 8.8e28) {
       return `${sign}${smartFixed(lightyears, system)} lightyears`;
+    }
     return `${sign}${smartFixed(universes, system)} universes`;
   }
 }
