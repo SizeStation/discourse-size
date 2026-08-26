@@ -14,7 +14,7 @@ module ::DiscourseSize
       { id: "character_shrink", type: :character_shrink, min: 1, max: 1, reward: 15, emoji: "📉" },
       { id: "like_created", type: :like_created, min: 2, max: 10, reward: 10, emoji: "❤️" },
       { id: "status_set", type: :status_set, min: 1, max: 1, reward: 5, emoji: "🟢" },
-      { id: "post_read", type: :post_read, min: 2, max: 10, reward: 5, emoji: "👁️" },
+      { id: "post_read", type: :post_read, min: 3, max: 10, reward: 5, emoji: "👁️" },
       { id: "item_gifted", type: :item_gifted, min: 1, max: 1, reward: 15, emoji: "🎁" }
     ].freeze
 
