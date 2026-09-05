@@ -3,7 +3,7 @@ import { tracked } from "@glimmer/tracking";
 import { concat, fn, hash } from "@ember/helper";
 import { action } from "@ember/object";
 import { service } from "@ember/service";
-import { htmlSafe } from "@ember/template";
+import { trustHTML } from "@ember/template";
 import { eq, not, or } from "truth-helpers";
 import DButton from "discourse/components/d-button";
 import DModal from "discourse/components/d-modal";
@@ -267,7 +267,7 @@ export default class DiscourseSizeDailyQuests extends Component {
                     <div class="quest-progress-bar">
                       <div
                         class="progress-fill"
-                        style={{htmlSafe
+                        style={{trustHTML
                           (concat "width: " (this.getQuestProgress quest) "%")
                         }}
                       ></div>

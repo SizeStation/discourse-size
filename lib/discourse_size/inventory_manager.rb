@@ -2,11 +2,20 @@
 
 module ::DiscourseSize
   class InventoryManager
-    def self.purchase(user, item_key)
+    def self.purchase(user, item_key, guardian: nil)
       item = DiscourseSizeShopItem.find_by(key: item_key)
 
       return { error: "Item not found" } unless item
-      return { error: "Item is disabled" } unless item.enabled
+
+      can_manage =
+        (
+          if guardian
+            guardian.can_manage_size_shop?
+          else
+            (user && Guardian.new(user).can_manage_size_shop?)
+          end
+        )
+      return { error: "Item is disabled" } unless item.enabled || can_manage
       return { error: "Item is out of stock" } unless item.in_stock?
 
       price = item.price.to_i
@@ -17,27 +26,32 @@ module ::DiscourseSize
         user,
         price,
         source_type: "purchase_item",
-        description: "Purchased #{item.name}"
+        description: "Purchased #{item.name}",
       )
 
       # Add to inventory
-      inventory_item = DiscourseSizeInventory.create!(
-        user_id: user.id,
-        item_key: item_key,
-        uses_remaining: item.uses.to_i > 0 ? item.uses.to_i : 999999 # Use large number for infinite
-      )
+      inventory_item =
+        DiscourseSizeInventory.create!(
+          user_id: user.id,
+          item_key: item_key,
+          uses_remaining: item.uses.to_i > 0 ? item.uses.to_i : 999_999, # Use large number for infinite
+        )
 
       { success: true, inventory_item: inventory_item }
     end
 
     def self.use_item(user, inventory_item_id, target_character_id)
-      Rails.logger.info("[DiscourseSize] Using item: user_id=#{user.id}, inventory_item_id=#{inventory_item_id}, target_character_id=#{target_character_id}")
+      Rails.logger.info(
+        "[DiscourseSize] Using item: user_id=#{user.id}, inventory_item_id=#{inventory_item_id}, target_character_id=#{target_character_id}",
+      )
 
       inventory_item = DiscourseSizeInventory.find_by(id: inventory_item_id, user_id: user.id)
 
       unless inventory_item
         all_ids = DiscourseSizeInventory.where(user_id: user.id).pluck(:id)
-        Rails.logger.info("[DiscourseSize] Item not found in inventory for user #{user.id}. Looking for ID #{inventory_item_id}. User actually has IDs: #{all_ids.inspect}")
+        Rails.logger.info(
+          "[DiscourseSize] Item not found in inventory for user #{user.id}. Looking for ID #{inventory_item_id}. User actually has IDs: #{all_ids.inspect}",
+        )
         return { error: "Item not in inventory" }
       end
 
@@ -48,7 +62,12 @@ module ::DiscourseSize
       return { error: "Item configuration missing (it may have been deleted)" } unless item
 
       # Check if blocked
-      if character.is_blocked?(user, item_key: inventory_item.item_key, action_type: item.effect, amount: item.amount)
+      if character.is_blocked?(
+           user,
+           item_key: inventory_item.item_key,
+           action_type: item.effect,
+           amount: item.amount,
+         )
         return { error: "This character has blocked this item or you from performing actions." }
       end
 
@@ -75,15 +94,16 @@ module ::DiscourseSize
 
       # Track quest activity (only if targeting someone else)
       if character.user_id != user.id
-        quest_type = if item.effect == "grow"
-                       :character_grow
-                     elsif item.effect == "shrink"
-                       :character_shrink
-                     elsif size_change > 0
-                       :character_grow
-                     elsif size_change < 0
-                       :character_shrink
-                     end
+        quest_type =
+          if item.effect == "grow"
+            :character_grow
+          elsif item.effect == "shrink"
+            :character_shrink
+          elsif size_change > 0
+            :character_grow
+          elsif size_change < 0
+            :character_shrink
+          end
         ::DiscourseSize::QuestManager.track_activity(user, quest_type) if quest_type
       end
 
@@ -97,26 +117,33 @@ module ::DiscourseSize
       end
 
       capped_type = nil
-      action_result = character.add_queued_action(
-        action_type: item.effect == "static" ? "set_size" : item.effect,
-        size_change: size_change,
-        duration_minutes: item.duration_minutes.to_f,
-        user_id: user.id,
-        item_key: item.key
-      )
+      action_result =
+        character.add_queued_action(
+          action_type: item.effect == "static" ? "set_size" : item.effect,
+          size_change: size_change,
+          duration_minutes: item.duration_minutes.to_f,
+          user_id: user.id,
+          item_key: item.key,
+        )
       capped_type = action_result[:capped] if action_result[:capped]
 
       # Send notification
-      notification_id = NotificationManager.send_growth_notification(
-        user,
-        character,
-        item.effect,
-        item.effect == "static" ? item.amount.to_f : action_result[:size_change],
-        item_name: item.name
-      )
+      notification_id =
+        NotificationManager.send_growth_notification(
+          user,
+          character,
+          item.effect,
+          item.effect == "static" ? item.amount.to_f : action_result[:size_change],
+          item_name: item.name,
+        )
 
       # Find the action we just created to attach notification_id (it will be the last one)
-      action = character.discourse_size_actions.where(item_key: item.key, user_id: user.id).order(created_at: :desc).first
+      action =
+        character
+          .discourse_size_actions
+          .where(item_key: item.key, user_id: user.id)
+          .order(created_at: :desc)
+          .first
       action.update_column(:notification_id, notification_id) if notification_id && action
 
       # Apply self-effect if configured and applicable (only for game type main characters)
@@ -132,20 +159,20 @@ module ::DiscourseSize
         end
         self_size_change = self_new_total - self_current_total
 
-        self_action_result = main_char.add_queued_action(
-          action_type: item.self_effect == "static" ? "set_size" : item.self_effect,
-          size_change: self_size_change,
-          duration_minutes: item.duration_minutes.to_f,
-          user_id: user.id,
-          item_key: item.key,
-          parent_action_id: action&.id
-        )
+        self_action_result =
+          main_char.add_queued_action(
+            action_type: item.self_effect == "static" ? "set_size" : item.self_effect,
+            size_change: self_size_change,
+            duration_minutes: item.duration_minutes.to_f,
+            user_id: user.id,
+            item_key: item.key,
+            parent_action_id: action&.id,
+          )
         capped_type = self_action_result[:capped] if self_action_result[:capped] && !capped_type
       end
 
-
       # Decrease uses
-      if inventory_item.uses_remaining < 999999
+      if inventory_item.uses_remaining < 999_999
         inventory_item.uses_remaining -= 1
         if inventory_item.uses_remaining <= 0
           inventory_item.destroy
@@ -163,10 +190,12 @@ module ::DiscourseSize
 
       # Try to stack only if the item supports multiple uses
       if max_uses > 1
-        inventory_item = DiscourseSizeInventory.where(user_id: user.id, item_key: item_key)
-                                                .where("uses_remaining < ?", max_uses)
-                                                .order(uses_remaining: :desc)
-                                                .first
+        inventory_item =
+          DiscourseSizeInventory
+            .where(user_id: user.id, item_key: item_key)
+            .where("uses_remaining < ?", max_uses)
+            .order(uses_remaining: :desc)
+            .first
         if inventory_item
           inventory_item.uses_remaining += 1
           inventory_item.save!
@@ -175,11 +204,7 @@ module ::DiscourseSize
       end
 
       # Default: create a new inventory entry with 1 use
-      DiscourseSizeInventory.create!(
-        user_id: user.id,
-        item_key: item_key,
-        uses_remaining: 1
-      )
+      DiscourseSizeInventory.create!(user_id: user.id, item_key: item_key, uses_remaining: 1)
     end
 
     def self.gift_item(sender, inventory_item_id, target_username)

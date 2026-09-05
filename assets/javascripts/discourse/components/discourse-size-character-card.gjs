@@ -4,7 +4,7 @@ import { concat, fn } from "@ember/helper";
 import { action } from "@ember/object";
 import { LinkTo } from "@ember/routing";
 import { service } from "@ember/service";
-import { htmlSafe } from "@ember/template";
+import { trustHTML } from "@ember/template";
 import { eq, gt, or } from "truth-helpers";
 import DButton from "discourse/components/d-button";
 import icon from "discourse/helpers/d-icon";
@@ -621,7 +621,7 @@ export default class DiscourseSizeCharacterCard extends Component {
               class="ping-effect
                 {{if (eq this.activeActionType 'grow') 'growing'}}
                 {{if (eq this.activeActionType 'shrink') 'shrinking'}}"
-              style={{htmlSafe
+              style={{trustHTML
                 (concat
                   "background-image: url("
                   @character.picture
@@ -640,7 +640,7 @@ export default class DiscourseSizeCharacterCard extends Component {
             {{#each this.floatingWords as |word|}}
               <span
                 class="floating-word {{word.type}}"
-                style={{htmlSafe word.style}}
+                style={{trustHTML word.style}}
               >
                 {{word.text}}
               </span>
@@ -649,7 +649,7 @@ export default class DiscourseSizeCharacterCard extends Component {
             {{#if this.thrownItem}}
               <div
                 class="thrown-item-effect"
-                style={{htmlSafe
+                style={{trustHTML
                   (concat
                     "--startX: "
                     this.thrownItem.startX
@@ -801,7 +801,7 @@ export default class DiscourseSizeCharacterCard extends Component {
                     <div class="progress-bar-mini">
                       <div
                         class="progress-fill"
-                        style={{htmlSafe
+                        style={{trustHTML
                           (concat "width: " this.progressPercent "%")
                         }}
                       ></div>
@@ -854,7 +854,7 @@ export default class DiscourseSizeCharacterCard extends Component {
                           <div class="progress-bar-mini">
                             <div
                               class="progress-fill"
-                              style={{htmlSafe
+                              style={{trustHTML
                                 (concat "width: " prop._progress "%")
                               }}
                             ></div>

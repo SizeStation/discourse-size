@@ -5,7 +5,7 @@ import { on } from "@ember/modifier";
 import { action, notifyPropertyChange } from "@ember/object";
 import { LinkTo } from "@ember/routing";
 import { service } from "@ember/service";
-import { htmlSafe } from "@ember/template";
+import { trustHTML } from "@ember/template";
 import { and, eq, not, notEq, or } from "truth-helpers";
 import DButton from "discourse/components/d-button";
 import DModal from "discourse/components/d-modal";
@@ -541,7 +541,7 @@ export default class DiscourseSizeGrowthGraph extends Component {
                   <span class="legend-item">
                     <span
                       class="legend-swatch"
-                      style={{htmlSafe
+                      style={{trustHTML
                         (concat
                           "background-color: "
                           (if sp.color sp.color "var(--tertiary)")
