@@ -9,24 +9,31 @@ module DiscourseSize
       offset = (params[:offset] || 0).to_i
       search = params[:search].to_s.strip
 
-      characters =
-        DiscourseSizeCharacter
-          .includes(:user)
-          .where(character_type: "game")
+      characters = DiscourseSizeCharacter.includes(:user).where(character_type: "game")
 
-      if search.present?
-        characters = characters.where("name ILIKE ?", "%#{search}%")
-      end
+      characters = characters.where("name ILIKE ?", "%#{search}%") if search.present?
 
       preference = params[:preference].to_s.strip
       if preference == "both"
-        characters = characters.where("NOT (blocked_item_keys ? '__all_growing__') AND NOT (blocked_item_keys ? '__all_shrinking__') AND NOT (blocked_item_keys ? '__all__')")
+        characters =
+          characters.where(
+            "NOT (blocked_item_keys ? '__all_growing__') AND NOT (blocked_item_keys ? '__all_shrinking__') AND NOT (blocked_item_keys ? '__all__')",
+          )
       elsif preference == "growing"
-        characters = characters.where("NOT (blocked_item_keys ? '__all_growing__') AND NOT (blocked_item_keys ? '__all__') AND (blocked_item_keys ? '__all_shrinking__')")
+        characters =
+          characters.where(
+            "NOT (blocked_item_keys ? '__all_growing__') AND NOT (blocked_item_keys ? '__all__') AND (blocked_item_keys ? '__all_shrinking__')",
+          )
       elsif preference == "shrinking"
-        characters = characters.where("NOT (blocked_item_keys ? '__all_shrinking__') AND NOT (blocked_item_keys ? '__all__') AND (blocked_item_keys ? '__all_growing__')")
+        characters =
+          characters.where(
+            "NOT (blocked_item_keys ? '__all_shrinking__') AND NOT (blocked_item_keys ? '__all__') AND (blocked_item_keys ? '__all_growing__')",
+          )
       elsif preference == "neither"
-        characters = characters.where("blocked_item_keys ? '__all__' OR (blocked_item_keys ? '__all_growing__' AND blocked_item_keys ? '__all_shrinking__')")
+        characters =
+          characters.where(
+            "blocked_item_keys ? '__all__' OR (blocked_item_keys ? '__all_growing__' AND blocked_item_keys ? '__all_shrinking__')",
+          )
       end
 
       total = characters.count
@@ -36,7 +43,13 @@ module DiscourseSize
 
       respond_to do |format|
         format.html { render "default/empty" }
-        format.json { render json: { characters: characters.map { |c| character_serializer(c) }, total: total, more: more } }
+        format.json do
+          render json: {
+                   characters: characters.map { |c| character_serializer(c) },
+                   total: total,
+                   more: more,
+                 }
+        end
       end
     end
 
@@ -67,6 +80,8 @@ module DiscourseSize
         prefers_shrinking = false
       end
 
+      effective_size = [c.current_size.abs, c.base_size.abs, 1.0].min
+
       {
         id: c.id,
         user_id: c.user_id,
@@ -75,13 +90,13 @@ module DiscourseSize
         base_size: c.base_size,
         prefers_growing: prefers_growing,
         prefers_shrinking: prefers_shrinking,
-        is_animating: (c.current_offset - c.target_offset).abs > 0.0001,
+        is_animating: (c.current_offset - c.target_offset).abs > [effective_size * 1e-6, 1e-40].max,
         is_growing: c.target_offset > c.current_offset,
         time_remaining: (seconds_left && seconds_left > 0) ? format_duration(seconds_left) : nil,
         user: {
-          id: c.user.id,
-          username: c.user.username,
-          avatar_template: c.user.avatar_template,
+          id: c.user&.id,
+          username: c.user&.username,
+          avatar_template: c.user&.avatar_template,
         },
       }
     end
@@ -93,7 +108,7 @@ module DiscourseSize
         m = (seconds / 60).floor
         s = (seconds % 60).floor
         s > 0 ? "#{m}m #{s}s" : "#{m}m"
-      elsif seconds < 86400
+      elsif seconds < 86_400
         h = (seconds / 3600).floor
         m = ((seconds % 3600) / 60).floor
         m > 0 ? "#{h}h #{m}m" : "#{h}h"

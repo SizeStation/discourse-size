@@ -77,9 +77,9 @@ export function calculateSize(character, time = new Date()) {
   if (!character) {
     return 0;
   }
-  return (
-    (parseFloat(character.base_size) || 0) + calculateOffset(character, time)
-  );
+  const rawSize =
+    (parseFloat(character.base_size) || 0) + calculateOffset(character, time);
+  return Math.max(rawSize, 1e-35);
 }
 
 export function calculatePropertyValue(

@@ -24,6 +24,8 @@ export default class DiscourseSizeEditCharacter extends Component {
 
   @service modal;
 
+  @service dialog;
+
   @tracked name = "";
   @tracked picture = "";
   @tracked infoPost = "";
@@ -157,7 +159,10 @@ export default class DiscourseSizeEditCharacter extends Component {
     const parent = (key) => char[key];
     if (field === "base_size") {
       const originalSize = parseFloat(parent("base_size") || 0);
-      return Math.abs(this.baseSizeInCm - originalSize) > 0.0001;
+      return (
+        Math.abs(this.baseSizeInCm - originalSize) >
+        Math.max(Math.abs(originalSize) * 1e-9, 1e-40)
+      );
     }
     if (field === "properties") {
       const orig = Array.isArray(char.properties) ? char.properties : [];
@@ -265,11 +270,11 @@ export default class DiscourseSizeEditCharacter extends Component {
   @action
   close() {
     if (this.isDirty) {
-      if (
-        !confirm("You have unsaved changes. Are you sure you want to exit?")
-      ) {
-        return;
-      }
+      this.dialog.confirm({
+        message: i18n("discourse_size.unsaved_changes"),
+        didConfirm: () => this.args.closeModal(),
+      });
+      return;
     }
     this.args.closeModal();
   }
@@ -426,8 +431,8 @@ export default class DiscourseSizeEditCharacter extends Component {
           processData: false,
         });
         this.picture = result.url;
-      } catch (err) {
-        alert("Error uploading image");
+      } catch {
+        this.dialog.alert(i18n("discourse_size.upload_image_error"));
       }
     };
     fileInput.click();
@@ -444,8 +449,10 @@ export default class DiscourseSizeEditCharacter extends Component {
         valCm = this.max;
       }
     } else {
-      if (isNaN(valCm) || valCm <= 0) {
-        valCm = 1.0;
+      if (isNaN(valCm) || valCm < 1e-35) {
+        valCm = 1e-35;
+      } else if (valCm > 1e120) {
+        valCm = 1e120;
       }
     }
     this.sizeError = null;
@@ -512,7 +519,6 @@ export default class DiscourseSizeEditCharacter extends Component {
       if (this.isRoleplayEdit) {
         const char = this.args?.model?.character || {};
         const priorOv = this.member?.override_data || {};
-        const changed = (key) => priorOv[key] !== undefined;
         const overrideData = {};
 
         const _set = (k, cur, orig) => {
@@ -592,8 +598,9 @@ export default class DiscourseSizeEditCharacter extends Component {
       this.args?.model?.onSave?.(result.character);
       this.args?.closeModal?.();
     } catch (e) {
-      alert(
-        e.jqXHR?.responseJSON?.errors?.join(", ") || "Error saving character"
+      this.dialog.alert(
+        e.jqXHR?.responseJSON?.errors?.join(", ") ||
+          i18n("discourse_size.save_character_error")
       );
     } finally {
       this.isSaving = false;
@@ -629,31 +636,29 @@ export default class DiscourseSizeEditCharacter extends Component {
   }
 
   @action
-  async deleteCharacter() {
-    const confirmed = confirm(
-      "Are you sure you want to delete this character? This cannot be undone, and you will NOT get any points back."
-    );
-    if (!confirmed) {
-      return;
-    }
-
-    try {
-      await ajax(`/size/characters/${this.args?.model?.character?.id}`, {
-        type: "DELETE",
-      });
-      this.args?.model?.onDelete?.();
-      this.args?.closeModal?.();
-    } catch (e) {
-      alert("Error deleting character");
-    }
+  deleteCharacter() {
+    this.dialog.confirm({
+      message: i18n("discourse_size.delete_character_confirm"),
+      didConfirm: async () => {
+        try {
+          await ajax(`/size/characters/${this.args?.model?.character?.id}`, {
+            type: "DELETE",
+          });
+          this.args?.model?.onDelete?.();
+          this.args?.closeModal?.();
+        } catch {
+          this.dialog.alert(i18n("discourse_size.delete_character_error"));
+        }
+      },
+    });
   }
 
   async fetchAvailableItems() {
     try {
       const result = await ajax("/size/shop");
       this.availableItems = result.items || [];
-    } catch (e) {
-      console.error("Error fetching shop items", e);
+    } catch {
+      // Ignore shop fetch error
     }
   }
 
@@ -876,8 +881,8 @@ export default class DiscourseSizeEditCharacter extends Component {
             ];
           }
         }
-      } catch (e) {
-        console.error("Could not find user:", username);
+      } catch {
+        // User not found, ignore
       }
     });
   }
@@ -949,7 +954,7 @@ export default class DiscourseSizeEditCharacter extends Component {
           // Try local Discourse module first
           const mod = await import("discourse-common/lib/code-mirror");
           window.CodeMirror = mod.default;
-        } catch (e) {
+        } catch {
           // Fallback to CDN for reliability
           const CDN_BASE =
             "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13";
@@ -975,8 +980,7 @@ export default class DiscourseSizeEditCharacter extends Component {
       } else {
         throw new Error("CodeMirror failed to load");
       }
-    } catch (e) {
-      console.error("CodeMirror failed to load:", e);
+    } catch {
       this._showFallbackTextarea(trigger, element);
     }
   }
@@ -1344,7 +1348,7 @@ export default class DiscourseSizeEditCharacter extends Component {
               <input
                 type="number"
                 value={{this.displaySize}}
-                step="0.0001"
+                step="any"
                 class="base-size-input"
                 {{on "input" this.onBaseSizeInput}}
                 {{on "blur" this.onBaseSizeBlur}}
@@ -1437,7 +1441,7 @@ export default class DiscourseSizeEditCharacter extends Component {
                           <input
                             type="number"
                             value={{this.getPropDisplayValue prop}}
-                            step="0.01"
+                            step="any"
                             class="prop-value prop-value-size"
                             placeholder={{i18n
                               "discourse_size.properties.value_placeholder"

@@ -25,6 +25,12 @@ class DiscourseSizeCharacter < ActiveRecord::Base
     site_sink
   ]
 
+  TYPE_GAME = "game"
+  TYPE_NORMAL = "normal"
+
+  MAX_SIZE = 1e120
+  MIN_SIZE = 1e-35
+
   def set_default_position
     return if position.present?
     if folder_id.nil?
@@ -58,12 +64,15 @@ class DiscourseSizeCharacter < ActiveRecord::Base
               less_than_or_equal_to: -> { SiteSetting.discourse_size_max_base_size },
             },
             if: :game?
+  validates :base_size,
+            numericality: {
+              greater_than_or_equal_to: MIN_SIZE,
+              less_than_or_equal_to: MAX_SIZE,
+            },
+            if: :normal?
   validates :user_id, presence: true
 
   has_many :discourse_size_actions, foreign_key: "character_id", dependent: :destroy
-
-  TYPE_GAME = "game"
-  TYPE_NORMAL = "normal"
 
   validates :character_type, inclusion: { in: [TYPE_GAME, TYPE_NORMAL] }
 
@@ -74,9 +83,6 @@ class DiscourseSizeCharacter < ActiveRecord::Base
   def normal?
     character_type == TYPE_NORMAL
   end
-
-  MAX_SIZE = 1e120
-  MIN_SIZE = 1e-18
 
   def update_size_target(amount)
     sync_offset!
@@ -396,10 +402,10 @@ class DiscourseSizeCharacter < ActiveRecord::Base
     return if old_base.nil? || new_base.nil?
 
     delta = new_base - old_base
-    return if delta.abs < 1e-12
+    return if delta.abs < 1e-40
 
     has_actions = discourse_size_actions.where(action_type: %w[grow shrink set_size]).exists?
-    return if !has_actions && current_offset.to_f.abs < 1e-12 && target_offset.to_f.abs < 1e-12
+    return if !has_actions && current_offset.to_f.abs < 1e-40 && target_offset.to_f.abs < 1e-40
 
     self.current_offset = current_offset.to_f - delta
     self.target_offset = target_offset.to_f - delta

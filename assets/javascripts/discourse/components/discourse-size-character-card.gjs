@@ -199,15 +199,13 @@ export default class DiscourseSizeCharacterCard extends Component {
 
   get targetSizeCm() {
     const active = this.activeAction;
+    const base = parseFloat(this.args?.character?.base_size) || 0;
     if (active) {
-      return (
-        parseFloat(this.args?.character?.base_size) +
-        parseFloat(active.end_offset)
-      );
+      return Math.max(1e-35, base + (parseFloat(active.end_offset) || 0));
     }
-    return (
-      parseFloat(this.args?.character?.base_size) +
-      parseFloat(this.args?.character?.target_offset)
+    return Math.max(
+      1e-35,
+      base + (parseFloat(this.args?.character?.target_offset) || 0)
     );
   }
 
@@ -217,12 +215,13 @@ export default class DiscourseSizeCharacterCard extends Component {
 
   get formattedStartSize() {
     const active = this.activeAction;
+    const base = parseFloat(this.args?.character?.base_size) || 0;
     const startOffset = active
-      ? parseFloat(active.start_offset)
-      : parseFloat(this.args?.character?.start_offset);
+      ? parseFloat(active.start_offset) || 0
+      : parseFloat(this.args?.character?.start_offset) || 0;
 
     return formatSize(
-      parseFloat(this.args?.character?.base_size) + startOffset,
+      Math.max(1e-35, base + startOffset),
       this.preferredSystem
     );
   }
@@ -451,7 +450,7 @@ export default class DiscourseSizeCharacterCard extends Component {
       return 1;
     }
 
-    const logRate = Math.log10(rate + 1e-10);
+    const logRate = Math.log10(Math.max(rate, 1e-40));
     // Map logRate (-2 to 15) to a multiplier
     // -2 (fingernail) -> ~0.15
     // 2 (bamboo) -> ~0.66
@@ -541,7 +540,8 @@ export default class DiscourseSizeCharacterCard extends Component {
   }
 
   get isGrowing() {
-    return this.targetSizeCm > this.calculatedSizeCm + 0.0001;
+    const diff = this.targetSizeCm - this.calculatedSizeCm;
+    return diff > Math.max(Math.abs(this.targetSizeCm) * 1e-9, 1e-40);
   }
 
   get recentActions() {

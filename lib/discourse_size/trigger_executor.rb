@@ -9,7 +9,8 @@ module ::DiscourseSize
       return { success: false, error: "Trigger not found" } unless trigger
 
       # Finalize any expired property animations so the trigger script reads current values
-      character.discourse_size_actions
+      character
+        .discourse_size_actions
         .where(action_type: "property_change")
         .where("end_time <= ?", Time.now)
         .where.not(end_time: nil)
@@ -24,73 +25,107 @@ module ::DiscourseSize
       # Track side effects — all created as child actions of the trigger action.
       # Use a local Hash so concurrent executions don't share state.
       state = {
-        new_size: nil,               # absolute target cm (instant)
-        size_animations: [],         # [{ action_type:, target_offset:|target_delta:, duration_minutes: }]
-        property_changes: {},        # { name => value } (instant)
-        property_animations: [],     # [{ name:, start_value:, end_value:, duration_seconds: }]
+        new_size: nil, # absolute target cm (instant)
+        size_animations: [], # [{ action_type:, target_offset:|target_delta:, duration_minutes: }]
+        property_changes: {
+        }, # { name => value } (instant)
+        property_animations: [], # [{ name:, start_value:, end_value:, duration_seconds: }]
       }
 
       context.attach("character.size", -> { character.current_size })
 
-      context.attach("character.setSize", ->(new_size, duration_seconds = nil) {
-        if duration_seconds && duration_seconds.to_f > 0
+      context.attach(
+        "character.setSize",
+        ->(new_size, duration_seconds = nil) do
+          if duration_seconds && duration_seconds.to_f > 0
+            character.sync_offset!
+            state[:size_animations] << {
+              action_type: "set_size",
+              target_offset: new_size.to_f - character.base_size,
+              duration_minutes: duration_seconds.to_f / 60.0,
+            }
+          else
+            state[:new_size] = new_size.to_f
+          end
+        end,
+      )
+
+      context.attach(
+        "character.queueSizeAnimation",
+        ->(target_cm, duration_seconds) do
           character.sync_offset!
           state[:size_animations] << {
             action_type: "set_size",
-            target_offset: new_size.to_f - character.base_size,
+            target_offset: target_cm.to_f - character.base_size,
             duration_minutes: duration_seconds.to_f / 60.0,
           }
-        else
-          state[:new_size] = new_size.to_f
-        end
-      })
+        end,
+      )
 
-      context.attach("character.queueSizeAnimation", ->(target_cm, duration_seconds) {
-        character.sync_offset!
-        state[:size_animations] << {
-          action_type: "set_size",
-          target_offset: target_cm.to_f - character.base_size,
-          duration_minutes: duration_seconds.to_f / 60.0,
-        }
-      })
+      context.attach(
+        "character.grow",
+        ->(amount, duration_seconds = 0) do
+          if duration_seconds.to_f > 0
+            state[:size_animations] << {
+              action_type: "grow",
+              target_delta: amount.to_f,
+              duration_minutes: duration_seconds.to_f / 60.0,
+            }
+          else
+            current = state[:new_size] || character.current_size
+            state[:new_size] = current + amount.to_f
+          end
+        end,
+      )
 
-      context.attach("character.grow", ->(amount, duration_seconds = 0) {
-        if duration_seconds.to_f > 0
-          state[:size_animations] << {
-            action_type: "grow",
-            target_delta: amount.to_f,
-            duration_minutes: duration_seconds.to_f / 60.0,
-          }
-        else
-          current = state[:new_size] || character.current_size
-          state[:new_size] = current + amount.to_f
-        end
-      })
+      context.attach(
+        "character.shrink",
+        ->(amount, duration_seconds = 0) do
+          if duration_seconds.to_f > 0
+            state[:size_animations] << {
+              action_type: "shrink",
+              target_delta: -amount.to_f.abs,
+              duration_minutes: duration_seconds.to_f / 60.0,
+            }
+          else
+            current = state[:new_size] || character.current_size
+            state[:new_size] = current - amount.to_f.abs
+          end
+        end,
+      )
 
-      context.attach("character.shrink", ->(amount, duration_seconds = 0) {
-        if duration_seconds.to_f > 0
-          state[:size_animations] << {
-            action_type: "shrink",
-            target_delta: -amount.to_f.abs,
-            duration_minutes: duration_seconds.to_f / 60.0,
-          }
-        else
-          current = state[:new_size] || character.current_size
-          state[:new_size] = current - amount.to_f.abs
-        end
-      })
+      context.attach(
+        "character.property",
+        ->(name) do
+          prop = character.discourse_size_character_properties.find_by(name: name)
+          prop&.effective_value
+        end,
+      )
 
-      context.attach("character.property", ->(name) {
-        prop = character.discourse_size_character_properties.find_by(name: name)
-        prop&.effective_value
-      })
+      context.attach(
+        "character.setProperty",
+        ->(name, value, duration_seconds = nil) do
+          existing_prop = character.discourse_size_character_properties.find_by(name: name)
+          raise "Property '#{name}' not found on character." unless existing_prop
+          if duration_seconds
+            start_val = existing_prop.effective_value
+            state[:property_animations] << {
+              name: name,
+              start_value: start_val,
+              end_value: value.to_s,
+              duration_seconds: duration_seconds.to_f,
+            }
+          else
+            state[:property_changes][name] = value.to_s
+          end
+        end,
+      )
 
-      context.attach("character.setProperty", ->(name, value, duration_seconds = nil) {
-        existing_prop = character.discourse_size_character_properties.find_by(name: name)
-        unless existing_prop
-          raise "Property '#{name}' not found on character."
-        end
-        if duration_seconds
+      context.attach(
+        "character.queuePropertyAnimation",
+        ->(name, value, duration_seconds) do
+          existing_prop = character.discourse_size_character_properties.find_by(name: name)
+          raise "Property '#{name}' not found on character." unless existing_prop
           start_val = existing_prop.effective_value
           state[:property_animations] << {
             name: name,
@@ -98,103 +133,120 @@ module ::DiscourseSize
             end_value: value.to_s,
             duration_seconds: duration_seconds.to_f,
           }
-        else
-          state[:property_changes][name] = value.to_s
-        end
-      })
-
-      context.attach("character.queuePropertyAnimation", ->(name, value, duration_seconds) {
-        existing_prop = character.discourse_size_character_properties.find_by(name: name)
-        unless existing_prop
-          raise "Property '#{name}' not found on character."
-        end
-        start_val = existing_prop.effective_value
-        state[:property_animations] << {
-          name: name,
-          start_value: start_val,
-          end_value: value.to_s,
-          duration_seconds: duration_seconds.to_f,
-        }
-      })
+        end,
+      )
 
       context.attach("character.species", -> { character.species })
 
       context.attach("inchesToCm", ->(inches) { inches.to_f * 2.54 })
       context.attach("feetToCm", ->(feet) { feet.to_f * 30.48 })
-      context.attach("feetAndInchesToCm", ->(feet, inches) { feet.to_f * 30.48 + inches.to_f * 2.54 })
+      context.attach(
+        "feetAndInchesToCm",
+        ->(feet, inches) { feet.to_f * 30.48 + inches.to_f * 2.54 },
+      )
       context.attach("milesToCm", ->(miles) { miles.to_f * 160934.4 })
       context.attach("character.age", -> { character.age })
       context.attach("character.pronouns", -> { character.pronouns })
 
-      context.attach("user.points", -> {
-        DiscourseSize::PointsManager.get_points(actor)
-      })
+      context.attach("user.points", -> { DiscourseSize::PointsManager.get_points(actor) })
 
       # Progress / cancellation helpers
-      context.attach("character.getSizeProgress", -> {
-        active = character.discourse_size_actions
-          .where(action_type: ["grow", "shrink", "set_size"])
-          .where("start_time <= ? AND end_time > ?", Time.now, Time.now)
-          .order(created_at: :desc)
-          .first
-        if active
-          remaining = [(active.end_time - Time.now).to_f, 0.0].max
-          { active: true, start_value: active.start_offset.to_f + character.base_size, end_value: active.end_offset.to_f + character.base_size, time_remaining_seconds: remaining }
-        else
-          { active: false }
-        end
-      })
-
-      context.attach("character.getPropertyProgress", ->(name) {
-        active = character.discourse_size_actions
-          .where(action_type: "property_change", item_key: name)
-          .where("start_time <= ? AND end_time > ?", Time.now, Time.now)
-          .order(created_at: :desc)
-          .first
-        if active
-          remaining = [(active.end_time - Time.now).to_f, 0.0].max
-          { active: true, start_value: active.start_offset.to_f, end_value: active.end_offset.to_f, time_remaining_seconds: remaining }
-        else
-          { active: false }
-        end
-      })
-
-      context.attach("character.cancelSizeAnimation", -> {
-        size_actions = character.discourse_size_actions
-          .where(action_type: ["grow", "shrink", "set_size"])
-          .where("end_time > ?", Time.now)
-        active = size_actions.where("start_time <= ?", Time.now).first
-        if active
-          total = active.end_time - active.start_time
-          if total > 0
-            progress = (Time.now - active.start_time) / total
-            current_off = active.start_offset + (active.end_offset - active.start_offset) * progress
-            character.current_offset = current_off
-            character.target_offset = current_off
-            character.start_offset = current_off
-            character.offset_updated_at = Time.now
-            character.save!
+      context.attach(
+        "character.getSizeProgress",
+        -> do
+          active =
+            character
+              .discourse_size_actions
+              .where(action_type: %w[grow shrink set_size])
+              .where("start_time <= ? AND end_time > ?", Time.now, Time.now)
+              .order(created_at: :desc)
+              .first
+          if active
+            remaining = [(active.end_time - Time.now).to_f, 0.0].max
+            {
+              active: true,
+              start_value: active.start_offset.to_f + character.base_size,
+              end_value: active.end_offset.to_f + character.base_size,
+              time_remaining_seconds: remaining,
+            }
+          else
+            { active: false }
           end
-        end
-        size_actions.destroy_all
-      })
+        end,
+      )
 
-      context.attach("character.cancelPropertyAnimation", ->(name) {
-        prop_actions = character.discourse_size_actions
-          .where(action_type: "property_change", item_key: name)
-          .where("end_time > ?", Time.now)
-        active = prop_actions.where("start_time <= ?", Time.now).first
-        if active
-          total = active.end_time - active.start_time
-          if total > 0
-            progress = (Time.now - active.start_time) / total
-            current_val = active.start_offset + (active.end_offset - active.start_offset) * progress
-            prop = character.discourse_size_character_properties.find_by(name: name)
-            prop&.update_column(:value, current_val.to_s)
+      context.attach(
+        "character.getPropertyProgress",
+        ->(name) do
+          active =
+            character
+              .discourse_size_actions
+              .where(action_type: "property_change", item_key: name)
+              .where("start_time <= ? AND end_time > ?", Time.now, Time.now)
+              .order(created_at: :desc)
+              .first
+          if active
+            remaining = [(active.end_time - Time.now).to_f, 0.0].max
+            {
+              active: true,
+              start_value: active.start_offset.to_f,
+              end_value: active.end_offset.to_f,
+              time_remaining_seconds: remaining,
+            }
+          else
+            { active: false }
           end
-        end
-        prop_actions.destroy_all
-      })
+        end,
+      )
+
+      context.attach(
+        "character.cancelSizeAnimation",
+        -> do
+          size_actions =
+            character
+              .discourse_size_actions
+              .where(action_type: %w[grow shrink set_size])
+              .where("end_time > ?", Time.now)
+          active = size_actions.where("start_time <= ?", Time.now).first
+          if active
+            total = active.end_time - active.start_time
+            if total > 0
+              progress = (Time.now - active.start_time) / total
+              current_off =
+                active.start_offset + (active.end_offset - active.start_offset) * progress
+              character.current_offset = current_off
+              character.target_offset = current_off
+              character.start_offset = current_off
+              character.offset_updated_at = Time.now
+              character.save!
+            end
+          end
+          size_actions.destroy_all
+        end,
+      )
+
+      context.attach(
+        "character.cancelPropertyAnimation",
+        ->(name) do
+          prop_actions =
+            character
+              .discourse_size_actions
+              .where(action_type: "property_change", item_key: name)
+              .where("end_time > ?", Time.now)
+          active = prop_actions.where("start_time <= ?", Time.now).first
+          if active
+            total = active.end_time - active.start_time
+            if total > 0
+              progress = (Time.now - active.start_time) / total
+              current_val =
+                active.start_offset + (active.end_offset - active.start_offset) * progress
+              prop = character.discourse_size_character_properties.find_by(name: name)
+              prop&.update_column(:value, current_val.to_s)
+            end
+          end
+          prop_actions.destroy_all
+        end,
+      )
 
       begin
         result = context.eval(trigger.js_code)
@@ -207,8 +259,10 @@ module ::DiscourseSize
         if state[:new_size]
           character.sync_offset!
           new_total_cm = state[:new_size].to_f
-          new_total_cm = 1e-18 if new_total_cm < 1e-18
-          new_total_cm = DiscourseSizeCharacter::MAX_SIZE if new_total_cm > DiscourseSizeCharacter::MAX_SIZE
+          new_total_cm = DiscourseSizeCharacter::MIN_SIZE if new_total_cm <
+            DiscourseSizeCharacter::MIN_SIZE
+          new_total_cm = DiscourseSizeCharacter::MAX_SIZE if new_total_cm >
+            DiscourseSizeCharacter::MAX_SIZE
 
           old_target_offset = character.target_offset
           new_off = new_total_cm - character.base_size
@@ -231,17 +285,18 @@ module ::DiscourseSize
         end
 
         # Create the trigger action — single activity entry for everything
-        trigger_action = DiscourseSizeAction.create!(
-          character_id: character.id,
-          user_id: actor.id,
-          action_type: "trigger",
-          size_change: size_change,
-          start_offset: old_target_offset,
-          end_offset: end_offset,
-          item_key: trigger.name,
-          start_time: Time.now,
-          end_time: Time.now
-        )
+        trigger_action =
+          DiscourseSizeAction.create!(
+            character_id: character.id,
+            user_id: actor.id,
+            action_type: "trigger",
+            size_change: size_change,
+            start_offset: old_target_offset,
+            end_offset: end_offset,
+            item_key: trigger.name,
+            start_time: Time.now,
+            end_time: Time.now,
+          )
 
         if state[:new_size]
           DiscourseSizeAction.create!(
@@ -254,17 +309,19 @@ module ::DiscourseSize
             duration_minutes: 0,
             start_time: Time.now,
             end_time: Time.now,
-            parent_action_id: trigger_action.id
+            parent_action_id: trigger_action.id,
           )
         end
 
         # Create child actions for animated size changes
         state[:size_animations].each do |anim|
-          existing = character.discourse_size_actions
-            .where(action_type: ["grow", "shrink", "set_size"])
-            .where("end_time > ?", Time.now)
-            .order(end_time: :desc)
-            .first
+          existing =
+            character
+              .discourse_size_actions
+              .where(action_type: %w[grow shrink set_size])
+              .where("end_time > ?", Time.now)
+              .order(end_time: :desc)
+              .first
 
           start_time = existing ? existing.end_time : Time.now
           base_off = existing ? existing.end_offset.to_f : character.current_calculated_offset
@@ -277,6 +334,10 @@ module ::DiscourseSize
             end_off = base_off + anim[:target_delta]
           end
 
+          min_off = DiscourseSizeCharacter::MIN_SIZE - character.base_size
+          max_off = DiscourseSizeCharacter::MAX_SIZE - character.base_size
+          end_off = end_off.clamp(min_off, max_off)
+
           DiscourseSizeAction.create!(
             character_id: character.id,
             user_id: actor.id,
@@ -287,17 +348,19 @@ module ::DiscourseSize
             duration_minutes: anim[:duration_minutes],
             start_time: start_time,
             end_time: start_time + anim[:duration_minutes].minutes,
-            parent_action_id: trigger_action.id
+            parent_action_id: trigger_action.id,
           )
         end
 
         # Create child actions for animated property changes
         state[:property_animations].each do |anim|
-          existing = character.discourse_size_actions
-            .where(action_type: "property_change", item_key: anim[:name])
-            .where("end_time > ?", Time.now)
-            .order(end_time: :desc)
-            .first
+          existing =
+            character
+              .discourse_size_actions
+              .where(action_type: "property_change", item_key: anim[:name])
+              .where("end_time > ?", Time.now)
+              .order(end_time: :desc)
+              .first
 
           start_time = existing ? existing.end_time : Time.now
           intended_start = anim[:start_value].to_f
@@ -323,7 +386,7 @@ module ::DiscourseSize
             duration_minutes: anim[:duration_seconds] / 60.0,
             start_time: start_time,
             end_time: end_time,
-            parent_action_id: trigger_action.id
+            parent_action_id: trigger_action.id,
           )
         end
 

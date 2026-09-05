@@ -90,8 +90,9 @@ export default class DiscourseSizeAdminEdit extends Component {
     const unit = UNITS.find((u) => u.id === this.sizeUnit) || { factor: 1 };
     const currentSizeInCm = parseFloat(this.displaySize) * unit.factor;
 
+    const orig = parseFloat(this.originalCurrentSize);
     if (
-      Math.abs(currentSizeInCm - parseFloat(this.originalCurrentSize)) > 0.0001
+      Math.abs(currentSizeInCm - orig) > Math.max(Math.abs(orig) * 1e-9, 1e-40)
     ) {
       data.current_size = currentSizeInCm;
     }
@@ -126,7 +127,7 @@ export default class DiscourseSizeAdminEdit extends Component {
               "discourse_size.admin.override_current_size_instructions"
             }}</span>
           <div class="size-input-wrapper">
-            <Input @type="number" @value={{this.displaySize}} step="0.0001" />
+            <Input @type="number" @value={{this.displaySize}} step="any" />
             <select
               class="size-unit-selector"
               {{on "change" this.onUnitChange}}
