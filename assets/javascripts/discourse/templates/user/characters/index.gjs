@@ -117,7 +117,7 @@ export default RouteTemplate(
         @onReorder={{@controller.onCharacterReorder}}
         data-top-level="true"
       >
-        {{#each @controller.combinedTopLevelList key="id" as |item|}}
+        {{#each @controller.combinedTopLevelList key="uniqueKey" as |item|}}
           <div
             class="reorderable-item"
             data-id={{item.id}}

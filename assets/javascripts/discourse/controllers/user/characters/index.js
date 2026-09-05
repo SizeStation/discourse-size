@@ -1,3 +1,4 @@
+/* eslint-disable no-alert, no-console */
 import Controller from "@ember/controller";
 import { action, computed, set } from "@ember/object";
 import { service } from "@ember/service";
@@ -13,6 +14,7 @@ import DiscourseSizeRoleplaysModal from "../../../components/modal/discourse-siz
 export default class UserCharactersIndexController extends Controller {
   @service currentUser;
   @service modal;
+  // eslint-disable-next-line discourse/no-unused-services
   @service siteSettings;
 
   @computed("currentUser.id", "user.id")
@@ -112,7 +114,7 @@ export default class UserCharactersIndexController extends Controller {
       try {
         await ajax(`/size/characters/${character.id}`, { type: "DELETE" });
         this.refreshCharacters();
-      } catch (e) {
+      } catch {
         alert("Error deleting character");
       }
     }
@@ -190,17 +192,28 @@ export default class UserCharactersIndexController extends Controller {
     }
   }
 
-  @computed("characters.[]")
+  @computed("characters.@each.is_main")
   get mainCharacter() {
     return (this.characters || []).find((c) => c.is_main);
   }
 
-  @computed("characters.@each.{position,folder_id}", "folders.@each.position")
+  @computed(
+    "characters.@each.{position,folder_id,is_main}",
+    "folders.@each.position"
+  )
   get combinedTopLevelList() {
     const unorganized = (this.characters || [])
       .filter((c) => !c.folder_id && !c.is_main)
-      .map((c) => ({ ...c, type: "character" }));
-    const folders = (this.folders || []).map((f) => ({ ...f, type: "folder" }));
+      .map((c) => ({
+        ...c,
+        type: "character",
+        uniqueKey: `character-${c.id}`,
+      }));
+    const folders = (this.folders || []).map((f) => ({
+      ...f,
+      type: "folder",
+      uniqueKey: `folder-${f.id}`,
+    }));
     return [...unorganized, ...folders].sort((a, b) => a.position - b.position);
   }
 
@@ -233,7 +246,7 @@ export default class UserCharactersIndexController extends Controller {
 
   @action
   async onTopLevelReorder(event) {
-    const { to } = event;
+    const { to, item, from } = event;
     const items = Array.from(
       to.querySelectorAll(":scope > .reorderable-item")
     ).map((i) => ({
@@ -241,31 +254,37 @@ export default class UserCharactersIndexController extends Controller {
       type: i.dataset.type,
     }));
 
+    // If moved between lists, remove Sortable's moved DOM element so Ember's
+    // Glimmer VM renders the single clean copy in the destination list without duplicates
+    if (from && to && from !== to) {
+      item?.remove();
+    }
+
     // Optimistically update local positions
     const characters = [...(this.characters || [])];
     const folders = [...(this.folders || [])];
 
-    items.forEach((item, index) => {
-      if (item.type === "character") {
-        const char = characters.find((c) => c.id == item.id);
+    items.forEach((itemObj, index) => {
+      if (itemObj.type === "character") {
+        const char = characters.find(
+          (c) => Number(c.id) === Number(itemObj.id)
+        );
         if (char) {
           set(char, "position", index);
           set(char, "folder_id", null);
         }
       } else {
-        const folder = folders.find((f) => f.id == item.id);
+        const folder = folders.find((f) => Number(f.id) === Number(itemObj.id));
         if (folder) {
           set(folder, "position", index);
         }
       }
     });
 
-    // Use a small delay before updating state to let Sortable finish its DOM work
-    // This helps prevent duplicate items from appearing
-    setTimeout(() => {
-      this.set("characters", characters);
-      this.set("folders", folders);
-    }, 0);
+    this.set("characters", characters);
+    this.set("folders", folders);
+    this.notifyPropertyChange("characters");
+    this.notifyPropertyChange("folders");
 
     try {
       await ajax("/size/characters/reorder_top_level", {
@@ -275,22 +294,24 @@ export default class UserCharactersIndexController extends Controller {
           mapping: items,
         },
       });
-    } catch (e) {
+      await this.refreshCharacters();
+    } catch {
       this.refreshCharacters();
     }
   }
 
   @action
   async onCharacterReorder(event) {
-    const { to, item } = event;
-    const characterId = item.dataset.id;
-    const folderId = to.dataset.folderId
-      ? parseInt(to.dataset.folderId, 10)
-      : null;
+    const { to, item, from } = event;
 
-    if (to.dataset.topLevel === "true") {
+    if (to?.dataset?.topLevel === "true") {
       return this.onTopLevelReorder(event);
     }
+
+    const characterId = item?.dataset?.id;
+    const folderId = to?.dataset?.folderId
+      ? parseInt(to.dataset.folderId, 10)
+      : null;
 
     // Update local state to avoid re-render revert
     const characters = [...(this.characters || [])];
@@ -299,20 +320,24 @@ export default class UserCharactersIndexController extends Controller {
       to.querySelectorAll(":scope > .reorderable-item")
     ).map((i) => i.dataset.id);
 
+    // If moved between lists, remove Sortable's moved DOM element so Ember's
+    // Glimmer VM renders the single clean copy in the destination list without duplicates
+    if (from && to && from !== to) {
+      item?.remove();
+    }
+
     const mapping = {};
     items.forEach((id, index) => {
       mapping[id] = index;
-      const char = characters.find((c) => c.id == id);
+      const char = characters.find((c) => Number(c.id) === Number(id));
       if (char) {
         set(char, "position", index);
         set(char, "folder_id", folderId);
       }
     });
 
-    // Use a small delay before updating state to let Sortable finish its DOM work
-    setTimeout(() => {
-      this.set("characters", characters);
-    }, 0);
+    this.set("characters", characters);
+    this.notifyPropertyChange("characters");
 
     try {
       await ajax("/size/characters/reorder", {
@@ -324,7 +349,8 @@ export default class UserCharactersIndexController extends Controller {
           folder_id: folderId,
         },
       });
-    } catch (e) {
+      await this.refreshCharacters();
+    } catch {
       this.refreshCharacters();
     }
   }
@@ -340,7 +366,7 @@ export default class UserCharactersIndexController extends Controller {
     const mapping = {};
     items.forEach((id, index) => {
       mapping[id] = index;
-      const folder = folders.find((f) => f.id == id);
+      const folder = folders.find((f) => Number(f.id) === Number(id));
       if (folder) {
         folder.position = index;
       }
@@ -358,7 +384,7 @@ export default class UserCharactersIndexController extends Controller {
           mapping,
         },
       });
-    } catch (e) {
+    } catch {
       this.refreshCharacters();
     }
   }

@@ -1081,8 +1081,13 @@
   position: relative;
   overflow: hidden;
   min-height: 180px;
+  text-align: left;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  width: 100%;
 
-  &:not(.no-click):hover {
+  &:not(.no-click, :disabled):hover {
     background: var(--tertiary-low);
     border-color: var(--tertiary);
     transform: translateY(-2px);
@@ -1091,6 +1096,15 @@
 
   &.no-click {
     cursor: default;
+  }
+
+  &:disabled,
+  &.disabled,
+  &.is-disabled,
+  &.is-using {
+    opacity: 0.5;
+    pointer-events: none;
+    cursor: not-allowed;
   }
 
   &.selected {

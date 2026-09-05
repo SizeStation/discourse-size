@@ -21,168 +21,178 @@ module ::DiscourseSize
       price = item.price.to_i
       return { error: "Insufficient points" } if PointsManager.get_points(user) < price
 
-      # Deduct points
-      PointsManager.remove_points(
-        user,
-        price,
-        source_type: "purchase_item",
-        description: "Purchased #{item.name}",
-      )
-
-      # Add to inventory
-      inventory_item =
-        DiscourseSizeInventory.create!(
-          user_id: user.id,
-          item_key: item_key,
-          uses_remaining: item.uses.to_i > 0 ? item.uses.to_i : 999_999, # Use large number for infinite
+      inventory_item = nil
+      ActiveRecord::Base.transaction do
+        # Deduct points
+        PointsManager.remove_points(
+          user,
+          price,
+          source_type: "purchase_item",
+          description: "Purchased #{item.name}",
         )
+
+        # Add to inventory
+        inventory_item =
+          DiscourseSizeInventory.create!(
+            user_id: user.id,
+            item_key: item_key,
+            uses_remaining: item.uses.to_i > 0 ? item.uses.to_i : 999_999, # Use large number for infinite
+          )
+      end
 
       { success: true, inventory_item: inventory_item }
     end
 
     def self.use_item(user, inventory_item_id, target_character_id)
       Rails.logger.info(
-        "[DiscourseSize] Using item: user_id=#{user.id}, inventory_item_id=#{inventory_item_id}, target_character_id=#{target_character_id}",
+        "[DiscourseSize] Using item: user_id=#{user&.id}, inventory_item_id=#{inventory_item_id}, target_character_id=#{target_character_id}",
       )
 
-      inventory_item = DiscourseSizeInventory.find_by(id: inventory_item_id, user_id: user.id)
+      return { error: "Item not in inventory" } if user.nil? || inventory_item_id.blank?
 
-      unless inventory_item
-        all_ids = DiscourseSizeInventory.where(user_id: user.id).pluck(:id)
-        Rails.logger.info(
-          "[DiscourseSize] Item not found in inventory for user #{user.id}. Looking for ID #{inventory_item_id}. User actually has IDs: #{all_ids.inspect}",
-        )
-        return { error: "Item not in inventory" }
-      end
+      DistributedMutex.synchronize("discourse_size_use_item_#{inventory_item_id}") do
+        inventory_item = DiscourseSizeInventory.find_by(id: inventory_item_id, user_id: user.id)
 
-      return { error: "No uses remaining" } if inventory_item.uses_remaining <= 0
-
-      character = DiscourseSizeCharacter.find(target_character_id)
-      item = inventory_item.item_details
-      return { error: "Item configuration missing (it may have been deleted)" } unless item
-
-      # Check if blocked
-      if character.is_blocked?(
-           user,
-           item_key: inventory_item.item_key,
-           action_type: item.effect,
-           amount: item.amount,
-         )
-        return { error: "This character has blocked this item or you from performing actions." }
-      end
-
-      if item.can_only_use_on_others && character.user_id == user.id
-        return { error: "This item can only be used on other users' characters." }
-      end
-
-      if item.can_only_use_on_self && character.user_id != user.id
-        return { error: "This item can only be used on your own characters." }
-      end
-
-      # Apply effect
-      # Sequential stacking logic
-      start_offset = character.target_offset
-      current_target_total = character.base_size + start_offset
-      if item.effect == "static"
-        new_target_total = item.amount.to_f
-      elsif item.effect == "shrink"
-        new_target_total = current_target_total * (1.0 - item.amount.to_f / 100.0)
-      else
-        new_target_total = current_target_total * (1.0 + item.amount.to_f / 100.0)
-      end
-      size_change = new_target_total - current_target_total
-
-      # Track quest activity (only if targeting someone else)
-      if character.user_id != user.id
-        quest_type =
-          if item.effect == "grow"
-            :character_grow
-          elsif item.effect == "shrink"
-            :character_shrink
-          elsif size_change > 0
-            :character_grow
-          elsif size_change < 0
-            :character_shrink
-          end
-        ::DiscourseSize::QuestManager.track_activity(user, quest_type) if quest_type
-      end
-
-      # Handle self-effect validation first
-      main_char = nil
-      if item.self_effect.present? && item.self_amount.to_f > 0 && character.user_id != user.id
-        main_char = DiscourseSizeCharacter.find_by(user_id: user.id, is_main: true)
-        if main_char.nil?
-          return { error: "You must set a Main Character to use items with a self-effect." }
+        unless inventory_item
+          all_ids = DiscourseSizeInventory.where(user_id: user.id).pluck(:id)
+          Rails.logger.info(
+            "[DiscourseSize] Item not found in inventory for user #{user.id}. Looking for ID #{inventory_item_id}. User actually has IDs: #{all_ids.inspect}",
+          )
+          return { error: "Item not in inventory" }
         end
-      end
 
-      capped_type = nil
-      action_result =
-        character.add_queued_action(
-          action_type: item.effect == "static" ? "set_size" : item.effect,
-          size_change: size_change,
-          duration_minutes: item.duration_minutes.to_f,
-          user_id: user.id,
-          item_key: item.key,
-        )
-      capped_type = action_result[:capped] if action_result[:capped]
+        return { error: "No uses remaining" } if inventory_item.uses_remaining <= 0
 
-      # Send notification
-      notification_id =
-        NotificationManager.send_growth_notification(
-          user,
-          character,
-          item.effect,
-          item.effect == "static" ? item.amount.to_f : action_result[:size_change],
-          item_name: item.name,
-        )
+        character = DiscourseSizeCharacter.find_by(id: target_character_id)
+        return { error: "Character not found" } unless character
 
-      # Find the action we just created to attach notification_id (it will be the last one)
-      action =
-        character
-          .discourse_size_actions
-          .where(item_key: item.key, user_id: user.id)
-          .order(created_at: :desc)
-          .first
-      action.update_column(:notification_id, notification_id) if notification_id && action
+        item = inventory_item.item_details
+        return { error: "Item configuration missing (it may have been deleted)" } unless item
 
-      # Apply self-effect if configured and applicable (only for game type main characters)
-      if main_char&.game?
-        self_start_offset = main_char.target_offset
-        self_current_total = main_char.base_size + self_start_offset
-        if item.self_effect == "static"
-          self_new_total = item.self_amount.to_f
-        elsif item.self_effect == "shrink"
-          self_new_total = self_current_total * (1.0 - item.self_amount.to_f / 100.0)
+        # Check if blocked
+        if character.is_blocked?(
+             user,
+             item_key: inventory_item.item_key,
+             action_type: item.effect,
+             amount: item.amount,
+           )
+          return { error: "This character has blocked this item or you from performing actions." }
+        end
+
+        if item.can_only_use_on_others && character.user_id == user.id
+          return { error: "This item can only be used on other users' characters." }
+        end
+
+        if item.can_only_use_on_self && character.user_id != user.id
+          return { error: "This item can only be used on your own characters." }
+        end
+
+        # Apply effect
+        # Sequential stacking logic
+        start_offset = character.target_offset
+        current_target_total = character.base_size + start_offset
+        if item.effect == "static"
+          new_target_total = item.amount.to_f
+        elsif item.effect == "shrink"
+          new_target_total = current_target_total * (1.0 - item.amount.to_f / 100.0)
         else
-          self_new_total = self_current_total * (1.0 + item.self_amount.to_f / 100.0)
+          new_target_total = current_target_total * (1.0 + item.amount.to_f / 100.0)
         end
-        self_size_change = self_new_total - self_current_total
+        size_change = new_target_total - current_target_total
 
-        self_action_result =
-          main_char.add_queued_action(
-            action_type: item.self_effect == "static" ? "set_size" : item.self_effect,
-            size_change: self_size_change,
+        # Track quest activity (only if targeting someone else)
+        if character.user_id != user.id
+          quest_type =
+            if item.effect == "grow"
+              :character_grow
+            elsif item.effect == "shrink"
+              :character_shrink
+            elsif size_change > 0
+              :character_grow
+            elsif size_change < 0
+              :character_shrink
+            end
+          ::DiscourseSize::QuestManager.track_activity(user, quest_type) if quest_type
+        end
+
+        # Handle self-effect validation first
+        main_char = nil
+        if item.self_effect.present? && item.self_amount.to_f > 0 && character.user_id != user.id
+          main_char = DiscourseSizeCharacter.find_by(user_id: user.id, is_main: true)
+          if main_char.nil?
+            return { error: "You must set a Main Character to use items with a self-effect." }
+          end
+        end
+
+        capped_type = nil
+        action_result =
+          character.add_queued_action(
+            action_type: item.effect == "static" ? "set_size" : item.effect,
+            size_change: size_change,
             duration_minutes: item.duration_minutes.to_f,
             user_id: user.id,
             item_key: item.key,
-            parent_action_id: action&.id,
           )
-        capped_type = self_action_result[:capped] if self_action_result[:capped] && !capped_type
-      end
+        capped_type = action_result[:capped] if action_result[:capped]
 
-      # Decrease uses
-      if inventory_item.uses_remaining < 999_999
-        inventory_item.uses_remaining -= 1
-        if inventory_item.uses_remaining <= 0
-          inventory_item.destroy
-        else
-          inventory_item.save!
+        # Send notification
+        notification_id =
+          NotificationManager.send_growth_notification(
+            user,
+            character,
+            item.effect,
+            item.effect == "static" ? item.amount.to_f : action_result[:size_change],
+            item_name: item.name,
+          )
+
+        # Find the action we just created to attach notification_id (it will be the last one)
+        action =
+          character
+            .discourse_size_actions
+            .where(item_key: item.key, user_id: user.id)
+            .order(created_at: :desc)
+            .first
+        action.update_column(:notification_id, notification_id) if notification_id && action
+
+        # Apply self-effect if configured and applicable (only for game type main characters)
+        if main_char&.game?
+          self_start_offset = main_char.target_offset
+          self_current_total = main_char.base_size + self_start_offset
+          if item.self_effect == "static"
+            self_new_total = item.self_amount.to_f
+          elsif item.self_effect == "shrink"
+            self_new_total = self_current_total * (1.0 - item.self_amount.to_f / 100.0)
+          else
+            self_new_total = self_current_total * (1.0 + item.self_amount.to_f / 100.0)
+          end
+          self_size_change = self_new_total - self_current_total
+
+          self_action_result =
+            main_char.add_queued_action(
+              action_type: item.self_effect == "static" ? "set_size" : item.self_effect,
+              size_change: self_size_change,
+              duration_minutes: item.duration_minutes.to_f,
+              user_id: user.id,
+              item_key: item.key,
+              parent_action_id: action&.id,
+            )
+          capped_type = self_action_result[:capped] if self_action_result[:capped] && !capped_type
         end
-      end
 
-      { success: true, character: character, capped_type: capped_type }
+        # Decrease uses
+        if inventory_item.uses_remaining < 999_999
+          inventory_item.uses_remaining -= 1
+          if inventory_item.uses_remaining <= 0
+            inventory_item.destroy
+          else
+            inventory_item.save!
+          end
+        end
+
+        { success: true, character: character, capped_type: capped_type }
+      end
     end
+
     def self.return_item(user, item_key)
       item_def = DiscourseSizeShopItem.find_by(key: item_key)
       # Items with uses <= 0 are treated as 1-use for return logic unless they are infinite

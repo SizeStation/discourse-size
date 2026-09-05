@@ -1,3 +1,4 @@
+/* eslint-disable no-alert */
 import Component from "@glimmer/component";
 import { tracked } from "@glimmer/tracking";
 import { fn } from "@ember/helper";
@@ -9,14 +10,21 @@ import DModal from "discourse/components/d-modal";
 import icon from "discourse/helpers/d-icon";
 import loadingSpinner from "discourse/helpers/loading-spinner";
 import { ajax } from "discourse/lib/ajax";
+import { popupAjaxError } from "discourse/lib/ajax-error";
 import { i18n } from "discourse-i18n";
 
+const isItemDisabled = (isUsing, disabledItemIds, itemId) => {
+  return Boolean(isUsing || disabledItemIds?.has(itemId));
+};
+
 export default class DiscourseSizeUseItem extends Component {
-  @service siteSettings;
   @service currentUser;
 
   @tracked inventory = [];
   @tracked loading = true;
+  @tracked isUsing = false;
+  @tracked usingItemId = null;
+  @tracked disabledItemIds = new Set();
 
   constructor() {
     super(...arguments);
@@ -123,7 +131,7 @@ export default class DiscourseSizeUseItem extends Component {
     try {
       const result = await ajax("/size/inventory");
       this.inventory = result.inventory;
-    } catch (e) {
+    } catch {
       // Error
     } finally {
       this.loading = false;
@@ -132,6 +140,14 @@ export default class DiscourseSizeUseItem extends Component {
 
   @action
   async useItem(item) {
+    if (this.isUsing || this.disabledItemIds.has(item.id)) {
+      return;
+    }
+
+    this.isUsing = true;
+    this.usingItemId = item.id;
+    this.disabledItemIds = new Set([...this.disabledItemIds, item.id]);
+
     const char = this.args.model.character;
     const isOwnCharacter = char && char.user_id === this.currentUser.id;
 
@@ -181,6 +197,11 @@ export default class DiscourseSizeUseItem extends Component {
     }
 
     if (!confirm(confirmMsg)) {
+      this.isUsing = false;
+      this.usingItemId = null;
+      const nextDisabled = new Set(this.disabledItemIds);
+      nextDisabled.delete(item.id);
+      this.disabledItemIds = nextDisabled;
       return;
     }
 
@@ -207,7 +228,12 @@ export default class DiscourseSizeUseItem extends Component {
         this.args.closeModal();
       }
     } catch (e) {
-      alert(e.jqXHR?.responseJSON?.message || "Error using item");
+      popupAjaxError(e);
+      this.isUsing = false;
+      this.usingItemId = null;
+      const nextDisabled = new Set(this.disabledItemIds);
+      nextDisabled.delete(item.id);
+      this.disabledItemIds = nextDisabled;
     }
   }
 
@@ -224,9 +250,19 @@ export default class DiscourseSizeUseItem extends Component {
           {{#if this.filteredInventory}}
             <div class="size-inventory-grid">
               {{#each this.filteredInventory as |item|}}
-                <div
-                  class="size-inventory-card"
-                  role="button"
+                <button
+                  type="button"
+                  class="size-inventory-card
+                    {{if
+                      (isItemDisabled this.isUsing this.disabledItemIds item.id)
+                      'is-disabled'
+                    }}
+                    {{if (eq this.usingItemId item.id) 'is-using'}}"
+                  disabled={{isItemDisabled
+                    this.isUsing
+                    this.disabledItemIds
+                    item.id
+                  }}
                   {{on "click" (fn this.useItem item)}}
                 >
                   <div class="item-image">
@@ -270,7 +306,7 @@ export default class DiscourseSizeUseItem extends Component {
                       >{{item.details.description}}</span>
                     {{/if}}
                   </div>
-                </div>
+                </button>
               {{/each}}
             </div>
           {{else}}

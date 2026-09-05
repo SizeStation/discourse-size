@@ -476,17 +476,43 @@ export const UNITS = [
   { id: "uni", name: "Universes (uni)", factor: 8.8e28 },
 ];
 
-export function getBestUnit(sizeCm) {
+export function getBestUnit(sizeCm, system = "imperial") {
   const absSize = Math.abs(parseFloat(sizeCm));
   if (isNaN(absSize) || absSize === 0) {
-    return UNITS.find((u) => u.id === "cm");
+    return UNITS.find((u) => u.id === (system === "imperial" ? "ft" : "cm"));
   }
 
-  // Filter to reasonable units for editing
-  const candidates = UNITS.filter((u) => u.id !== "atoms" && u.id !== "cells");
+  let candidates;
+  if (system === "imperial") {
+    candidates = UNITS.filter(
+      (u) =>
+        u.id !== "atoms" &&
+        u.id !== "cells" &&
+        u.id !== "cm" &&
+        u.id !== "m" &&
+        u.id !== "km"
+    );
+  } else {
+    candidates = UNITS.filter(
+      (u) =>
+        u.id !== "atoms" &&
+        u.id !== "cells" &&
+        u.id !== "inch" &&
+        u.id !== "ft" &&
+        u.id !== "mi"
+    );
+  }
 
-  let best = candidates[0];
-  for (const u of candidates) {
+  const baseUnitId = system === "imperial" ? "inch" : "cm";
+  const baseIndex = candidates.findIndex((u) => u.id === baseUnitId);
+
+  const searchableUnits =
+    absSize >= 0.01 && baseIndex !== -1
+      ? candidates.slice(baseIndex)
+      : candidates.slice(0, baseIndex !== -1 ? baseIndex : candidates.length);
+
+  let best = searchableUnits[0];
+  for (const u of searchableUnits) {
     if (absSize / u.factor >= 1) {
       best = u;
     } else {
@@ -494,12 +520,6 @@ export function getBestUnit(sizeCm) {
     }
   }
   return best;
-}
-
-function getOrdinal(n) {
-  let s = ["th", "st", "nd", "rd"],
-    v = n % 100;
-  return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
 // Speed comparisons — all values in cm/day.

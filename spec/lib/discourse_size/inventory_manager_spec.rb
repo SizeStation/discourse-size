@@ -78,42 +78,36 @@ describe DiscourseSize::InventoryManager do
 
       DiscourseSize::InventoryManager.use_item(user, inv1.id, character.id)
       character.reload
-      expect(character.target_offset).to eq(50.0) # 100 * 1.5 = 150 cm
+      expect(character.target_offset).to eq(50.0)
 
       DiscourseSize::InventoryManager.use_item(user, inv2.id, character.id)
       character.reload
-      expect(character.target_offset).to eq(200.0) # 150 * 2.0 = 300 cm
+      expect(character.target_offset).to eq(200.0)
 
       DiscourseSize::InventoryManager.use_item(user, inv3.id, character.id)
       character.reload
-      expect(character.target_offset).to eq(140.0) # 300 * 0.8 = 240 cm
+      expect(character.target_offset).to eq(140.0)
 
-      # Refund first item (grow_50)
       action1 = character.discourse_size_actions.find_by(item_key: "grow_50")
       action1.destroy
       character.reload.recalculate_pending_actions!
 
-      # Remaining: grow_100 (100 * 2.0 = 200 cm) then shrink_20 (200 * 0.8 = 160 cm)
       character.reload
       expect(character.target_offset).to eq(60.0)
       expect(character.current_size).to eq(160.0)
 
-      # Refund second item (grow_100)
       action2 = character.discourse_size_actions.find_by(item_key: "grow_100")
       action2.destroy
       character.reload.recalculate_pending_actions!
 
-      # Remaining: shrink_20 (100 * 0.8 = 80 cm)
       character.reload
       expect(character.target_offset).to eq(-20.0)
       expect(character.current_size).to eq(80.0)
 
-      # Refund last item (shrink_20)
       action3 = character.discourse_size_actions.find_by(item_key: "shrink_20")
       action3.destroy
       character.reload.recalculate_pending_actions!
 
-      # No items left -> back to base size (100 cm)
       character.reload
       expect(character.target_offset).to eq(0.0)
       expect(character.current_size).to eq(100.0)
@@ -162,7 +156,6 @@ describe DiscourseSize::InventoryManager do
       result = DiscourseSize::InventoryManager.use_item(other_user, inv.id, character.id)
       expect(result[:error]).to be_present
 
-      # Grow items are not blocked
       inv_grow =
         DiscourseSizeInventory.create!(
           user_id: other_user.id,
@@ -292,6 +285,39 @@ describe DiscourseSize::InventoryManager do
       result_on_other =
         DiscourseSize::InventoryManager.use_item(user, inv_others.id, other_character.id)
       expect(result_on_other[:success]).to be true
+    end
+  end
+
+  describe "items with multiple uses" do
+    before do
+      DiscourseSizeShopItem.create!(
+        key: "multi_potion",
+        name: "Multi Potion",
+        price: 10,
+        effect: "grow",
+        amount: 20.0,
+        uses: 2,
+      )
+    end
+
+    it "decrements uses_remaining on each use and destroys the record on final use" do
+      inv =
+        DiscourseSizeInventory.create!(
+          user_id: user.id,
+          item_key: "multi_potion",
+          uses_remaining: 2,
+        )
+
+      first_result = DiscourseSize::InventoryManager.use_item(user, inv.id, character.id)
+      expect(first_result[:success]).to be true
+      expect(inv.reload.uses_remaining).to eq(1)
+
+      second_result = DiscourseSize::InventoryManager.use_item(user, inv.id, character.id)
+      expect(second_result[:success]).to be true
+      expect(DiscourseSizeInventory.find_by(id: inv.id)).to be_nil
+
+      third_result = DiscourseSize::InventoryManager.use_item(user, inv.id, character.id)
+      expect(third_result[:error]).to eq("Item not in inventory")
     end
   end
 

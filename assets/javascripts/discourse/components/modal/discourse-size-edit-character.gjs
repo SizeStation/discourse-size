@@ -6,7 +6,7 @@ import { on } from "@ember/modifier";
 import { action } from "@ember/object";
 import didInsert from "@ember/render-modifiers/modifiers/did-insert";
 import { service } from "@ember/service";
-import { eq, not, notEq, or } from "truth-helpers";
+import { eq, notEq, or } from "truth-helpers";
 import DButton from "discourse/components/d-button";
 import DModal from "discourse/components/d-modal";
 import avatar from "discourse/helpers/avatar";
@@ -14,7 +14,7 @@ import icon from "discourse/helpers/d-icon";
 import { ajax } from "discourse/lib/ajax";
 import { i18n } from "discourse-i18n";
 import EmailGroupUserChooser from "select-kit/components/email-group-user-chooser";
-import { getBestUnit, UNITS } from "../../lib/size-formatter";
+import { formatSize, getBestUnit, UNITS } from "../../lib/size-formatter";
 import DiscourseSizeTriggerHelp from "./discourse-size-trigger-help";
 
 export default class DiscourseSizeEditCharacter extends Component {
@@ -41,6 +41,7 @@ export default class DiscourseSizeEditCharacter extends Component {
   @tracked characterType = "game";
   @tracked sizeUnit = "cm";
   @tracked displaySize = 170.0;
+  @tracked isClampedNotice = false;
   @tracked blockedItemKeys = [];
   @tracked blockedUserIds = [];
   @tracked availableItems = [];
@@ -91,13 +92,28 @@ export default class DiscourseSizeEditCharacter extends Component {
       this.fetchAvailableItems();
     }
 
-    const initialSize = this.baseSize;
-    const unit = getBestUnit(initialSize);
+    const initialSize =
+      this.characterType === "normal" && char.current_size != null
+        ? char.current_size
+        : this.baseSize;
+    const preferredSystem =
+      this.currentUser?.discourse_size_settings?.measurement_system ||
+      char.measurement_system ||
+      "imperial";
+    const unit = getBestUnit(initialSize, preferredSystem);
     this.sizeUnit = unit.id;
     this.displaySize = parseFloat((initialSize / unit.factor).toPrecision(5));
 
     this._initialDisplaySize = this.displaySize;
     this._initialSizeUnit = this.sizeUnit;
+  }
+
+  get preferredSystem() {
+    return (
+      this.currentUser?.discourse_size_settings?.measurement_system ||
+      this.args?.model?.character?.measurement_system ||
+      "imperial"
+    );
   }
 
   get isRoleplayEdit() {
@@ -172,7 +188,7 @@ export default class DiscourseSizeEditCharacter extends Component {
     if (field === "base_size") {
       const originalSize = parseFloat(char.base_size || 170.0);
       this.baseSize = originalSize;
-      const unit = getBestUnit(originalSize);
+      const unit = getBestUnit(originalSize, this.preferredSystem);
       this.sizeUnit = unit.id;
       this.displaySize = parseFloat(
         (originalSize / unit.factor).toPrecision(5)
@@ -271,11 +287,13 @@ export default class DiscourseSizeEditCharacter extends Component {
   }
 
   get isInvalid() {
-    return this.sizeError !== null && !this.sizeError.startsWith("Clamped");
+    return this.sizeError !== null && !this.isClampedNotice;
   }
 
   get resetButtonLabel() {
-    return `Reset size to baseline of ${this.baseSize}cm`;
+    return i18n("discourse_size.fields.reset_baseline", {
+      size: formatSize(this.baseSize, this.preferredSystem),
+    });
   }
 
   get modalTitle() {
@@ -283,23 +301,30 @@ export default class DiscourseSizeEditCharacter extends Component {
   }
 
   _checkSize(val) {
+    this.isClampedNotice = false;
     if (isNaN(val)) {
-      this.sizeError = "Please enter a valid number.";
+      this.sizeError = i18n("discourse_size.fields.invalid_number");
       return;
     }
 
     if (this.characterType === "game") {
       if (val < this.min) {
-        this.sizeError = `Minimum allowed size is ${this.min}cm.`;
+        const formattedMin = formatSize(this.min, this.preferredSystem);
+        this.sizeError = i18n("discourse_size.fields.min_size_error", {
+          size: formattedMin,
+        });
       } else if (val > this.max) {
-        this.sizeError = `Maximum allowed size is ${this.max}cm.`;
+        const formattedMax = formatSize(this.max, this.preferredSystem);
+        this.sizeError = i18n("discourse_size.fields.max_size_error", {
+          size: formattedMax,
+        });
       } else {
         this.sizeError = null;
       }
     } else {
       // Freeform/Roleplay: allow any positive number
       if (val <= 0) {
-        this.sizeError = "Size must be greater than 0.";
+        this.sizeError = i18n("discourse_size.fields.size_greater_than_zero");
       } else {
         this.sizeError = null;
       }
@@ -320,8 +345,17 @@ export default class DiscourseSizeEditCharacter extends Component {
 
   @action
   onUnitChange(event) {
-    const unitId = event?.target ? event.target.value : event;
-    this.sizeUnit = unitId;
+    const newUnitId = event?.target ? event.target.value : event;
+    const oldUnit = UNITS.find((u) => u.id === this.sizeUnit) || { factor: 1 };
+    const newUnit = UNITS.find((u) => u.id === newUnitId) || { factor: 1 };
+    const parsed = parseFloat(this.displaySize);
+    if (!isNaN(parsed)) {
+      const currentCm = parsed * oldUnit.factor;
+      this.displaySize = parseFloat(
+        (currentCm / newUnit.factor).toPrecision(5)
+      );
+    }
+    this.sizeUnit = newUnitId;
     this._checkSize(this.baseSizeInCm);
   }
 
@@ -339,18 +373,28 @@ export default class DiscourseSizeEditCharacter extends Component {
     if (this.characterType === "game") {
       if (isNaN(valCm) || valCm < this.min) {
         this.displaySize = parseFloat((this.min / unit.factor).toPrecision(5));
-        this.sizeError = `Clamped to minimum: ${this.min}cm.`;
+        const formattedMin = formatSize(this.min, this.preferredSystem);
+        this.sizeError = i18n("discourse_size.fields.clamped_min", {
+          size: formattedMin,
+        });
+        this.isClampedNotice = true;
       } else if (valCm > this.max) {
         this.displaySize = parseFloat((this.max / unit.factor).toPrecision(5));
-        this.sizeError = `Clamped to maximum: ${this.max}cm.`;
+        const formattedMax = formatSize(this.max, this.preferredSystem);
+        this.sizeError = i18n("discourse_size.fields.clamped_max", {
+          size: formattedMax,
+        });
+        this.isClampedNotice = true;
       } else {
         this.displaySize = val;
         this.sizeError = null;
+        this.isClampedNotice = false;
       }
     } else {
+      this.isClampedNotice = false;
       if (isNaN(valCm) || valCm <= 0) {
         this.displaySize = parseFloat((1.0 / unit.factor).toPrecision(5));
-        this.sizeError = "Size must be greater than 0.";
+        this.sizeError = i18n("discourse_size.fields.size_greater_than_zero");
       } else {
         this.displaySize = val;
         this.sizeError = null;
@@ -994,7 +1038,7 @@ export default class DiscourseSizeEditCharacter extends Component {
     this.species = char.species || "";
     this.description = char.description || "";
     this.baseSize = parseFloat(char.base_size || 170.0);
-    const unit = getBestUnit(this.baseSize);
+    const unit = getBestUnit(this.baseSize, this.preferredSystem);
     this.sizeUnit = unit.id;
     this.displaySize = parseFloat((this.baseSize / unit.factor).toPrecision(5));
     this.properties = parentArr("properties").map((p) => ({

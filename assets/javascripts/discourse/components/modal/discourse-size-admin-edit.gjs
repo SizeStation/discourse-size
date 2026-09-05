@@ -3,13 +3,18 @@ import { tracked } from "@glimmer/tracking";
 import { Input } from "@ember/component";
 import { on } from "@ember/modifier";
 import { action } from "@ember/object";
+import { service } from "@ember/service";
 import { eq } from "truth-helpers";
 import DButton from "discourse/components/d-button";
 import DModal from "discourse/components/d-modal";
 import { ajax } from "discourse/lib/ajax";
+import { i18n } from "discourse-i18n";
 import { getBestUnit, UNITS } from "../../lib/size-formatter";
 
 export default class DiscourseSizeAdminEdit extends Component {
+  @service currentUser;
+  @service dialog;
+
   @tracked originalCurrentSize = 0;
   @tracked isSaving = false;
   @tracked sizeUnit = "cm";
@@ -20,10 +25,18 @@ export default class DiscourseSizeAdminEdit extends Component {
     const char = this.args?.model?.character || {};
     this.currentSize = char.current_size;
     this.originalCurrentSize = char.current_size;
-    const unit = getBestUnit(this.currentSize);
+    const unit = getBestUnit(this.currentSize, this.preferredSystem);
     this.sizeUnit = unit.id;
     this.displaySize = parseFloat(
       (this.currentSize / unit.factor).toPrecision(5)
+    );
+  }
+
+  get preferredSystem() {
+    return (
+      this.currentUser?.discourse_size_settings?.measurement_system ||
+      this.args?.model?.character?.measurement_system ||
+      "imperial"
     );
   }
 
@@ -33,7 +46,17 @@ export default class DiscourseSizeAdminEdit extends Component {
 
   @action
   onUnitChange(event) {
-    this.sizeUnit = event?.target ? event.target.value : event;
+    const newUnitId = event?.target ? event.target.value : event;
+    const oldUnit = UNITS.find((u) => u.id === this.sizeUnit) || { factor: 1 };
+    const newUnit = UNITS.find((u) => u.id === newUnitId) || { factor: 1 };
+    const parsed = parseFloat(this.displaySize);
+    if (!isNaN(parsed)) {
+      const currentCm = parsed * oldUnit.factor;
+      this.displaySize = parseFloat(
+        (currentCm / newUnit.factor).toPrecision(5)
+      );
+    }
+    this.sizeUnit = newUnitId;
   }
 
   @action
@@ -49,9 +72,9 @@ export default class DiscourseSizeAdminEdit extends Component {
       this.args?.model?.onSave?.();
       this.args?.closeModal?.();
     } catch (e) {
-      alert(
+      this.dialog.alert(
         e.jqXHR?.responseJSON?.errors?.join(", ") ||
-          "Error syncing character with history"
+          i18n("discourse_size.admin.error_syncing")
       );
     } finally {
       this.isSaving = false;
@@ -81,9 +104,9 @@ export default class DiscourseSizeAdminEdit extends Component {
       this.args?.model?.onSave?.();
       this.args?.closeModal?.();
     } catch (e) {
-      alert(
+      this.dialog.alert(
         e.jqXHR?.responseJSON?.errors?.join(", ") ||
-          "Error saving character as admin"
+          i18n("discourse_size.admin.error_saving")
       );
     } finally {
       this.isSaving = false;
@@ -92,15 +115,16 @@ export default class DiscourseSizeAdminEdit extends Component {
 
   <template>
     <DModal
-      @title="Admin Edit Character"
+      @title={{i18n "discourse_size.admin.edit_title"}}
       @closeModal={{@closeModal}}
       class="discourse-size-edit-character-modal"
     >
       <:body>
         <div class="control-group">
-          <label>Override Current Size</label>
-          <span class="instructions">Directly teleport the character to this
-            size.</span>
+          <label>{{i18n "discourse_size.admin.override_current_size"}}</label>
+          <span class="instructions">{{i18n
+              "discourse_size.admin.override_current_size_instructions"
+            }}</span>
           <div class="size-input-wrapper">
             <Input @type="number" @value={{this.displaySize}} step="0.0001" />
             <select
@@ -122,8 +146,9 @@ export default class DiscourseSizeAdminEdit extends Component {
             @disabled={{this.isSaving}}
             class="btn-default"
           />
-          <span class="instructions">Teleport to the final size calculated from
-            the activity log.</span>
+          <span class="instructions">{{i18n
+              "discourse_size.admin.sync_with_history_instructions"
+            }}</span>
         </div>
 
         <hr />

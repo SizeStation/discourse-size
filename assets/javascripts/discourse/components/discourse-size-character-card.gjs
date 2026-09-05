@@ -17,7 +17,6 @@ import formatSize0 from "../helpers/format-size";
 import {
   calculatePropertyValue,
   calculateSize,
-  getTimeRemaining,
   isAnimating,
 } from "../lib/size-calculator";
 import {
@@ -88,9 +87,9 @@ export default class DiscourseSizeCharacterCard extends Component {
     }
   }
 
-  _triggerThrowAnimation(action) {
+  _triggerThrowAnimation(act) {
     this.thrownItem = {
-      picture: action.item_picture,
+      picture: act.item_picture,
       startX:
         (Math.random() > 0.5 ? 1 : -1) * (300 + Math.random() * 100) + "px",
       startY:
@@ -401,7 +400,6 @@ export default class DiscourseSizeCharacterCard extends Component {
 
   get effectiveProperties() {
     const props = this.args?.character?.properties || [];
-    const actions = this.args?.character?.actions || [];
     const now = this._currentTime;
     return props.map((prop) => {
       const interpolated = calculatePropertyValue(
@@ -421,14 +419,14 @@ export default class DiscourseSizeCharacterCard extends Component {
   }
 
   get activeActionType() {
-    const action = this.activeAction;
-    if (!action) {
+    const act = this.activeAction;
+    if (!act) {
       return null;
     }
-    if (action.action_type === "set_size") {
-      return parseFloat(action.size_change) >= 0 ? "grow" : "shrink";
+    if (act.action_type === "set_size") {
+      return parseFloat(act.size_change) >= 0 ? "grow" : "shrink";
     }
-    return action.action_type;
+    return act.action_type;
   }
 
   get currentRateCmPerDay() {
@@ -475,19 +473,19 @@ export default class DiscourseSizeCharacterCard extends Component {
   }
 
   get activeActionItemName() {
-    const action = this.activeAction;
-    if (!action) {
+    const act = this.activeAction;
+    if (!act) {
       return i18n("discourse_size.unknown");
     }
-    if (action.parent_action_id) {
+    if (act.parent_action_id) {
       const parent = (this.args?.character?.actions || []).find(
-        (a) => a.id === action.parent_action_id
+        (a) => a.id === act.parent_action_id
       );
       if (parent?.item_name) {
         return parent.item_name;
       }
     }
-    return action.item_name || i18n("discourse_size.unknown");
+    return act.item_name || i18n("discourse_size.unknown");
   }
 
   get queuedActions() {
@@ -670,7 +668,9 @@ export default class DiscourseSizeCharacterCard extends Component {
             <h2>
               <strong>{{@character.name}}</strong>
               {{#if @character.is_main}}
-                <span class="badge main-badge">Main Character</span>
+                <span
+                  class="badge main-badge discourse-size-character-card__main-badge"
+                >{{i18n "discourse_size.main_character"}}</span>
               {{/if}}
             </h2>
 

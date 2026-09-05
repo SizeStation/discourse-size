@@ -15,13 +15,21 @@ class DiscourseSizeCharacter < ActiveRecord::Base
   before_save :ensure_single_main, if: :is_main?
   before_save :set_folder_position, if: :will_save_change_to_folder_id?
   before_create :set_default_position
+  before_update :adjust_offsets_on_base_size_change, if: :will_save_change_to_base_size?
 
-  self.ignored_columns = %w[allow_growth allow_shrink growth_speed_multiplier measurement_system site_sink]
+  self.ignored_columns = %w[
+    allow_growth
+    allow_shrink
+    growth_speed_multiplier
+    measurement_system
+    site_sink
+  ]
 
   def set_default_position
     return if position.present?
     if folder_id.nil?
-      max_char = DiscourseSizeCharacter.where(user_id: user_id, folder_id: nil).maximum(:position) || 0
+      max_char =
+        DiscourseSizeCharacter.where(user_id: user_id, folder_id: nil).maximum(:position) || 0
       max_folder = DiscourseSizeFolder.where(user_id: user_id).maximum(:position) || 0
       self.position = [max_char, max_folder].max + 1
     else
@@ -38,9 +46,7 @@ class DiscourseSizeCharacter < ActiveRecord::Base
   validates :base_size, presence: true
 
   def self.reorder(user, mapping)
-    mapping.each do |id, position|
-      where(id: id, user_id: user.id).update_all(position: position)
-    end
+    mapping.each { |id, position| where(id: id, user_id: user.id).update_all(position: position) }
   end
 
   def self.move_to_folder(user, character_ids, folder_id)
@@ -56,8 +62,8 @@ class DiscourseSizeCharacter < ActiveRecord::Base
 
   has_many :discourse_size_actions, foreign_key: "character_id", dependent: :destroy
 
-  TYPE_GAME = 'game'
-  TYPE_NORMAL = 'normal'
+  TYPE_GAME = "game"
+  TYPE_NORMAL = "normal"
 
   validates :character_type, inclusion: { in: [TYPE_GAME, TYPE_NORMAL] }
 
@@ -78,9 +84,7 @@ class DiscourseSizeCharacter < ActiveRecord::Base
     self.offset_updated_at = Time.now
     new_target = self.target_offset + amount
 
-    if (self.base_size + new_target) > MAX_SIZE
-      new_target = MAX_SIZE - self.base_size
-    end
+    new_target = MAX_SIZE - self.base_size if (self.base_size + new_target) > MAX_SIZE
 
     new_target = MIN_SIZE - self.base_size if (self.base_size + new_target) < MIN_SIZE
 
@@ -92,9 +96,12 @@ class DiscourseSizeCharacter < ActiveRecord::Base
     new_total_cm = new_total_cm.to_f
     new_total_cm = MIN_SIZE if new_total_cm < MIN_SIZE
     new_total_cm = MAX_SIZE if new_total_cm > MAX_SIZE
-    
+
     # Stop all pending growth/shrinking/set_size
-    discourse_size_actions.where(action_type: ["grow", "shrink", "set_size"]).where("end_time > ?", Time.now).destroy_all
+    discourse_size_actions
+      .where(action_type: %w[grow shrink set_size])
+      .where("end_time > ?", Time.now)
+      .destroy_all
 
     old_target_offset = target_offset
     new_offset = new_total_cm - base_size
@@ -116,9 +123,8 @@ class DiscourseSizeCharacter < ActiveRecord::Base
       end_offset: new_offset,
       duration_minutes: 0,
       start_time: Time.now,
-      end_time: Time.now
+      end_time: Time.now,
     )
-
   end
 
   def current_size
@@ -135,11 +141,13 @@ class DiscourseSizeCharacter < ActiveRecord::Base
 
   def time_remaining_seconds
     now = Time.now
-    active_action = discourse_size_actions.where(action_type: ["grow", "shrink"])
-                                         .where("start_time <= ? AND end_time > ?", now, now)
-                                         .first
+    active_action =
+      discourse_size_actions
+        .where(action_type: %w[grow shrink])
+        .where("start_time <= ? AND end_time > ?", now, now)
+        .first
     return 0 unless active_action
-    
+
     (active_action.end_time - now).to_i
   end
 
@@ -156,9 +164,7 @@ class DiscourseSizeCharacter < ActiveRecord::Base
     return false if user.nil?
     return false if user.id == user_id # Owner is never blocked
 
-    if blocked_user_ids&.map(&:to_i)&.include?(user.id.to_i)
-      return true
-    end
+    return true if blocked_user_ids&.map(&:to_i)&.include?(user.id.to_i)
 
     keys = blocked_item_keys || []
 
@@ -194,7 +200,14 @@ class DiscourseSizeCharacter < ActiveRecord::Base
     false
   end
 
-  def add_queued_action(action_type:, size_change:, duration_minutes:, user_id:, item_key: nil, parent_action_id: nil)
+  def add_queued_action(
+    action_type:,
+    size_change:,
+    duration_minutes:,
+    user_id:,
+    item_key: nil,
+    parent_action_id: nil
+  )
     sync_offset!
 
     capped_type = nil
@@ -219,7 +232,7 @@ class DiscourseSizeCharacter < ActiveRecord::Base
       duration_minutes: duration_minutes.to_f,
       start_time: Time.now,
       end_time: Time.now + 1.second, # Placeholder
-      parent_action_id: parent_action_id
+      parent_action_id: parent_action_id,
     )
 
     recalculate_pending_actions!
@@ -229,12 +242,14 @@ class DiscourseSizeCharacter < ActiveRecord::Base
 
   def rebuild_offset_chain!
     # Get all actions that affect size
-    actions = discourse_size_actions
-               .where(action_type: ["grow", "shrink", "set_size"])
-               .order(created_at: :asc, id: :asc)
-    
+    actions =
+      discourse_size_actions.where(action_type: %w[grow shrink set_size]).order(
+        created_at: :asc,
+        id: :asc,
+      )
+
     current_chain_offset = 0.0
-    
+
     actions.each do |action|
       item = action.item_key.present? ? DiscourseSizeShopItem.find_by(key: action.item_key) : nil
       current_total = base_size + current_chain_offset
@@ -258,7 +273,14 @@ class DiscourseSizeCharacter < ActiveRecord::Base
         end
         size_change = new_target_total - current_total
       elsif action.action_type == "set_size"
-        target_total = action.end_offset.present? ? (base_size + action.end_offset) : (current_total + size_change)
+        target_total =
+          (
+            if action.end_offset.present?
+              (base_size + action.end_offset)
+            else
+              (current_total + size_change)
+            end
+          )
         size_change = target_total - current_total
       end
 
@@ -274,13 +296,13 @@ class DiscourseSizeCharacter < ActiveRecord::Base
       action.start_offset = current_chain_offset
       action.end_offset = current_chain_offset + size_change
       action.save!
-      
+
       current_chain_offset = action.end_offset
     end
-    
+
     self.target_offset = current_chain_offset
     self.save!
-    
+
     # After rebuilding the chain, we need to update the current interpolated offset
     sync_offset!
   end
@@ -289,15 +311,17 @@ class DiscourseSizeCharacter < ActiveRecord::Base
     # Always rebuild from the beginning to ensure absolute sync with the log
     rebuild_offset_chain!
     recalculate_properties!
-    
+
     current_chain_offset = self.current_calculated_offset
     current_chain_time = Time.now
-    
+
     # All actions that haven't finished yet
-    pending = discourse_size_actions.where(action_type: ["grow", "shrink", "set_size"])
-                                     .where("end_time > ?", current_chain_time)
-                                     .order(created_at: :asc, id: :asc)
-    
+    pending =
+      discourse_size_actions
+        .where(action_type: %w[grow shrink set_size])
+        .where("end_time > ?", current_chain_time)
+        .order(created_at: :asc, id: :asc)
+
     first_action = true
     pending.each do |action|
       # Only the FIRST action in the queue can be considered "in-progress"
@@ -314,18 +338,16 @@ class DiscourseSizeCharacter < ActiveRecord::Base
         action.start_time = current_chain_time
         action.end_time = action.start_time + action.duration_minutes.minutes
       end
-      
+
       # Instant actions
-      if action.duration_minutes <= 0
-        action.end_time = action.start_time
-      end
+      action.end_time = action.start_time if action.duration_minutes <= 0
 
       action.save!
-      
+
       current_chain_offset = action.end_offset
       current_chain_time = action.end_time
     end
-    
+
     self.target_offset = current_chain_offset
     self.start_offset = self.current_calculated_offset if pending.empty?
     save!
@@ -333,9 +355,11 @@ class DiscourseSizeCharacter < ActiveRecord::Base
 
   def recalculate_properties!
     discourse_size_character_properties.each do |prop|
-      prop_actions = discourse_size_actions
-        .where(action_type: "property_change", item_key: prop.name)
-        .order(created_at: :asc, id: :asc)
+      prop_actions =
+        discourse_size_actions.where(action_type: "property_change", item_key: prop.name).order(
+          created_at: :asc,
+          id: :asc,
+        )
 
       latest_expired = prop_actions.where("end_time <= ?", Time.now).last
       if latest_expired
@@ -360,11 +384,31 @@ class DiscourseSizeCharacter < ActiveRecord::Base
   end
 
   def ensure_single_main
-    self.folder_id = nil
     DiscourseSizeCharacter
       .where(user_id: user_id, is_main: true)
       .where.not(id: id)
       .update_all(is_main: false)
+  end
+
+  def adjust_offsets_on_base_size_change
+    return unless game?
+    old_base, new_base = base_size_change_to_be_saved
+    return if old_base.nil? || new_base.nil?
+
+    delta = new_base - old_base
+    return if delta.abs < 1e-12
+
+    has_actions = discourse_size_actions.where(action_type: %w[grow shrink set_size]).exists?
+    return if !has_actions && current_offset.to_f.abs < 1e-12 && target_offset.to_f.abs < 1e-12
+
+    self.current_offset = current_offset.to_f - delta
+    self.target_offset = target_offset.to_f - delta
+    self.start_offset = start_offset.to_f - delta if respond_to?(:start_offset) &&
+      start_offset.present?
+
+    discourse_size_actions.where(action_type: %w[grow shrink set_size]).update_all(
+      ["start_offset = start_offset - ?, end_offset = end_offset - ?", delta, delta],
+    )
   end
 end
 
