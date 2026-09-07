@@ -24,6 +24,7 @@ en:
       min_size: "Min size"
       growing: "Growing"
       shrinking: "Shrinking"
+      characters: "Characters"
       my_characters: "My Characters"
       user_characters: "%{username}'s Characters"
       no_characters: "No characters found."
