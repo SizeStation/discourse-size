@@ -366,4 +366,107 @@ describe DiscourseSize::InventoryManager do
       ).to exist
     end
   end
+
+  describe "size steal items" do
+    fab!(:steal_item) do
+      DiscourseSizeShopItem.create!(
+        key: "size_steal",
+        name: "Size Steal",
+        price: 10,
+        effect: "shrink",
+        amount: 20.0,
+        self_effect: "grow",
+        self_amount: 20.0,
+        duration_minutes: 10,
+        uses: 5,
+      )
+    end
+    fab!(:other_user, :user)
+    fab!(:target_character) do
+      Fabricate(
+        :discourse_size_character,
+        user: other_user,
+        base_size: 100.0,
+        current_offset: 0.0,
+        target_offset: 0.0,
+        character_type: DiscourseSizeCharacter::TYPE_GAME,
+      )
+    end
+
+    before { character.update!(is_main: true) }
+
+    it "registers each action in queue sequentially without desyncing" do
+      inv =
+        DiscourseSizeInventory.create!(user_id: user.id, item_key: "size_steal", uses_remaining: 5)
+      result1 = DiscourseSize::InventoryManager.use_item(user, inv.id, target_character.id)
+      result2 = DiscourseSize::InventoryManager.use_item(user, inv.id, target_character.id)
+      result3 = DiscourseSize::InventoryManager.use_item(user, inv.id, target_character.id)
+
+      expect(result1[:success]).to be true
+      expect(result2[:success]).to be true
+      expect(result3[:success]).to be true
+      expect(result1[:main_character]).to be_present
+
+      target_actions =
+        target_character
+          .reload
+          .discourse_size_actions
+          .where(action_type: %w[grow shrink set_size])
+          .order(created_at: :asc, id: :asc)
+      main_actions =
+        character
+          .reload
+          .discourse_size_actions
+          .where(action_type: %w[grow shrink set_size])
+          .order(created_at: :asc, id: :asc)
+
+      expect(target_actions.count).to eq(3)
+      expect(main_actions.count).to eq(3)
+
+      expect(target_actions.map(&:action_type)).to eq(%w[shrink shrink shrink])
+      expect(main_actions.map(&:action_type)).to eq(%w[grow grow grow])
+
+      expect(target_actions.map { |a| a.size_change.round(1) }).to eq([-20.0, -16.0, -12.8])
+      expect(main_actions.map { |a| a.size_change.round(1) }).to eq([20.0, 24.0, 28.8])
+
+      expect(main_actions[0].parent_action_id).to eq(target_actions[0].id)
+      expect(main_actions[1].parent_action_id).to eq(target_actions[1].id)
+      expect(main_actions[2].parent_action_id).to eq(target_actions[2].id)
+
+      character.rebuild_offset_chain!
+      character.reload
+      main_actions_after =
+        character
+          .discourse_size_actions
+          .where(action_type: %w[grow shrink set_size])
+          .order(created_at: :asc, id: :asc)
+      expect(main_actions_after.map(&:action_type)).to eq(%w[grow grow grow])
+      expect(main_actions_after.map { |a| a.size_change.round(1) }).to eq([20.0, 24.0, 28.8])
+      expect(character.target_offset.round(1)).to eq(72.8)
+    end
+
+    it "handles rebuild_offset_chain! even if parent_action is missing" do
+      inv =
+        DiscourseSizeInventory.create!(user_id: user.id, item_key: "size_steal", uses_remaining: 5)
+      DiscourseSize::InventoryManager.use_item(user, inv.id, target_character.id)
+
+      main_action = character.reload.discourse_size_actions.find_by(action_type: "grow")
+      main_action.update_column(:parent_action_id, nil)
+
+      character.rebuild_offset_chain!
+      main_action.reload
+      expect(main_action.size_change.round(1)).to eq(20.0)
+    end
+
+    it "locks characters in sorted order without errors" do
+      called = false
+      allow(DistributedMutex).to receive(:synchronize).and_call_original
+
+      described_class.with_character_locks([2, 1]) { called = true }
+
+      expect(called).to be true
+      expect(DistributedMutex).to have_received(:synchronize).with("discourse_size_character_1")
+      expect(DistributedMutex).to have_received(:synchronize).with("discourse_size_character_2")
+    end
+  end
 end

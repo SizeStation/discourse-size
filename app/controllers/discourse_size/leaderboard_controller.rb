@@ -80,7 +80,14 @@ module DiscourseSize
         prefers_shrinking = false
       end
 
-      effective_size = [c.current_size.abs, c.base_size.abs, 1.0].min
+      cur_size = c.current_size
+      effective_size = [cur_size.abs, c.base_size.abs, 1.0].min
+      is_max =
+        cur_size >= DiscourseSizeCharacter::MAX_SIZE ||
+          (DiscourseSizeCharacter::MAX_SIZE - cur_size) / DiscourseSizeCharacter::MAX_SIZE < 1e-12
+      is_min =
+        cur_size <= DiscourseSizeCharacter::MIN_SIZE ||
+          (cur_size - DiscourseSizeCharacter::MIN_SIZE) / DiscourseSizeCharacter::MIN_SIZE < 1e-12
 
       {
         id: c.id,
@@ -88,6 +95,9 @@ module DiscourseSize
         name: c.name,
         picture: c.picture,
         base_size: c.base_size,
+        current_size: cur_size,
+        is_max_size: is_max,
+        is_min_size: is_min,
         prefers_growing: prefers_growing,
         prefers_shrinking: prefers_shrinking,
         is_animating: (c.current_offset - c.target_offset).abs > [effective_size * 1e-6, 1e-40].max,

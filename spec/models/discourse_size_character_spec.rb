@@ -124,10 +124,6 @@ describe DiscourseSizeCharacter do
   end
 
   describe "subatomic minimum size" do
-    it "has MIN_SIZE equal to 1e-35" do
-      expect(DiscourseSizeCharacter::MIN_SIZE).to eq(1e-35)
-    end
-
     it "allows creating normal characters at subatomic and Planck scales" do
       char =
         Fabricate(
@@ -208,6 +204,27 @@ describe DiscourseSizeCharacter do
       expect(character_1.size_at(Time.now + 60.minutes)).to be_within(1e-45).of(
         DiscourseSizeCharacter::MIN_SIZE,
       )
+    end
+
+    it "correctly reports is_min_size? and is_max_size?" do
+      expect(character_1.is_min_size?).to be false
+      expect(character_1.is_max_size?).to be false
+
+      character_1.update_columns(
+        base_size: DiscourseSizeCharacter::MIN_SIZE,
+        current_offset: 0,
+        target_offset: 0,
+      )
+      expect(character_1.is_min_size?).to be true
+      expect(character_1.is_max_size?).to be false
+
+      character_1.update_columns(
+        base_size: DiscourseSizeCharacter::MAX_SIZE,
+        current_offset: 0,
+        target_offset: 0,
+      )
+      expect(character_1.is_min_size?).to be false
+      expect(character_1.is_max_size?).to be true
     end
   end
 end

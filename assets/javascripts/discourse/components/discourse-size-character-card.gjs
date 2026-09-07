@@ -237,6 +237,22 @@ export default class DiscourseSizeCharacterCard extends Component {
     return getGrowthComparison(this.args?.character, this.calculatedSizeCm);
   }
 
+  get isMaxSize() {
+    if (this.args?.character?.is_max_size) {
+      return true;
+    }
+    const size = this.calculatedSizeCm;
+    return size >= 1e120 || (1e120 - size) / 1e120 < 1e-12;
+  }
+
+  get isMinSize() {
+    if (this.args?.character?.is_min_size) {
+      return true;
+    }
+    const size = this.calculatedSizeCm;
+    return size <= 1e-35 || (size - 1e-35) / 1e-35 < 1e-12;
+  }
+
   get hasDescription() {
     const c = this.args?.character;
     return c?.description || c?.info_post || c?.show_comparison;
@@ -546,7 +562,12 @@ export default class DiscourseSizeCharacterCard extends Component {
 
   get recentActions() {
     const actions = this.args?.character?.actions || [];
-    const topLevel = actions.filter((a) => !a.parent_action_id);
+    const topLevel = actions.filter(
+      (a) =>
+        !a.parent_action_id ||
+        a.target_character_name ||
+        (a.target_character_id && a.target_character_id !== a.character_id)
+    );
     return topLevel.slice(0, 5);
   }
 
@@ -657,7 +678,7 @@ export default class DiscourseSizeCharacterCard extends Component {
                   )
                 }}
               >
-                <img src={{this.thrownItem.picture}} alt />
+                <img src={{this.thrownItem.picture}} alt="" />
               </div>
             {{/if}}
           </div>
@@ -671,6 +692,15 @@ export default class DiscourseSizeCharacterCard extends Component {
                 <span
                   class="badge main-badge discourse-size-character-card__main-badge"
                 >{{i18n "discourse_size.main_character"}}</span>
+              {{/if}}
+              {{#if this.isMaxSize}}
+                <span
+                  class="badge max-size-badge discourse-size-character-card__badge discourse-size-character-card__badge--max-size"
+                >{{i18n "discourse_size.max_size"}}</span>
+              {{else if this.isMinSize}}
+                <span
+                  class="badge min-size-badge discourse-size-character-card__badge discourse-size-character-card__badge--min-size"
+                >{{i18n "discourse_size.min_size"}}</span>
               {{/if}}
             </h2>
 

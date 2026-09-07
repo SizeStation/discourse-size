@@ -33,9 +33,9 @@ export default RouteTemplate(
         <table class="table">
           <thead>
             <tr>
-              <th>Character</th>
-              <th>Owner</th>
-              <th>Preferences</th>
+              <th>{{i18n "discourse_size.directory.character"}}</th>
+              <th>{{i18n "discourse_size.directory.owner"}}</th>
+              <th>{{i18n "discourse_size.directory.preferences"}}</th>
             </tr>
           </thead>
           <tbody>
@@ -58,6 +58,15 @@ export default RouteTemplate(
                     <a
                       href="/u/{{character.user.username}}/characters"
                     >{{character.name}}</a>
+                    {{#if character.is_max_size}}
+                      <span class="badge max-size-badge">{{i18n
+                          "discourse_size.max_size"
+                        }}</span>
+                    {{else if character.is_min_size}}
+                      <span class="badge min-size-badge">{{i18n
+                          "discourse_size.min_size"
+                        }}</span>
+                    {{/if}}
                   </div>
                 </td>
                 <td>

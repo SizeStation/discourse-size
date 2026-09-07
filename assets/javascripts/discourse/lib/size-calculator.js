@@ -13,7 +13,18 @@ export function calculateOffset(character, time = new Date()) {
 
   const actions = character.actions
     .filter((a) => ["grow", "shrink", "set_size"].includes(a.action_type))
-    .sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
+    .sort((a, b) => {
+      const timeDiff = new Date(a.start_time) - new Date(b.start_time);
+      if (timeDiff !== 0) {
+        return timeDiff;
+      }
+      const createdDiff =
+        new Date(a.created_at || 0) - new Date(b.created_at || 0);
+      if (createdDiff !== 0) {
+        return createdDiff;
+      }
+      return (a.id || 0) - (b.id || 0);
+    });
 
   if (actions.length === 0) {
     return (
@@ -129,7 +140,10 @@ export function calculatePropertyValue(
   // No active — find most recently expired action
   const expired = candidates
     .filter((a) => new Date(a.end_time) <= time)
-    .sort((a, b) => new Date(b.end_time) - new Date(a.end_time));
+    .sort(
+      (a, b) =>
+        new Date(b.end_time) - new Date(a.end_time) || (b.id || 0) - (a.id || 0)
+    );
 
   if (expired.length > 0) {
     return parseFloat(expired[0].end_offset) || 0;

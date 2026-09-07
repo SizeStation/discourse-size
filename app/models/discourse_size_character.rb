@@ -87,7 +87,7 @@ class DiscourseSizeCharacter < ActiveRecord::Base
   def update_size_target(amount)
     sync_offset!
     self.start_offset = self.current_offset
-    self.offset_updated_at = Time.now
+    self.offset_updated_at = Time.zone.now
     new_target = self.target_offset + amount
 
     new_target = MAX_SIZE - self.base_size if (self.base_size + new_target) > MAX_SIZE
@@ -106,7 +106,7 @@ class DiscourseSizeCharacter < ActiveRecord::Base
     # Stop all pending growth/shrinking/set_size
     discourse_size_actions
       .where(action_type: %w[grow shrink set_size])
-      .where("end_time > ?", Time.now)
+      .where("end_time > ?", Time.zone.now)
       .destroy_all
 
     old_target_offset = target_offset
@@ -116,7 +116,7 @@ class DiscourseSizeCharacter < ActiveRecord::Base
     self.current_offset = new_offset
     self.target_offset = new_offset
     self.start_offset = new_offset
-    self.offset_updated_at = Time.now
+    self.offset_updated_at = Time.zone.now
     save!
 
     DiscourseSizeAction.create!(
@@ -128,8 +128,8 @@ class DiscourseSizeCharacter < ActiveRecord::Base
       start_offset: old_target_offset,
       end_offset: new_offset,
       duration_minutes: 0,
-      start_time: Time.now,
-      end_time: Time.now,
+      start_time: Time.zone.now,
+      end_time: Time.zone.now,
     )
   end
 
@@ -145,8 +145,16 @@ class DiscourseSizeCharacter < ActiveRecord::Base
     DiscourseSize::SizeCalculator.calculate_size(self, time)
   end
 
+  def is_max_size?
+    current_size >= MAX_SIZE || (MAX_SIZE - current_size) / MAX_SIZE < 1e-12
+  end
+
+  def is_min_size?
+    current_size <= MIN_SIZE || (current_size - MIN_SIZE) / MIN_SIZE < 1e-12
+  end
+
   def time_remaining_seconds
-    now = Time.now
+    now = Time.zone.now
     active_action =
       discourse_size_actions
         .where(action_type: %w[grow shrink])
@@ -161,7 +169,7 @@ class DiscourseSizeCharacter < ActiveRecord::Base
     new_offset = current_calculated_offset
     if new_offset != current_offset
       self.current_offset = new_offset
-      self.offset_updated_at = Time.now
+      self.offset_updated_at = Time.zone.now
       self.save!
     end
   end
@@ -226,24 +234,25 @@ class DiscourseSizeCharacter < ActiveRecord::Base
       capped_type = :min
     end
 
-    DiscourseSizeAction.create!(
-      character_id: id,
-      user_id: user_id,
-      action_type: action_type,
-      size_change: size_change,
-      points_spent: 0,
-      item_key: item_key,
-      start_offset: target_offset,
-      end_offset: target_offset + size_change,
-      duration_minutes: duration_minutes.to_f,
-      start_time: Time.now,
-      end_time: Time.now + 1.second, # Placeholder
-      parent_action_id: parent_action_id,
-    )
+    action =
+      DiscourseSizeAction.create!(
+        character_id: id,
+        user_id: user_id,
+        action_type: action_type,
+        size_change: size_change,
+        points_spent: 0,
+        item_key: item_key,
+        start_offset: target_offset,
+        end_offset: target_offset + size_change,
+        duration_minutes: duration_minutes.to_f,
+        start_time: Time.zone.now,
+        end_time: 1.second.from_now, # Placeholder
+        parent_action_id: parent_action_id,
+      )
 
     recalculate_pending_actions!
 
-    { capped: capped_type, size_change: size_change }
+    { capped: capped_type, size_change: size_change, action: action }
   end
 
   def rebuild_offset_chain!
@@ -254,15 +263,21 @@ class DiscourseSizeCharacter < ActiveRecord::Base
         id: :asc,
       )
 
+    keys = actions.map(&:item_key).compact.uniq
+    items_by_key = keys.present? ? DiscourseSizeShopItem.where(key: keys).index_by(&:key) : {}
+
     current_chain_offset = 0.0
 
     actions.each do |action|
-      item = action.item_key.present? ? DiscourseSizeShopItem.find_by(key: action.item_key) : nil
+      item = action.item_key.present? ? items_by_key[action.item_key] : nil
       current_total = base_size + current_chain_offset
       size_change = action.size_change
 
       if item
-        if action.parent_action_id.present? && item.self_effect.present?
+        is_self_effect =
+          item.self_effect.present? &&
+            (action.parent_action_id.present? || action.action_type == item.self_effect)
+        if is_self_effect
           effect = item.self_effect
           amount = item.self_amount.to_f
         else
@@ -319,7 +334,7 @@ class DiscourseSizeCharacter < ActiveRecord::Base
     recalculate_properties!
 
     current_chain_offset = self.current_calculated_offset
-    current_chain_time = Time.now
+    current_chain_time = Time.zone.now
 
     # All actions that haven't finished yet
     pending =
@@ -331,7 +346,7 @@ class DiscourseSizeCharacter < ActiveRecord::Base
     first_action = true
     pending.each do |action|
       # Only the FIRST action in the queue can be considered "in-progress"
-      if first_action && action.start_time && action.start_time <= Time.now
+      if first_action && action.start_time && action.start_time <= Time.zone.now
         # We preserve the start point of the active action to avoid jumping
         # but ensure the end point is still correctly offset from the start
         action.end_offset = action.start_offset + action.size_change
@@ -367,7 +382,7 @@ class DiscourseSizeCharacter < ActiveRecord::Base
           id: :asc,
         )
 
-      latest_expired = prop_actions.where("end_time <= ?", Time.now).last
+      latest_expired = prop_actions.where("end_time <= ?", Time.zone.now).last
       if latest_expired
         prop.update_column(:value, latest_expired.end_offset.to_s)
       elsif prop_actions.any?

@@ -58,24 +58,21 @@ after_initialize do
   # Settings serialization
   add_to_serializer(:user, :discourse_size_settings) do
     settings = DiscourseSizeUserSetting.for_user(object)
-    {
-      measurement_system: settings.measurement_system
-    }
+    { measurement_system: settings.measurement_system }
   end
 
   add_to_serializer(:current_user, :discourse_size_settings) do
     settings = DiscourseSizeUserSetting.for_user(object)
-    {
-      measurement_system: settings.measurement_system
-    }
+    { measurement_system: settings.measurement_system }
   end
 
   # Daily Reward Status
   add_to_serializer(:current_user, :discourse_size_daily_reward_status) do
-    return "collected" if object.custom_fields["discourse_size_last_daily_reward_date"] == Date.today.to_s
+    if object.custom_fields["discourse_size_last_daily_reward_date"] == Date.today.to_s
+      return "collected"
+    end
     "available"
   end
-
 
   # Quest Tracking Hooks
   on(:post_created) do |post, opts, user|
@@ -94,19 +91,20 @@ after_initialize do
   end
 
   # Track post reads via TopicsController show action
-  ::TopicsController.class_eval do
-    before_action :track_post_read, only: [:show]
+  module ::DiscourseSize
+    module TopicsControllerExtension
+      def self.prepended(base)
+        base.before_action :track_discourse_size_post_read, only: [:show]
+      end
 
-    def track_post_read
-      return unless SiteSetting.discourse_size_enabled
-      return if current_user.blank?
-      DiscourseSize::QuestManager.track_activity(current_user, :post_read)
+      def track_discourse_size_post_read
+        return unless SiteSetting.discourse_size_enabled
+        return if current_user.blank?
+        DiscourseSize::QuestManager.track_activity(current_user, :post_read)
+      end
     end
-  end
 
-  # Track user status changes
-  ::User.class_eval do
-    prepend(Module.new do
+    module UserExtension
       def set_status!(description, emoji, ends_at = nil)
         result = super(description, emoji, ends_at)
         if SiteSetting.discourse_size_enabled
@@ -121,8 +119,11 @@ after_initialize do
         end
         super
       end
-    end)
+    end
   end
+
+  ::TopicsController.prepend(DiscourseSize::TopicsControllerExtension)
+  ::User.prepend(DiscourseSize::UserExtension)
 
   on(:chat_message_created) do |message, _channel, user|
     if SiteSetting.discourse_size_enabled
@@ -130,9 +131,6 @@ after_initialize do
       DiscourseSize::QuestManager.track_activity(user, :chat_message_created) if user
     end
   end
-
-
-
 
   add_to_serializer(:user_card, :discourse_size_main_character) do
     return nil if !object&.id
@@ -149,6 +147,8 @@ after_initialize do
         base_size: character.base_size,
         is_growing: character.target_offset > character.current_offset,
         is_shrinking: character.target_offset < character.current_offset,
+        is_max_size: character.is_max_size?,
+        is_min_size: character.is_min_size?,
         gender: character.gender,
         pronouns: character.pronouns,
         age: character.age,
@@ -175,6 +175,8 @@ after_initialize do
         target_size: character.base_size + character.target_offset,
         is_growing: character.target_offset > character.current_offset,
         is_shrinking: character.target_offset < character.current_offset,
+        is_max_size: character.is_max_size?,
+        is_min_size: character.is_min_size?,
       }
     end
   end
@@ -184,8 +186,9 @@ after_initialize do
   end
 
   add_to_serializer(:current_user, :pending_roleplay_invites_count) do
-    DiscourseSizeRoleplayMember.joins(:character)
-      .where(discourse_size_characters: { user_id: object.id }, status: 'pending')
+    DiscourseSizeRoleplayMember
+      .joins(:character)
+      .where(discourse_size_characters: { user_id: object.id }, status: "pending")
       .count
   end
 
@@ -207,8 +210,8 @@ after_initialize do
 
   if Rails.env.test?
     begin
-      FileUtils.mkdir_p(Rails.root.join("public/uploads"))
-    rescue
+      FileUtils.mkdir_p(Rails.public_path.join("uploads"))
+    rescue StandardError
       # Ignore errors if we can't create the directory
     end
   end

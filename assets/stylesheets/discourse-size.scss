@@ -717,6 +717,14 @@
       background: var(--tertiary);
     }
 
+    .max-size-badge {
+      background: var(--danger-medium);
+    }
+
+    .min-size-badge {
+      background: var(--success-medium);
+    }
+
     .biggest-badge {
       background: var(--danger-medium);
     }
@@ -1977,7 +1985,55 @@
   .growth-graph-container {
     display: flex;
     flex-direction: column;
-    gap: 30px;
+    gap: 20px;
+
+    .growth-graph-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 15px;
+      padding: 10px 14px;
+      background: var(--primary-very-low);
+      border: 1px solid var(--primary-low);
+      border-radius: 8px;
+
+      &__date-group {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      &__label {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--primary-medium);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin: 0;
+      }
+
+      &__input {
+        padding: 5px 8px;
+        border: 1px solid var(--primary-low);
+        border-radius: 4px;
+        background: var(--secondary);
+        color: var(--primary);
+        font-size: 13px;
+        line-height: 1.4;
+
+        &:focus {
+          border-color: var(--tertiary);
+          outline: none;
+        }
+      }
+
+      &__presets {
+        display: flex;
+        gap: 8px;
+        margin-left: auto;
+        align-items: center;
+      }
+    }
 
     .svg-wrapper {
       background: var(--primary-very-low);
@@ -2016,6 +2072,11 @@
           font-size: 13px;
           font-weight: 700;
           fill: var(--primary);
+        }
+
+        .tooltip-date {
+          font-size: 10px;
+          fill: var(--primary-medium);
         }
 
         .tooltip-label {
@@ -2342,6 +2403,16 @@
   .discourse-size-growth-graph-modal {
     .growth-graph-container {
       gap: 15px;
+
+      .growth-graph-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+
+        &__presets {
+          margin-left: 0;
+          justify-content: flex-start;
+        }
+      }
     }
 
     .modal-contributors {
@@ -3456,6 +3527,54 @@ body.discourse-size-dragging {
       }
     }
   }
+
+  .modal-activity-list__sentinel {
+    display: flex;
+    justify-content: center;
+    padding: 12px 0 6px;
+  }
+
+  .modal-activity-list__load-more-btn {
+    min-width: 140px;
+  }
+}
+
+.badge.max-size-badge,
+.max-size-badge {
+  font-size: var(--font-down-2, 0.75em);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: bold;
+  background: var(--danger-medium);
+  color: var(--secondary);
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.badge.min-size-badge,
+.min-size-badge {
+  font-size: var(--font-down-2, 0.75em);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: bold;
+  background: var(--success-medium);
+  color: var(--secondary);
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.discourse-size-character-card__badge--max-size {
+  background: var(--danger-medium);
+}
+
+.discourse-size-character-card__badge--min-size {
+  background: var(--success-medium);
 }
 
 // ─── Daily Quests Modal ───────────────────────────────────────────────────────
