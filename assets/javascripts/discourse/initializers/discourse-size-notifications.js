@@ -1,12 +1,12 @@
 import { withPluginApi } from "discourse/lib/plugin-api";
 import { userPath } from "discourse/lib/url";
-import I18n from "I18n";
+import { i18n } from "discourse-i18n";
 import { formatSize } from "../lib/size-formatter";
 
 export default {
   name: "discourse-size-notifications",
   initialize() {
-    withPluginApi("1.1.0", (api) => {
+    withPluginApi((api) => {
       if (api.registerNotificationTypeRenderer) {
         api.registerNotificationTypeRenderer(
           "discourse_size_notification",
@@ -38,16 +38,16 @@ export default {
               get linkTitle() {
                 const data = this.notificationData;
                 if (data.gift_received) {
-                  return I18n.t(
+                  return i18n(
                     "js.discourse_size.notifications.gift_received_title"
                   );
                 }
                 if (data.invite) {
-                  return I18n.t(
+                  return i18n(
                     "js.discourse_size.notifications.roleplay_invite_title"
                   );
                 }
-                return I18n.t("js.discourse_size.notifications.title");
+                return i18n("js.discourse_size.notifications.title");
               }
 
               get linkHref() {
@@ -81,23 +81,21 @@ export default {
               get label() {
                 const data = this.notificationData;
                 if (data.invite) {
-                  return I18n.t(
+                  return i18n(
                     "js.discourse_size.notifications.roleplay_invite_label"
                   );
                 }
                 if (data.returned) {
-                  return I18n.t(
+                  return i18n(
                     "js.discourse_size.notifications.item_returned_label"
                   );
                 }
                 if (data.gift_received) {
-                  return I18n.t(
+                  return i18n(
                     "js.discourse_size.notifications.gift_received_label"
                   );
                 }
-                return I18n.t(
-                  "js.discourse_size.notifications.item_used_label"
-                );
+                return i18n("js.discourse_size.notifications.item_used_label");
               }
 
               get description() {
@@ -107,7 +105,7 @@ export default {
                 }
 
                 if (data.invite) {
-                  return I18n.t(
+                  return i18n(
                     "js.discourse_size.notifications.roleplay_invite",
                     {
                       character_name: data.character_name,
@@ -117,23 +115,17 @@ export default {
                 }
 
                 if (data.returned) {
-                  return I18n.t(
-                    "js.discourse_size.notifications.item_returned",
-                    {
-                      item_name: data.item_name,
-                      character_name: data.character_name,
-                    }
-                  );
+                  return i18n("js.discourse_size.notifications.item_returned", {
+                    item_name: data.item_name,
+                    character_name: data.character_name,
+                  });
                 }
 
                 if (data.gift_received) {
-                  return I18n.t(
-                    "js.discourse_size.notifications.gift_received",
-                    {
-                      username: data.actor_username || "Someone",
-                      item_name: data.item_name,
-                    }
-                  );
+                  return i18n("js.discourse_size.notifications.gift_received", {
+                    username: data.actor_username || "Someone",
+                    item_name: data.item_name,
+                  });
                 }
 
                 const actionType = data.action_type || "grow";
@@ -143,7 +135,7 @@ export default {
                   data.measurement_system
                 );
 
-                return I18n.t(`js.discourse_size.notifications.${actionType}`, {
+                return i18n(`js.discourse_size.notifications.${actionType}`, {
                   username: data.actor_username || "Someone",
                   character_name: data.character_name || "your character",
                   amount: formattedAmount,

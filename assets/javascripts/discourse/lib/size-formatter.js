@@ -1,5 +1,7 @@
 export const COMPARISONS = [
-  { size_cm: 1e-33, desc: "smaller than Planck length" },
+  { size_cm: 1e-35, desc: "far below the Planck scale" },
+  { size_cm: 1.616e-33, desc: "smaller than Planck length" },
+  { size_cm: 1e-28, desc: "at the quectometer scale" },
   { size_cm: 1e-25, desc: "at the scale of strings" },
   { size_cm: 1e-20, desc: "imperceivable" },
   { size_cm: 1e-15, desc: "the size of a quark" },
@@ -462,8 +464,15 @@ export const COMPARISONS = [
 ];
 
 export const UNITS = [
-  { id: "atoms", name: "Atoms", factor: 1e-8 },
+  { id: "planck", name: "Planck lengths (ℓP)", factor: 1.616255e-33 },
+  { id: "qm", name: "Quectometers (qm)", factor: 1e-28 },
+  { id: "rm", name: "Rontometers (rm)", factor: 1e-25 },
+  { id: "ym", name: "Yoctometers (ym)", factor: 1e-22 },
+  { id: "zm", name: "Zeptometers (zm)", factor: 1e-19 },
+  { id: "am", name: "Attometers (am)", factor: 1e-16 },
+  { id: "fm", name: "Femtometers (fm)", factor: 1e-13 },
   { id: "pm", name: "Picometers (pm)", factor: 1e-10 },
+  { id: "atoms", name: "Atoms", factor: 1e-8 },
   { id: "nm", name: "Nanometers (nm)", factor: 1e-7 },
   { id: "cells", name: "Cells", factor: 0.001 },
   { id: "cm", name: "Centimeters (cm)", factor: 1 },
@@ -476,15 +485,43 @@ export const UNITS = [
   { id: "uni", name: "Universes (uni)", factor: 8.8e28 },
 ];
 
-export function getBestUnit(sizeCm) {
+export function getBestUnit(sizeCm, system = "imperial") {
   const absSize = Math.abs(parseFloat(sizeCm));
-  if (isNaN(absSize) || absSize === 0) return UNITS.find((u) => u.id === "cm");
+  if (isNaN(absSize) || absSize === 0) {
+    return UNITS.find((u) => u.id === (system === "imperial" ? "ft" : "cm"));
+  }
 
-  // Filter to reasonable units for editing
-  const candidates = UNITS.filter((u) => u.id !== "atoms" && u.id !== "cells");
+  let candidates;
+  if (system === "imperial") {
+    candidates = UNITS.filter(
+      (u) =>
+        u.id !== "atoms" &&
+        u.id !== "cells" &&
+        u.id !== "cm" &&
+        u.id !== "m" &&
+        u.id !== "km"
+    );
+  } else {
+    candidates = UNITS.filter(
+      (u) =>
+        u.id !== "atoms" &&
+        u.id !== "cells" &&
+        u.id !== "inch" &&
+        u.id !== "ft" &&
+        u.id !== "mi"
+    );
+  }
 
-  let best = candidates[0];
-  for (const u of candidates) {
+  const baseUnitId = system === "imperial" ? "inch" : "cm";
+  const baseIndex = candidates.findIndex((u) => u.id === baseUnitId);
+
+  const searchableUnits =
+    absSize >= 0.01 && baseIndex !== -1
+      ? candidates.slice(baseIndex)
+      : candidates.slice(0, baseIndex !== -1 ? baseIndex : candidates.length);
+
+  let best = searchableUnits[0];
+  for (const u of searchableUnits) {
     if (absSize / u.factor >= 1) {
       best = u;
     } else {
@@ -492,12 +529,6 @@ export function getBestUnit(sizeCm) {
     }
   }
   return best;
-}
-
-function getOrdinal(n) {
-  let s = ["th", "st", "nd", "rd"],
-    v = n % 100;
-  return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
 // Speed comparisons — all values in cm/day.
@@ -573,8 +604,9 @@ const SPEED_COMPARISONS = [
 ];
 
 function formatDuration(seconds) {
-  if (seconds < 60)
+  if (seconds < 60) {
     return `${Math.round(seconds)} second${Math.round(seconds) !== 1 ? "s" : ""}`;
+  }
   if (seconds < 3600) {
     const m = Math.round(seconds / 60);
     return `${m} minute${m !== 1 ? "s" : ""}`;
@@ -592,15 +624,21 @@ function formatDuration(seconds) {
 }
 
 export function getGrowthComparison(character, currentSize) {
-  if (!character || !currentSize) return null;
+  if (!character || !currentSize) {
+    return null;
+  }
 
   const c = character;
+  const baseOrSize = Math.abs(currentSize || c.base_size || 1);
   const isMoving =
-    Math.abs(c.target_offset - c.current_offset) > 0.0001 ||
+    Math.abs(c.target_offset - c.current_offset) >
+      Math.max(baseOrSize * 1e-9, 1e-40) ||
     (Array.isArray(c.actions) &&
       c.actions.some((a) => new Date(a.end_time) > Date.now()));
 
-  if (!isMoving) return null;
+  if (!isMoving) {
+    return null;
+  }
 
   const isGrowing = c.target_offset > c.current_offset;
 
@@ -617,7 +655,8 @@ export function getGrowthComparison(character, currentSize) {
   let minDiff = Infinity;
   for (const s of SPEED_COMPARISONS) {
     const diff = Math.abs(
-      Math.log10(rateCmPerDay + 1e-10) - Math.log10(s.cmPerDay + 1e-10)
+      Math.log10(Math.max(rateCmPerDay, 1e-40)) -
+        Math.log10(Math.max(s.cmPerDay, 1e-40))
     );
     if (diff < minDiff) {
       minDiff = diff;
@@ -674,7 +713,9 @@ export function getGrowthComparison(character, currentSize) {
 }
 
 export function getComparison(character) {
-  if (!character) return "";
+  if (!character) {
+    return "";
+  }
   const sizeCm = character.current_size;
   const name = character.name || "this character";
 
@@ -728,8 +769,10 @@ function smartFixed(val, system = "metric") {
 
   if (absVal >= 10) {
     formatted = val.toFixed(1);
-  } else {
+  } else if (absVal >= 0.1) {
     formatted = val.toFixed(2);
+  } else {
+    formatted = val.toFixed(3);
   }
 
   if (system === "metric") {
@@ -742,57 +785,99 @@ function smartFixed(val, system = "metric") {
 export function formatSize(sizeCm, system = "metric") {
   // We'll handle the default in the helper or component
   const parsedSize = parseFloat(sizeCm);
-  if (isNaN(parsedSize) || parsedSize === 0) return "0 cm";
+  if (isNaN(parsedSize) || parsedSize === 0) {
+    return "0 cm";
+  }
   const absSize = Math.abs(parsedSize);
 
   // Shared constants
+  const planck = absSize / 1.616255e-33;
+  const qm = absSize * 1e28;
+  const rm = absSize * 1e25;
+  const ym = absSize * 1e22;
+  const zm = absSize * 1e19;
+  const am = absSize * 1e16;
+  const fm = absSize * 1e13;
   const pm = absSize * 1e10;
   const nm = absSize * 1e7;
-  const atoms = nm / 0.1; // 1 atom ≈ 0.1nm
   const cells = absSize / 0.001; // 1 cell ≈ 10µm = 0.001cm
   const lightyears = absSize / 9.461e17;
   const universes = absSize / 8.8e28;
 
   const sign = sizeCm < 0 ? "-" : "";
 
-  // Absolute floor: Atoms
-  if (absSize < 1e-8) {
-    if (atoms < 0.001) return `${sign}0.001 atoms`;
-    return `${sign}${atoms.toFixed(3)} atoms`;
+  // Micro / Subatomic ranges (common to both metric and imperial)
+  if (absSize < 1e-28) {
+    if (planck < 0.001) {
+      return "< 0.001 ℓP";
+    }
+    return `${sign}${smartFixed(planck, system)} ℓP`;
+  }
+  if (absSize < 1e-25) {
+    return `${sign}${smartFixed(qm, system)} qm`;
+  }
+  if (absSize < 1e-22) {
+    return `${sign}${smartFixed(rm, system)} rm`;
+  }
+  if (absSize < 1e-19) {
+    return `${sign}${smartFixed(ym, system)} ym`;
+  }
+  if (absSize < 1e-16) {
+    return `${sign}${smartFixed(zm, system)} zm`;
+  }
+  if (absSize < 1e-13) {
+    return `${sign}${smartFixed(am, system)} am`;
+  }
+  if (absSize < 1e-10) {
+    return `${sign}${smartFixed(fm, system)} fm`;
+  }
+  if (absSize < 1e-7) {
+    return `${sign}${smartFixed(pm, system)} pm`;
+  }
+  if (absSize < 1e-5) {
+    return `${sign}${smartFixed(nm, system)} nm`;
+  }
+  if (absSize < 0.01) {
+    return `${sign}${smartFixed(cells, system)} cells`;
   }
 
   if (system === "metric") {
-    if (absSize < 1e-7) return `${sign}${smartFixed(pm, system)} pm`;
-    if (absSize < 1e-5) return `${sign}${smartFixed(nm, system)} nm`;
-    if (absSize < 0.01) return `${sign}${smartFixed(cells, system)} cells`;
-    if (absSize < 100) return `${sign}${smartFixed(absSize, system)} cm`;
-    if (absSize < 100000)
+    if (absSize < 100) {
+      return `${sign}${smartFixed(absSize, system)} cm`;
+    }
+    if (absSize < 100000) {
       return `${sign}${smartFixed(absSize / 100, system)} m`;
-    if (absSize < 9.461e17)
+    }
+    if (absSize < 9.461e17) {
       return `${sign}${smartFixed(absSize / 100000, system)} km`;
-    if (absSize < 8.8e28)
+    }
+    if (absSize < 8.8e28) {
       return `${sign}${smartFixed(lightyears, system)} lightyears`;
+    }
     return `${sign}${smartFixed(universes, system)} universes`;
   } else {
-    if (absSize < 1e-7) return `${sign}${smartFixed(pm, system)} pm`;
-    if (absSize < 1e-5) return `${sign}${smartFixed(nm, system)} nm`;
-    if (absSize < 0.01) return `${sign}${smartFixed(cells, system)} cells`;
-
     const inches = absSize / 2.54;
-    if (inches < 12) return `${sign}${smartFixed(inches, system)}"`;
+    if (inches < 12) {
+      return `${sign}${smartFixed(inches, system)}"`;
+    }
 
     const feet = inches / 12;
     if (feet < 5280) {
       const ft = Math.floor(feet);
       const inc = Math.round((feet - ft) * 12);
-      if (inc === 12) return `${sign}${ft + 1}'0"`;
+      if (inc === 12) {
+        return `${sign}${ft + 1}'0"`;
+      }
       return `${sign}${ft}'${inc}"`;
     }
 
     const miles = feet / 5280;
-    if (absSize < 9.461e17) return `${sign}${smartFixed(miles, system)} mi`;
-    if (absSize < 8.8e28)
+    if (absSize < 9.461e17) {
+      return `${sign}${smartFixed(miles, system)} mi`;
+    }
+    if (absSize < 8.8e28) {
       return `${sign}${smartFixed(lightyears, system)} lightyears`;
+    }
     return `${sign}${smartFixed(universes, system)} universes`;
   }
 }

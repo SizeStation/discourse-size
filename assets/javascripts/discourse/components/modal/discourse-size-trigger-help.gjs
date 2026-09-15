@@ -1,0 +1,134 @@
+import Component from "@glimmer/component";
+import { action } from "@ember/object";
+import DModal from "discourse/components/d-modal";
+
+export default class DiscourseSizeTriggerHelp extends Component {
+  @action
+  close() {
+    this.args.closeModal();
+  }
+
+  <template>
+    <DModal
+      @title="Trigger Scripting Help"
+      @closeModal={{@closeModal}}
+      class="discourse-size-trigger-help-modal"
+    >
+      <:body>
+        <div class="trigger-help-content">
+          <section>
+            <h3>Character Actions</h3>
+            <p>Actions with a
+              <code>duration_seconds</code>
+              argument animate smoothly.</p>
+            <ul>
+              <li><code>character.grow(amount_cm, duration_seconds?)</code>:
+                Grow the character.
+                <pre><code>character.grow(50, 600); // Grow 50cm over 600
+                    seconds</code></pre>
+              </li>
+              <li><code>character.shrink(amount_cm, duration_seconds?)</code>:
+                Shrink the character.
+                <pre><code>character.shrink(20, 300); // Shrink 20cm over 300
+                    seconds</code></pre>
+              </li>
+              <li><code>character.setSize(total_cm)</code>: Set character to
+                exactly
+                <code>total_cm</code>
+                immediately.
+                <pre><code>character.setSize(200); // Set to exactly 200cm now</code></pre>
+              </li>
+              <li><code>character.queueSizeAnimation(target_cm, seconds)</code>:
+                Queue an animation to a target size.
+                <pre><code>character.queueSizeAnimation(300, 600); // Animate to
+                    300cm over 600 seconds</code></pre>
+              </li>
+              <li><code>character.size()</code>: Get current size in cm.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h3>Custom Properties</h3>
+            <ul>
+              <li><code>character.property("name")</code>: Get a custom property
+                value.</li>
+              <li><code>character.setProperty("name", "value")</code>: Set a
+                property immediately.</li>
+              <li><code>character.queuePropertyAnimation("name", "value",
+                  seconds)</code>: Queue a property animation.
+                <pre><code>character.setProperty("Height", "195"); // Set
+                    immediately character.queuePropertyAnimation("Muscle Mass",
+                    "85", 120); // Animate over 120 seconds</code></pre>
+              </li>
+            </ul>
+          </section>
+
+          <section>
+            <h3>Character Info</h3>
+            <ul>
+              <li><code>character.species()</code>: Returns character's species.</li>
+              <li><code>character.age()</code>: Returns character's age.</li>
+              <li><code>character.pronouns()</code>: Returns character's
+                pronouns.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h3>Unit Conversion Helpers</h3>
+            <p>All size functions use centimeters. Convert from imperial units:</p>
+            <ul>
+              <li><code>inchesToCm(inches)</code>: Inches to centimeters.</li>
+              <li><code>feetToCm(feet)</code>: Feet to centimeters.</li>
+              <li><code>feetAndInchesToCm(feet, inches)</code>: Feet and inches
+                to centimeters.</li>
+              <li><code>milesToCm(miles)</code>: Miles to centimeters.</li>
+            </ul>
+            <pre><code>character.setSize(feetToCm(5) + inchesToCm(6));
+                character.grow(feetAndInchesToCm(0, 6), 600);
+                character.shrink(milesToCm(0.1), 120);</code></pre>
+          </section>
+
+          <section>
+            <h3>User / Points</h3>
+            <p>Points are read-only for scripts.</p>
+            <ul>
+              <li><code>user.points()</code>: Get your current points.</li>
+              <pre><code>if (user.points() >= 100) { character.grow(10); }</code></pre>
+            </ul>
+          </section>
+
+          <section>
+            <h3>Progress &amp; Cancellation</h3>
+            <p>Check and interrupt in-progress animations from JavaScript:</p>
+            <ul>
+              <li><code>character.getSizeProgress()</code>: Returns info about
+                the current size animation.
+                <pre><code>let prog = character.getSizeProgress(); if
+                    (prog.active) { // prog.start_value — size when animation
+                    began // prog.end_value — target size //
+                    prog.time_remaining_seconds — seconds remaining }</code></pre>
+              </li>
+              <li><code>character.getPropertyProgress("name")</code>: Returns
+                info about a property animation.
+                <pre><code>let prog = character.getPropertyProgress("Tail"); if
+                    (prog.active) { // prog.start_value — property value when
+                    animation began // prog.end_value — target value //
+                    prog.time_remaining_seconds — seconds remaining }</code></pre>
+              </li>
+              <li><code>character.cancelSizeAnimation()</code>: Immediately
+                stops any active or queued size change.</li>
+              <li><code>character.cancelPropertyAnimation("name")</code>: Stops
+                any active or queued change for the named property.
+                <pre><code>// Cancel current animation before queuing a new one
+                    character.cancelSizeAnimation();
+                    character.setSize(feetToCm(6));
+                    character.cancelPropertyAnimation("Tail");
+                    character.queuePropertyAnimation("Tail", "50", 120);</code></pre>
+              </li>
+            </ul>
+          </section>
+        </div>
+      </:body>
+    </DModal>
+  </template>
+}

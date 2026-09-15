@@ -13,10 +13,12 @@ class DiscourseSizeCharacterSerializer < ApplicationSerializer
              :start_offset,
              :offset_updated_at,
              :current_size,
+             :is_max_size,
+             :is_min_size,
              :blocked_item_keys,
-              :blocked_users,
-              :blocked_user_ids,
-              :measurement_system,
+             :blocked_users,
+             :blocked_user_ids,
+             :measurement_system,
              :is_main,
              :character_type,
              :gender,
@@ -44,9 +46,9 @@ class DiscourseSizeCharacterSerializer < ApplicationSerializer
 
   def blocked_users
     return [] if object.blocked_user_ids.blank?
-    User.where(id: object.blocked_user_ids).map do |user|
-      BasicUserSerializer.new(user, scope: scope, root: false).as_json
-    end
+    User
+      .where(id: object.blocked_user_ids)
+      .map { |user| BasicUserSerializer.new(user, scope: scope, root: false).as_json }
   end
 
   def properties
@@ -63,11 +65,7 @@ class DiscourseSizeCharacterSerializer < ApplicationSerializer
 
   def triggers
     object.discourse_size_character_triggers.map do |t|
-      {
-        id: t.id,
-        name: t.name,
-        js_code: t.js_code
-      }
+      { id: t.id, name: t.name, js_code: t.js_code }
     end
   end
 
@@ -77,7 +75,7 @@ class DiscourseSizeCharacterSerializer < ApplicationSerializer
         id: m.id,
         roleplay_id: m.roleplay_id,
         roleplay_name: m.discourse_size_roleplay.name,
-        status: m.status
+        status: m.status,
       }
     end
   end
@@ -85,5 +83,13 @@ class DiscourseSizeCharacterSerializer < ApplicationSerializer
   def measurement_system
     viewing_user = scope.user || object.user
     DiscourseSizeUserSetting.for_user(viewing_user).measurement_system
+  end
+
+  def is_max_size
+    object.is_max_size?
+  end
+
+  def is_min_size
+    object.is_min_size?
   end
 end

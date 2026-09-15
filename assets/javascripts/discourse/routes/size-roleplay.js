@@ -1,7 +1,6 @@
+import { action } from "@ember/object";
 import { ajax } from "discourse/lib/ajax";
 import DiscourseRoute from "discourse/routes/discourse";
-
-import { action } from "@ember/object";
 
 export default class SizeRoleplayRoute extends DiscourseRoute {
   model(params) {

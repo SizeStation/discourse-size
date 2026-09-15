@@ -4,19 +4,20 @@ module DiscourseSize
   class SizeCalculator
     def self.calculate_offset(character, time = Time.now)
       # Find all growth/shrink actions with valid times
-      actions = character.discourse_size_actions
-                 .where(action_type: ["grow", "shrink", "set_size"])
-                 .where.not(start_time: nil)
-                 .where.not(end_time: nil)
-                 .order(start_time: :asc, id: :asc)
-      
+      actions =
+        character
+          .discourse_size_actions
+          .where(action_type: %w[grow shrink set_size])
+          .where.not(start_time: nil)
+          .where.not(end_time: nil)
+          .order(start_time: :asc, id: :asc)
+
       return 0.0 if actions.empty?
 
       # Find the active action at this specific time
-      active_action = actions.find do |a|
-        a.start_time && a.end_time && a.start_time <= time && a.end_time > time
-      end
-      
+      active_action =
+        actions.find { |a| a.start_time && a.end_time && a.start_time <= time && a.end_time > time }
+
       if active_action
         total_duration = active_action.end_time - active_action.start_time
         if total_duration > 0
@@ -30,14 +31,10 @@ module DiscourseSize
       end
 
       # Check if we are BEFORE the first action
-      if actions.first.start_time > time
-        return actions.first.start_offset.to_f
-      end
+      return actions.first.start_offset.to_f if actions.first.start_time > time
 
       # Check if we are AFTER the last action
-      if actions.last.end_time <= time
-        return actions.last.end_offset.to_f
-      end
+      return actions.last.end_offset.to_f if actions.last.end_time <= time
 
       # We are in a gap between actions. The size should be the end_offset of the most recent past action.
       last_past_action = actions.reverse_each.find { |a| a.end_time <= time }
@@ -47,7 +44,8 @@ module DiscourseSize
     end
 
     def self.calculate_size(character, time = Time.now)
-      character.base_size + calculate_offset(character, time)
+      size = character.base_size + calculate_offset(character, time)
+      [size, DiscourseSizeCharacter::MIN_SIZE].max
     end
   end
 end
