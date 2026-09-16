@@ -3,7 +3,7 @@
 module ::DiscourseSize
   class InventoryManager
     def self.purchase(user, item_key, guardian: nil)
-      item = DiscourseSizeShopItem.find_by(key: item_key)
+      item = DiscourseSizeShopItem.available.find_by(key: item_key)
 
       return { error: "Item not found" } unless item
 
@@ -105,8 +105,10 @@ module ::DiscourseSize
 
         affected_character_ids = [character.id, main_char&.id].compact.uniq.sort
         with_character_locks(affected_character_ids) do
+          ActiveRecord::Base.transaction do
           character.reload
           main_char&.reload
+          inventory_item.reload(lock: true)
 
           # Apply effect
           # Sequential stacking logic
@@ -144,6 +146,8 @@ module ::DiscourseSize
               duration_minutes: item.duration_minutes.to_f,
               user_id: user.id,
               item_key: item.key,
+              effect_type: item.effect,
+              effect_amount: item.amount,
             )
           capped_type = action_result[:capped] if action_result[:capped]
 
@@ -182,6 +186,8 @@ module ::DiscourseSize
                 user_id: user.id,
                 item_key: item.key,
                 parent_action_id: action&.id,
+                effect_type: item.self_effect,
+                effect_amount: item.self_amount,
               )
             capped_type = self_action_result[:capped] if self_action_result[:capped] && !capped_type
           end
@@ -202,6 +208,65 @@ module ::DiscourseSize
             main_character: main_char,
             capped_type: capped_type,
           }
+          end
+        end
+      end
+    end
+
+    def self.refund_action(action)
+      character_ids = [action.character_id]
+      loop do
+        character_ids |= action.child_actions.pluck(:character_id)
+        with_character_locks(character_ids) do
+          action.reload
+          removed_actions = [action, *action.child_actions.to_a]
+          next if (removed_actions.map(&:character_id) - character_ids).any?
+
+          ActiveRecord::Base.transaction do
+            character = action.character
+            if action.notification_id
+              NotificationManager.delete_notification(action.notification_id)
+            end
+
+            if action.points_spent > 0 && action.parent_action_id.blank?
+              PointsManager.add_points(
+                action.user,
+                action.points_spent,
+                source_type: "action_reverted",
+                description: "Reverted #{action.action_type} on #{character.name}",
+              )
+              NotificationManager.send_item_returned_notification(
+                action.user,
+                "#{action.points_spent} coins",
+                character.name,
+              )
+            end
+
+            if action.item_key.present? && action.parent_action_id.blank? &&
+                 %w[grow shrink set_size].include?(action.action_type)
+              return_item(action.user, action.item_key)
+              item = DiscourseSizeShopItem.find_by(key: action.item_key)
+              NotificationManager.send_item_returned_notification(
+                action.user,
+                item&.name || action.item_key,
+                character.name,
+              )
+            end
+
+            if action.action_type == "boost_speed"
+              character.update!(growth_rate_bought: character.growth_rate_bought - action.size_change)
+            end
+
+            boundaries =
+              removed_actions.group_by(&:character_id).transform_values do |actions|
+                actions.min_by { |removed| [removed.created_at, removed.id] }
+              end
+            action.destroy!
+            DiscourseSizeCharacter.where(id: boundaries.keys).find_each do |affected|
+              affected.recalculate_pending_actions!(from_action: boundaries.fetch(affected.id))
+            end
+          end
+          return
         end
       end
     end
@@ -218,6 +283,7 @@ module ::DiscourseSize
             .where(user_id: user.id, item_key: item_key)
             .where("uses_remaining < ?", max_uses)
             .order(uses_remaining: :desc)
+            .lock
             .first
         if inventory_item
           inventory_item.uses_remaining += 1

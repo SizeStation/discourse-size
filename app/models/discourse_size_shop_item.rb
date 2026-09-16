@@ -24,6 +24,7 @@ class DiscourseSizeShopItem < ActiveRecord::Base
     write_attribute(:duration_minutes, val) if has_attribute?(:duration_minutes)
   end
 
+  scope :available, -> { where(deleted_at: nil) }
   scope :enabled, -> { where(enabled: true) }
   scope :in_stock, -> { where("stock > 0 OR stock = -1") }
 

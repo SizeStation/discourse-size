@@ -28,6 +28,21 @@ class DiscourseSizeAction < ActiveRecord::Base
               ],
             }
   validates :size_change, presence: true
+  validates :effect_type, inclusion: { in: %w[grow shrink static] }, allow_nil: true
+  validates :effect_amount, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
+
+  def size_after_effect(start_size)
+    return if effect_amount.nil?
+
+    case effect_type
+    when "grow"
+      start_size * (1.0 + effect_amount / 100.0)
+    when "shrink"
+      start_size * (1.0 - effect_amount / 100.0)
+    when "static"
+      effect_amount
+    end
+  end
 
   def speed
     res = has_attribute?(:speed) ? read_attribute(:speed) : 1.0

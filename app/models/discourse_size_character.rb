@@ -89,15 +89,20 @@ class DiscourseSizeCharacter < ActiveRecord::Base
     character_ids = [id]
 
     loop do
-      character_ids |= linked_character_ids
+      character_ids |= linked_actions.distinct.pluck(:character_id)
       DiscourseSize::InventoryManager.with_character_locks(character_ids) do
         reload
-        affected_ids = linked_character_ids
-        next if (affected_ids - character_ids).any?
+        boundaries =
+          linked_actions.to_a.group_by(&:character_id).transform_values do |actions|
+            actions.min_by { |action| [action.created_at, action.id] }
+          end
+        next if (boundaries.keys - character_ids).any?
 
         self.class.transaction do
           destroy!
-          self.class.where(id: affected_ids).find_each(&:recalculate_pending_actions!)
+          self.class.where(id: boundaries.keys).find_each do |character|
+            character.recalculate_pending_actions!(from_action: boundaries.fetch(character.id))
+          end
         end
         return self
       end
@@ -241,155 +246,121 @@ class DiscourseSizeCharacter < ActiveRecord::Base
     duration_minutes:,
     user_id:,
     item_key: nil,
-    parent_action_id: nil
+    parent_action_id: nil,
+    effect_type: nil,
+    effect_amount: nil
   )
-    sync_offset!
-
-    capped_type = nil
-    new_total = base_size + target_offset + size_change
-    if new_total > MAX_SIZE
-      size_change = MAX_SIZE - (base_size + target_offset)
-      capped_type = :max
-    elsif new_total < MIN_SIZE
-      size_change = MIN_SIZE - (base_size + target_offset)
-      capped_type = :min
+    if effect_type.nil? && item_key.present?
+      item = DiscourseSizeShopItem.find_by(key: item_key)
+      if item
+        self_effect = parent_action_id.present? && item.self_effect.present?
+        effect_type = self_effect ? item.self_effect : item.effect
+        effect_amount = self_effect ? item.self_amount.to_f : item.amount.to_f
+      end
     end
 
-    action =
-      DiscourseSizeAction.create!(
-        character_id: id,
-        user_id: user_id,
-        action_type: action_type,
-        size_change: size_change,
-        points_spent: 0,
-        item_key: item_key,
-        start_offset: target_offset,
-        end_offset: target_offset + size_change,
-        duration_minutes: duration_minutes.to_f,
-        start_time: Time.zone.now,
-        end_time: 1.second.from_now, # Placeholder
-        parent_action_id: parent_action_id,
+    self.class.transaction do
+      previous_action = ordered_size_actions.last
+      start_offset = previous_action&.end_offset.to_f
+      start_total = base_size + start_offset
+      action =
+        discourse_size_actions.build(
+          user_id: user_id,
+          action_type: action_type,
+          size_change: size_change,
+          points_spent: 0,
+          item_key: item_key,
+          parent_action_id: parent_action_id,
+          effect_type: effect_type,
+          effect_amount: effect_amount,
+          duration_minutes: duration_minutes.to_f,
+        )
+      new_total = action.size_after_effect(start_total) || (start_total + size_change)
+      capped_type = :max if new_total > MAX_SIZE
+      capped_type = :min if new_total < MIN_SIZE
+      new_total = new_total.clamp(MIN_SIZE, MAX_SIZE)
+      start_time = [Time.zone.now, previous_action&.end_time].compact.max
+      action.assign_attributes(
+        start_offset: start_offset,
+        end_offset: new_total - base_size,
+        size_change: new_total - start_total,
+        start_time: start_time,
+        end_time: start_time + duration_minutes.to_f.minutes,
       )
+      action.save!
+      self.target_offset = action.end_offset
+      save!
+      sync_offset!
 
-    recalculate_pending_actions!
-
-    { capped: capped_type, size_change: size_change, action: action }
+      { capped: capped_type, size_change: action.size_change, action: action }
+    end
   end
 
-  def rebuild_offset_chain!
-    # Get all actions that affect size
-    actions =
-      discourse_size_actions.where(action_type: %w[grow shrink set_size]).order(
-        created_at: :asc,
-        id: :asc,
-      )
-
-    keys = actions.map(&:item_key).compact.uniq
-    items_by_key = keys.present? ? DiscourseSizeShopItem.where(key: keys).index_by(&:key) : {}
-
+  def rebuild_offset_chain!(from_action: nil)
+    actions = ordered_size_actions
     current_chain_offset = 0.0
+    if from_action
+      previous_action =
+        actions.where("(created_at, id) < (?, ?)", from_action.created_at, from_action.id).last
+      current_chain_offset = previous_action&.end_offset.to_f
+      actions =
+        actions.where("(created_at, id) >= (?, ?)", from_action.created_at, from_action.id)
+    end
 
     actions.each do |action|
-      item = action.item_key.present? ? items_by_key[action.item_key] : nil
       current_total = base_size + current_chain_offset
-      size_change = action.size_change
-
-      if item
-        is_self_effect = item.self_effect.present? && action.parent_action_id.present?
-        if is_self_effect
-          effect = item.self_effect
-          amount = item.self_amount.to_f
-        else
-          effect = item.effect
-          amount = item.amount.to_f
-        end
-
-        if effect == "static"
-          new_target_total = amount
-        elsif effect == "shrink"
-          new_target_total = current_total * (1.0 - amount / 100.0)
-        else
-          new_target_total = current_total * (1.0 + amount / 100.0)
-        end
-        size_change = new_target_total - current_total
-      elsif action.action_type == "set_size"
-        target_total =
-          (
-            if action.end_offset.present?
-              (base_size + action.end_offset)
-            else
-              (current_total + size_change)
-            end
-          )
-        size_change = target_total - current_total
+      new_total = action.size_after_effect(current_total)
+      if new_total.nil?
+        new_total =
+          if action.action_type == "set_size" && action.end_offset.present?
+            base_size + action.end_offset
+          else
+            current_total + action.size_change
+          end
       end
-
-      # Cap to MIN_SIZE and MAX_SIZE
-      new_total = current_total + size_change
-      if new_total > MAX_SIZE
-        size_change = MAX_SIZE - current_total
-      elsif new_total < MIN_SIZE
-        size_change = MIN_SIZE - current_total
-      end
-
-      action.size_change = size_change
-      action.start_offset = current_chain_offset
-      action.end_offset = current_chain_offset + size_change
-      action.save!
-
+      new_total = new_total.clamp(MIN_SIZE, MAX_SIZE)
+      action.update!(
+        size_change: new_total - current_total,
+        start_offset: current_chain_offset,
+        end_offset: new_total - base_size,
+      )
       current_chain_offset = action.end_offset
     end
 
     self.target_offset = current_chain_offset
-    self.save!
-
-    # After rebuilding the chain, we need to update the current interpolated offset
+    save!
     sync_offset!
   end
 
-  def recalculate_pending_actions!
-    # Always rebuild from the beginning to ensure absolute sync with the log
-    rebuild_offset_chain!
+  def recalculate_pending_actions!(from_action: nil)
+    rebuild_offset_chain!(from_action: from_action)
     recalculate_properties!
 
-    current_chain_offset = self.current_calculated_offset
-    current_chain_time = Time.zone.now
-
-    # All actions that haven't finished yet
-    pending =
-      discourse_size_actions
-        .where(action_type: %w[grow shrink set_size])
-        .where("end_time > ?", current_chain_time)
-        .order(created_at: :asc, id: :asc)
-
-    first_action = true
-    pending.each do |action|
-      # Only the FIRST action in the queue can be considered "in-progress"
-      if first_action && action.start_time && action.start_time <= Time.zone.now
-        # We preserve the start point of the active action to avoid jumping
-        # but ensure the end point is still correctly offset from the start
-        action.end_offset = action.start_offset + action.size_change
-        action.end_time = action.start_time + action.duration_minutes.minutes
-        first_action = false
-      else
-        # Future actions are stacked sequentially
-        action.start_offset = current_chain_offset
-        action.end_offset = action.start_offset + action.size_change
-        action.start_time = current_chain_time
-        action.end_time = action.start_time + action.duration_minutes.minutes
-      end
-
-      # Instant actions
-      action.end_time = action.start_time if action.duration_minutes <= 0
-
-      action.save!
-
-      current_chain_offset = action.end_offset
-      current_chain_time = action.end_time
+    now = Time.zone.now
+    pending = ordered_size_actions.where("end_time > ?", now)
+    if from_action
+      pending =
+        pending.where("(created_at, id) >= (?, ?)", from_action.created_at, from_action.id)
     end
 
-    self.target_offset = current_chain_offset
-    self.start_offset = self.current_calculated_offset if pending.empty?
+    if first_action = pending.first
+      previous_action =
+        ordered_size_actions
+          .where("(created_at, id) < (?, ?)", first_action.created_at, first_action.id)
+          .last
+      chain_time = [now, previous_action&.end_time].compact.max
+      pending.each_with_index do |action, index|
+        unless index == 0 && action.start_time && action.start_time <= now && chain_time == now
+          action.start_time = chain_time
+        end
+        action.end_time = action.start_time + action.duration_minutes.to_f.minutes
+        action.save!
+        chain_time = action.end_time
+      end
+    end
+
+    sync_offset!
+    self.start_offset = current_calculated_offset if pending.empty?
     save!
   end
 
@@ -412,12 +383,17 @@ class DiscourseSizeCharacter < ActiveRecord::Base
 
   private
 
-  def linked_character_ids
+  def ordered_size_actions
+    discourse_size_actions.where(action_type: %w[grow shrink set_size]).order(
+      created_at: :asc,
+      id: :asc,
+    )
+  end
+
+  def linked_actions
     DiscourseSizeAction
       .where(parent_action_id: discourse_size_actions.select(:id))
       .where.not(character_id: id)
-      .distinct
-      .pluck(:character_id)
   end
 
   def trim_fields

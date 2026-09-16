@@ -218,56 +218,8 @@ module DiscourseSize
         )
       end
 
-      # Delete notification if it exists
-      if action.respond_to?(:notification_id) && action.notification_id
-        DiscourseSize::NotificationManager.delete_notification(action.notification_id)
-      end
-
       character = action.character
-      character.sync_offset!
-
-      # Revert points (only for parent actions)
-      if action.points_spent > 0 && action.parent_action_id.blank?
-        DiscourseSize::PointsManager.add_points(
-          action.user,
-          action.points_spent,
-          source_type: "action_reverted",
-          description: "Reverted #{action.action_type} on #{character.name}",
-        )
-        # Notify user about points return
-        DiscourseSize::NotificationManager.send_item_returned_notification(
-          action.user,
-          "#{action.points_spent} coins",
-          character.name,
-        )
-      end
-
-      # Revert item (only for parent actions)
-      if action.item_key && action.parent_action_id.blank?
-        DiscourseSize::InventoryManager.return_item(action.user, action.item_key)
-        # Notify user about item return
-        item = DiscourseSizeShopItem.find_by(key: action.item_key)
-        DiscourseSize::NotificationManager.send_item_returned_notification(
-          action.user,
-          item&.name || action.item_key,
-          character.name,
-        )
-      end
-
-      case action.action_type
-      when "boost_speed"
-        character.growth_rate_bought -= action.size_change
-      end
-
-      # Handle linked child action state sync
-      children = action.child_actions.to_a
-      child_chars = children.map(&:character).compact.uniq
-
-      action.destroy # dependent: :destroy deletes children
-
-      # Refresh character states
-      child_chars.each { |cc| cc.reload.recalculate_pending_actions! }
-      character.reload.recalculate_pending_actions!
+      DiscourseSize::InventoryManager.refund_action(action)
 
       render json: { character: serialize_data(character.reload, DiscourseSizeCharacterSerializer) }
     end

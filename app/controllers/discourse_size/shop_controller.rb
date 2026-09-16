@@ -7,7 +7,7 @@ module DiscourseSize
     before_action :ensure_can_manage_shop, only: %i[create update destroy reorder]
 
     def index
-      items = DiscourseSizeShopItem.all
+      items = DiscourseSizeShopItem.available
       items = items.enabled unless can_manage_shop?
 
       respond_to do |format|
@@ -29,16 +29,14 @@ module DiscourseSize
     end
 
     def update
-      item = DiscourseSizeShopItem.find(params[:id])
+      item = DiscourseSizeShopItem.available.find(params[:id])
       item.update!(shop_item_params)
       render_serialized(item, DiscourseSizeShopItemSerializer)
     end
 
     def destroy
-      item = DiscourseSizeShopItem.find(params[:id])
-      # Remove from all inventories
-      DiscourseSizeInventory.where(item_key: item.key).destroy_all
-      item.destroy!
+      item = DiscourseSizeShopItem.available.find(params[:id])
+      item.update!(deleted_at: Time.current, enabled: false)
       render json: success_json
     end
 
@@ -47,9 +45,9 @@ module DiscourseSize
       item =
         (
           if can_manage_shop?
-            DiscourseSizeShopItem.find_by(key: item_key)
+            DiscourseSizeShopItem.available.find_by(key: item_key)
           else
-            DiscourseSizeShopItem.enabled.find_by(key: item_key)
+            DiscourseSizeShopItem.available.enabled.find_by(key: item_key)
           end
         )
 
@@ -117,7 +115,7 @@ module DiscourseSize
 
     def reorder
       params[:ids].each_with_index do |id, index|
-        DiscourseSizeShopItem.where(id: id).update_all(position: index)
+        DiscourseSizeShopItem.available.where(id: id).update_all(position: index)
       end
       render json: success_json
     end
