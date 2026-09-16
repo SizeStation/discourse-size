@@ -15,7 +15,11 @@ class RoleplayMemberSerializer < ApplicationSerializer
   end
 
   def character_base_size
-    object.override_data&.key?("base_size") ? object.override_data["base_size"] : object.character&.base_size
+    if object.override_data&.key?("base_size")
+      object.override_data["base_size"]
+    else
+      object.character&.base_size
+    end
   end
 
   def override_data

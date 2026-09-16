@@ -9,22 +9,24 @@ module DiscourseSize
     def update_character
       character = DiscourseSizeCharacter.find(params[:id])
       character.sync_offset!
-      
+
       old_target_size = character.base_size + character.target_offset
 
-      if params[:base_size]
-        character.base_size = params[:base_size].to_f
-      end
+      character.base_size = params[:base_size].to_f if params[:base_size]
 
       if params[:current_size]
         new_size = params[:current_size].to_f
-        
+
         # Stop all pending growth/shrinking (anything ending in the future)
-        character.discourse_size_actions.where(action_type: ["grow", "shrink"]).where("end_time > ?", Time.now).destroy_all
-        
+        character
+          .discourse_size_actions
+          .where(action_type: %w[grow shrink])
+          .where("end_time > ?", Time.now)
+          .destroy_all
+
         # Calculate teleport delta
         new_offset = new_size - character.base_size
-        
+
         # Log the action before changing state so we can calculate delta correctly
         action_type = new_size > old_target_size ? "grow" : "shrink"
         size_change = new_size - old_target_size
@@ -33,7 +35,7 @@ module DiscourseSize
         character.target_offset = new_offset
         character.start_offset = new_offset
         character.offset_updated_at = Time.now
-        
+
         DiscourseSizeAction.create!(
           character_id: character.id,
           user_id: current_user.id,
@@ -44,10 +46,9 @@ module DiscourseSize
           end_offset: new_offset,
           start_time: Time.now,
           end_time: Time.now,
-          duration_minutes: 0
+          duration_minutes: 0,
         )
       end
-
 
       character.save!
 
@@ -63,9 +64,11 @@ module DiscourseSize
       # Now mark all growth/shrink actions that haven't finished as "finished" now
       # This will effectively "teleport" the character to the final target size
       # derived from the corrected chain.
-      character.discourse_size_actions.where(action_type: ["grow", "shrink"])
-                                     .where("end_time > ?", Time.now)
-                                     .update_all(end_time: Time.now, start_time: Time.now - 1.second)
+      character
+        .discourse_size_actions
+        .where(action_type: %w[grow shrink])
+        .where("end_time > ?", Time.now)
+        .update_all(end_time: Time.now, start_time: Time.now - 1.second)
 
       # Update character state to match the log
       # We fetch the target_offset which was correctly set by rebuild_offset_chain!
@@ -108,14 +111,15 @@ module DiscourseSize
       item_key = params[:item_key]
       item = DiscourseSizeShopItem.find_by(key: item_key)
       item ||= DiscourseSizeShopItem.find_by(id: item_key) if item_key.to_i > 0
-      
+
       raise Discourse::NotFound unless item
 
-      inventory_item = DiscourseSizeInventory.create!(
-        user_id: user.id,
-        item_key: item.key,
-        uses_remaining: item.uses
-      )
+      inventory_item =
+        DiscourseSizeInventory.create!(
+          user_id: user.id,
+          item_key: item.key,
+          uses_remaining: item.uses,
+        )
 
       render_serialized(inventory_item, DiscourseSizeInventorySerializer)
     end
@@ -146,14 +150,14 @@ module DiscourseSize
             user,
             amount,
             source_type: source_type,
-            description: description
+            description: description,
           )
         else
           DiscourseSize::PointsManager.remove_points(
             user,
             amount.abs,
             source_type: source_type,
-            description: description
+            description: description,
           )
         end
       end

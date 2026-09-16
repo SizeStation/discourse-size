@@ -5,7 +5,7 @@ class UpdateCharacterBlocking < ActiveRecord::Migration[7.0]
     unless column_exists?(:discourse_size_characters, :blocked_item_keys)
       add_column :discourse_size_characters, :blocked_item_keys, :jsonb, default: [], null: false
     end
-    
+
     unless column_exists?(:discourse_size_characters, :blocked_user_ids)
       add_column :discourse_size_characters, :blocked_user_ids, :jsonb, default: [], null: false
     end

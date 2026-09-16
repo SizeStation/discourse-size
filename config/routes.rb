@@ -17,7 +17,7 @@ DiscourseSize::Engine.routes.draw do
   post "characters/reorder_top_level" => "characters#reorder_top_level"
   delete "actions/:id" => "characters#destroy_action"
 
-  resources :folders, only: [:create, :update, :destroy] do
+  resources :folders, only: %i[create update destroy] do
     post "reorder", on: :collection
   end
 

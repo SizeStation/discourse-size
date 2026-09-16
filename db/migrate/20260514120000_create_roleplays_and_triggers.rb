@@ -24,7 +24,11 @@ class CreateRoleplaysAndTriggers < ActiveRecord::Migration[7.0]
     end
 
     add_index :discourse_size_roleplays, :creator_id, if_not_exists: true
-    add_index :discourse_size_roleplay_members, [:roleplay_id, :character_id], unique: true, name: 'idx_ds_rp_members_rp_char', if_not_exists: true
+    add_index :discourse_size_roleplay_members,
+              %i[roleplay_id character_id],
+              unique: true,
+              name: "idx_ds_rp_members_rp_char",
+              if_not_exists: true
     add_index :discourse_size_character_triggers, :character_id, if_not_exists: true
   end
 end

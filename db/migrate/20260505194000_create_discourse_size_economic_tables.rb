@@ -20,6 +20,6 @@ class CreateDiscourseSizeEconomicTables < ActiveRecord::Migration[7.0]
     end
 
     add_index :discourse_size_inventory, :user_id
-    add_index :discourse_size_inventory, [:user_id, :item_key]
+    add_index :discourse_size_inventory, %i[user_id item_key]
   end
 end

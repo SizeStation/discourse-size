@@ -1,14 +1,7 @@
 # frozen_string_literal: true
 
 class DiscourseSizeUserQuestSerializer < ApplicationSerializer
-  attributes :id,
-             :quest_id,
-             :target_count,
-             :current_count,
-             :collected,
-             :reward,
-             :completed,
-             :emoji
+  attributes :id, :quest_id, :target_count, :current_count, :collected, :reward, :completed, :emoji
 
   def completed
     object.completed?

@@ -13,9 +13,7 @@ class AddUuidAndPictureToRoleplays < ActiveRecord::Migration[7.0]
   rescue => e
     # Fallback if the above SQL fails (e.g. uuid type not available)
     # We can do it in Ruby
-    DiscourseSizeRoleplay.all.each do |rp|
-      rp.update_column(:uuid, SecureRandom.uuid)
-    end
+    DiscourseSizeRoleplay.all.each { |rp| rp.update_column(:uuid, SecureRandom.uuid) }
   end
 
   def down

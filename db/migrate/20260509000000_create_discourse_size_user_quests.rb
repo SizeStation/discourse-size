@@ -13,6 +13,6 @@ class CreateDiscourseSizeUserQuests < ActiveRecord::Migration[7.0]
     end
 
     add_index :discourse_size_user_quests, :user_id
-    add_index :discourse_size_user_quests, [:user_id, :created_at]
+    add_index :discourse_size_user_quests, %i[user_id created_at]
   end
 end

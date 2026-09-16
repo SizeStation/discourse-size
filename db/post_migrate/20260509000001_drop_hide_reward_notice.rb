@@ -6,6 +6,10 @@ class DropHideRewardNotice < ActiveRecord::Migration[7.0]
   end
 
   def down
-    add_column :discourse_size_user_settings, :hide_reward_notice, :boolean, default: false, null: false
+    add_column :discourse_size_user_settings,
+               :hide_reward_notice,
+               :boolean,
+               default: false,
+               null: false
   end
 end
