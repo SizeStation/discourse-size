@@ -16,6 +16,7 @@ class DiscourseSizeCharacter < ActiveRecord::Base
   before_save :set_folder_position, if: :will_save_change_to_folder_id?
   before_create :set_default_position
   before_update :adjust_offsets_on_base_size_change, if: :will_save_change_to_base_size?
+  after_update :rebuild_offset_chain!, if: -> { game? && saved_change_to_base_size? }
 
   self.ignored_columns = %w[
     allow_growth

@@ -38,40 +38,81 @@ describe DiscourseSizeCharacter do
     expect(character_1.is_main).to be false
   end
 
-  describe "adjust_offsets_on_base_size_change" do
-    before { SiteSetting.discourse_size_min_base_size = 1.0 }
-
-    it "shifts offsets and actions when base_size changes on a game character with actions" do
-      character_1.update!(
-        character_type: DiscourseSizeCharacter::TYPE_GAME,
-        base_size: 170.0,
-        current_offset: -169.9999,
-        target_offset: -169.9999,
-        start_offset: -169.9999,
+  describe "#update!" do
+    fab!(:growth_item) do
+      DiscourseSizeShopItem.create!(
+        key: "double_size",
+        name: "Double size",
+        price: 0,
+        effect: "grow",
+        amount: 100.0,
+        uses: 1,
       )
+    end
 
+    before do
+      SiteSetting.discourse_size_min_base_size = 1.0
+      freeze_time
+    end
+
+    it "immediately recalculates completed percentage effects against the new base size" do
+      character_1.update!(character_type: DiscourseSizeCharacter::TYPE_GAME, base_size: 100.0)
       action =
-        DiscourseSizeAction.create!(
-          character_id: character_1.id,
-          user_id: user.id,
+        character_1.add_queued_action(
           action_type: "grow",
-          size_change: 0.0001,
-          start_offset: -169.9999,
-          end_offset: -169.9998,
-          duration_minutes: 60,
-          start_time: Time.now,
-          end_time: Time.now + 60.minutes,
-        )
+          size_change: 100.0,
+          duration_minutes: 0,
+          user_id: user.id,
+          item_key: growth_item.key,
+        )[
+          :action
+        ]
+      expect(character_1.current_size).to eq(200.0)
 
-      character_1.update!(base_size: 30.48)
+      character_1.update!(base_size: 200.0)
 
-      character_1.reload
-      action.reload
+      expect(character_1.reload.current_size).to eq(400.0)
+      expect(character_1.current_offset).to eq(200.0)
+      expect(character_1.target_offset).to eq(200.0)
+      expect(action.reload.start_offset).to eq(0.0)
+      expect(action.end_offset).to eq(200.0)
+      expect(action.size_change).to eq(200.0)
+    end
 
-      expect(character_1.current_size).to be_within(1e-6).of(0.0001)
-      expect(character_1.base_size + character_1.target_offset).to be_within(1e-6).of(0.0001)
-      expect(character_1.base_size + action.start_offset).to be_within(1e-6).of(0.0001)
-      expect(character_1.base_size + action.end_offset).to be_within(1e-6).of(0.0002)
+    it "recalculates active and queued effects without changing their timing" do
+      character_1.update!(character_type: DiscourseSizeCharacter::TYPE_GAME, base_size: 100.0)
+      actions =
+        [100.0, 200.0].map do |size_change|
+          character_1.add_queued_action(
+            action_type: "grow",
+            size_change: size_change,
+            duration_minutes: 60,
+            user_id: user.id,
+            item_key: growth_item.key,
+          )[
+            :action
+          ].reload
+        end
+      times = actions.map { |action| [action.start_time, action.end_time] }
+      freeze_time 30.minutes.from_now
+      expect(character_1.current_size).to be_within(1e-6).of(150.0)
+
+      character_1.update!(base_size: 200.0)
+
+      expect(character_1.reload.current_size).to be_within(1e-6).of(300.0)
+      expect(character_1.base_size + character_1.target_offset).to eq(800.0)
+      expect(actions.map { |action| action.reload.end_offset }).to eq([200.0, 600.0])
+      expect(actions.map { |action| [action.start_time, action.end_time] }).to eq(times)
+    end
+
+    it "preserves absolute set-size targets when the base size changes" do
+      character_1.update!(character_type: DiscourseSizeCharacter::TYPE_GAME, base_size: 100.0)
+      character_1.update_size(250.0, user)
+
+      character_1.update!(base_size: 200.0)
+
+      expect(character_1.reload.current_size).to eq(250.0)
+      expect(character_1.base_size + character_1.target_offset).to eq(250.0)
     end
 
     it "does not shift offsets when character has no actions and zero offsets" do
@@ -91,7 +132,7 @@ describe DiscourseSizeCharacter do
       expect(character_1.current_size).to eq(180.0)
     end
 
-    it "shifts offsets on microscopic base_size changes when character has actions" do
+    it "reapplies fixed growth on microscopic base size changes" do
       SiteSetting.discourse_size_min_base_size = 1e-25
       character_1.update!(
         character_type: DiscourseSizeCharacter::TYPE_GAME,
@@ -118,8 +159,8 @@ describe DiscourseSizeCharacter do
       character_1.reload
       action.reload
 
-      expect(character_1.current_size).to be_within(1e-22).of(1.0e-18)
-      expect(character_1.base_size + action.end_offset).to be_within(1e-22).of(1.1e-18)
+      expect(character_1.current_size).to be_within(1e-22).of(1.1e-18)
+      expect(character_1.base_size + action.end_offset).to be_within(1e-22).of(1.2e-18)
     end
   end
 
