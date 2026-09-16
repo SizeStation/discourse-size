@@ -12,7 +12,7 @@ module DiscourseSize
           .where.not(end_time: nil)
           .order(start_time: :asc, id: :asc)
 
-      return 0.0 if actions.empty?
+      return safe_offset(character, 0.0) if actions.empty?
 
       # Find the active action at this specific time
       active_action =
@@ -24,28 +24,43 @@ module DiscourseSize
           progress = (time - active_action.start_time) / total_duration
           start_off = active_action.start_offset.to_f
           end_off = active_action.end_offset.to_f
-          return start_off + (end_off - start_off) * progress
+          return safe_offset(character, start_off + (end_off - start_off) * progress)
         else
-          return active_action.end_offset.to_f
+          return safe_offset(character, active_action.end_offset.to_f)
         end
       end
 
       # Check if we are BEFORE the first action
-      return actions.first.start_offset.to_f if actions.first.start_time > time
+      if actions.first.start_time > time
+        return safe_offset(character, actions.first.start_offset.to_f)
+      end
 
       # Check if we are AFTER the last action
-      return actions.last.end_offset.to_f if actions.last.end_time <= time
+      if actions.last.end_time <= time
+        return safe_offset(character, actions.last.end_offset.to_f)
+      end
 
       # We are in a gap between actions. The size should be the end_offset of the most recent past action.
       last_past_action = actions.reverse_each.find { |a| a.end_time <= time }
-      return last_past_action.end_offset.to_f if last_past_action
+      return safe_offset(character, last_past_action.end_offset.to_f) if last_past_action
 
-      0.0
+      safe_offset(character, 0.0)
     end
 
     def self.calculate_size(character, time = Time.now)
       size = character.base_size + calculate_offset(character, time)
-      [size, DiscourseSizeCharacter::MIN_SIZE].max
+      return DiscourseSizeCharacter::MIN_SIZE unless size.finite?
+
+      size.clamp(DiscourseSizeCharacter::MIN_SIZE, DiscourseSizeCharacter::MAX_SIZE)
+    end
+
+    def self.safe_offset(character, offset)
+      return DiscourseSizeCharacter::MIN_SIZE - character.base_size unless offset.finite?
+
+      offset.clamp(
+        DiscourseSizeCharacter::MIN_SIZE - character.base_size,
+        DiscourseSizeCharacter::MAX_SIZE - character.base_size,
+      )
     end
   end
 end

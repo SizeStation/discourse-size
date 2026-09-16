@@ -33,6 +33,10 @@ class DiscourseSizeActionSerializer < ApplicationSerializer
 
   has_one :user, serializer: UserNameSerializer, embed: :objects
 
+  def size_change
+    finite_number(object.size_change)
+  end
+
   def character_owner_username
     object.character&.user&.username
   end
@@ -62,7 +66,7 @@ class DiscourseSizeActionSerializer < ApplicationSerializer
   end
 
   def child_size_change
-    child_action&.size_change.to_f
+    finite_number(child_action&.size_change)
   end
 
   def child_action_type
@@ -70,7 +74,7 @@ class DiscourseSizeActionSerializer < ApplicationSerializer
   end
 
   def parent_size_change
-    object.parent_action&.size_change.to_f
+    finite_number(object.parent_action&.size_change)
   end
 
   def parent_action_type
@@ -109,16 +113,16 @@ class DiscourseSizeActionSerializer < ApplicationSerializer
   end
 
   def start_offset
-    object.start_offset.to_f
+    finite_number(object.start_offset)
   end
 
   def end_offset
-    object.end_offset.to_f
+    finite_number(object.end_offset)
   end
 
   def end_total_size
     return nil unless object.character
-    object.character.base_size + object.end_offset.to_f
+    finite_number(object.character.base_size + object.end_offset.to_f)
   end
 
   def item_name
@@ -137,5 +141,12 @@ class DiscourseSizeActionSerializer < ApplicationSerializer
   def item_picture
     return nil unless object.item_key
     DiscourseSizeShopItem.find_by(key: object.item_key)&.picture
+  end
+
+  private
+
+  def finite_number(value)
+    number = value.to_f
+    number.finite? ? number : 0.0
   end
 end

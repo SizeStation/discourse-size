@@ -380,4 +380,41 @@ describe DiscourseSizeCharacter do
       expect(character_1.is_max_size?).to be true
     end
   end
+
+  describe "#current_size" do
+    it "returns the minimum size when an action produces a non-finite offset" do
+      character_1.update_columns(
+        base_size: 100.0,
+        current_offset: 0.0,
+        target_offset: 0.0,
+      )
+      DiscourseSizeAction.create!(
+        character_id: character_1.id,
+        user_id: user.id,
+        action_type: "set_size",
+        size_change: 0.0,
+        start_offset: Float::NAN,
+        end_offset: Float::NAN,
+        duration_minutes: 0,
+        start_time: Time.current,
+        end_time: Time.current,
+      )
+
+      expect(character_1.reload.current_size).to eq(DiscourseSizeCharacter::MIN_SIZE)
+      character_1.sync_offset!
+      expect(character_1.reload.current_offset).to eq(
+        DiscourseSizeCharacter::MIN_SIZE - character_1.base_size,
+      )
+    end
+
+    it "caps a calculated size above the maximum size" do
+      character_1.update_columns(
+        base_size: DiscourseSizeCharacter::MAX_SIZE,
+        current_offset: DiscourseSizeCharacter::MAX_SIZE,
+        target_offset: DiscourseSizeCharacter::MAX_SIZE,
+      )
+
+      expect(character_1.reload.current_size).to eq(DiscourseSizeCharacter::MAX_SIZE)
+    end
+  end
 end
