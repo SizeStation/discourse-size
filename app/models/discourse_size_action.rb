@@ -3,16 +3,29 @@
 class DiscourseSizeAction < ActiveRecord::Base
   belongs_to :character, class_name: "DiscourseSizeCharacter"
   belongs_to :user
-  
+
   belongs_to :parent_action, class_name: "DiscourseSizeAction", optional: true
-  has_many :child_actions, class_name: "DiscourseSizeAction", foreign_key: :parent_action_id, dependent: :destroy
+  has_many :child_actions,
+           class_name: "DiscourseSizeAction",
+           foreign_key: :parent_action_id,
+           dependent: :destroy
 
   validates :character_id, presence: true
   validates :user_id, presence: true
   validates :action_type,
             presence: true,
             inclusion: {
-              in: %w[grow shrink reset boost_speed set_main unset_main set_size trigger property_change],
+              in: %w[
+                grow
+                shrink
+                reset
+                boost_speed
+                set_main
+                unset_main
+                set_size
+                trigger
+                property_change
+              ],
             }
   validates :size_change, presence: true
 

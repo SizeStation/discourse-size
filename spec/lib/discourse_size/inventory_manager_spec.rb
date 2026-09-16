@@ -461,7 +461,6 @@ describe DiscourseSize::InventoryManager do
       expect(character.target_offset.round(1)).to eq(72.8)
     end
 
-
     it "locks characters in sorted order without errors" do
       called = false
       allow(DistributedMutex).to receive(:synchronize).and_call_original

@@ -8,18 +8,29 @@ class DiscourseSizeRoleplayMember < ActiveRecord::Base
   validates :status, inclusion: { in: %w[pending accepted] }
 
   def pending?
-    status == 'pending'
+    status == "pending"
   end
 
   def accepted?
-    status == 'accepted'
+    status == "accepted"
   end
 
   OVERRIDABLE_FIELDS = %w[
-    name base_size gender pronouns age species description picture
-    info_post show_comparison is_main
-    blocked_item_keys blocked_user_ids
-    properties triggers
+    name
+    base_size
+    gender
+    pronouns
+    age
+    species
+    description
+    picture
+    info_post
+    show_comparison
+    is_main
+    blocked_item_keys
+    blocked_user_ids
+    properties
+    triggers
   ].freeze
 
   def effective_value(field)

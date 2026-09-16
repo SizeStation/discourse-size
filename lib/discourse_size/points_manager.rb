@@ -28,7 +28,7 @@ module ::DiscourseSize
         user_id: user.id,
         amount: amount,
         source_type: source_type,
-        description: description
+        description: description,
       )
     end
 
@@ -37,7 +37,7 @@ module ::DiscourseSize
       current = get_points(user)
       new_amount = [current - amount, 0].max
       actual_removed = current - new_amount
-      
+
       user.custom_fields[CUSTOM_FIELD] = new_amount
       user.save_custom_fields(true)
 
@@ -45,7 +45,7 @@ module ::DiscourseSize
         user_id: user.id,
         amount: -actual_removed,
         source_type: source_type,
-        description: description
+        description: description,
       )
     end
 
@@ -63,7 +63,7 @@ module ::DiscourseSize
         user_id: user.id,
         amount: diff,
         source_type: "admin_correction",
-        description: description
+        description: description,
       )
     end
   end

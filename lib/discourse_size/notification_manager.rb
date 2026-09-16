@@ -14,15 +14,16 @@ module ::DiscourseSize
         action_type: action_type, # 'grow' or 'shrink'
         amount_cm: amount_cm.abs,
         measurement_system: DiscourseSizeUserSetting.for_user(character.user).measurement_system,
-        item_name: item_name
+        item_name: item_name,
       }
 
-      notification = Notification.create!(
-        notification_type: notification_type,
-        user_id: character.user_id,
-        data: notification_data.to_json
-      )
-      
+      notification =
+        Notification.create!(
+          notification_type: notification_type,
+          user_id: character.user_id,
+          data: notification_data.to_json,
+        )
+
       notification.id
     end
 
@@ -30,16 +31,12 @@ module ::DiscourseSize
       notification_type = Notification.types[:discourse_size_notification] || 2600
       return if Notification.types.values.exclude?(notification_type)
 
-      notification_data = {
-        item_name: item_name,
-        character_name: character_name,
-        returned: true
-      }
+      notification_data = { item_name: item_name, character_name: character_name, returned: true }
 
       Notification.create!(
         notification_type: notification_type,
         user_id: user.id,
-        data: notification_data.to_json
+        data: notification_data.to_json,
       )
     end
 
@@ -50,13 +47,13 @@ module ::DiscourseSize
       notification_data = {
         actor_username: sender.username,
         item_name: item_name,
-        gift_received: true
+        gift_received: true,
       }
 
       Notification.create!(
         notification_type: notification_type,
         user_id: target_user.id,
-        data: notification_data.to_json
+        data: notification_data.to_json,
       )
     end
 
@@ -68,13 +65,13 @@ module ::DiscourseSize
         roleplay_name: roleplay.name,
         roleplay_id: roleplay.uuid,
         character_name: character.name,
-        invite: true
+        invite: true,
       }
 
       Notification.create!(
         notification_type: notification_type,
         user_id: character.user_id,
-        data: notification_data.to_json
+        data: notification_data.to_json,
       )
     end
 

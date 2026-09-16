@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'rails_helper'
+require "rails_helper"
 
 describe DiscourseSize::QuestManager do
   fab!(:user)
@@ -12,13 +12,14 @@ describe DiscourseSize::QuestManager do
 
   describe ".ensure_quests_for" do
     it "persists quests across days" do
-      quest = DiscourseSizeUserQuest.create!(
-        user_id: user.id,
-        quest_id: "post_created",
-        target_count: 1,
-        created_at: 1.day.ago
-      )
-      
+      quest =
+        DiscourseSizeUserQuest.create!(
+          user_id: user.id,
+          quest_id: "post_created",
+          target_count: 1,
+          created_at: 1.day.ago,
+        )
+
       quests = described_class.ensure_quests_for(user)
       expect(quests.count).to eq(1)
       expect(quests.first.id).to eq(quest.id)
@@ -47,10 +48,12 @@ describe DiscourseSize::QuestManager do
       10.times do
         DiscourseSizeUserQuest.where(user_id: user.id).destroy_all
         quests = described_class.ensure_quests_for(user)
-        topic_post_count = quests.count do |q|
-          def_type = DiscourseSize::QuestManager::QUESTS.find { |def_q| def_q[:id] == q.quest_id }[:type]
-          %i[topic_created post_created].include?(def_type)
-        end
+        topic_post_count =
+          quests.count do |q|
+            def_type =
+              DiscourseSize::QuestManager::QUESTS.find { |def_q| def_q[:id] == q.quest_id }[:type]
+            %i[topic_created post_created].include?(def_type)
+          end
         expect(topic_post_count).to be <= 1
       end
     end
@@ -62,7 +65,7 @@ describe DiscourseSize::QuestManager do
         user_id: user.id,
         quest_id: "post_created",
         target_count: 1,
-        created_at: 1.day.ago
+        created_at: 1.day.ago,
       )
       expect(described_class.can_get_new_quests?(user)).to be true
     end
@@ -72,7 +75,7 @@ describe DiscourseSize::QuestManager do
         user_id: user.id,
         quest_id: "post_created",
         target_count: 1,
-        created_at: Time.zone.now
+        created_at: Time.zone.now,
       )
       expect(described_class.can_get_new_quests?(user)).to be false
     end
@@ -80,13 +83,14 @@ describe DiscourseSize::QuestManager do
 
   describe ".get_new_quests" do
     it "replaces old quests with new ones" do
-      old_quest = DiscourseSizeUserQuest.create!(
-        user_id: user.id,
-        quest_id: "post_created",
-        target_count: 1,
-        created_at: 1.day.ago
-      )
-      
+      old_quest =
+        DiscourseSizeUserQuest.create!(
+          user_id: user.id,
+          quest_id: "post_created",
+          target_count: 1,
+          created_at: 1.day.ago,
+        )
+
       result = described_class.get_new_quests(user)
       expect(result[:success]).to be true
       expect(DiscourseSizeUserQuest.exists?(id: old_quest.id)).to be false
@@ -98,9 +102,9 @@ describe DiscourseSize::QuestManager do
         user_id: user.id,
         quest_id: "post_created",
         target_count: 1,
-        created_at: Time.zone.now
+        created_at: Time.zone.now,
       )
-      
+
       result = described_class.get_new_quests(user)
       expect(result[:success]).to be false
     end
@@ -108,25 +112,27 @@ describe DiscourseSize::QuestManager do
 
   describe ".reroll" do
     it "preserves completed quests" do
-      completed = DiscourseSizeUserQuest.create!(
-        user_id: user.id,
-        quest_id: "topic_created",
-        target_count: 1,
-        current_count: 1,
-        created_at: Time.zone.now
-      )
-      
-      incomplete = DiscourseSizeUserQuest.create!(
-        user_id: user.id,
-        quest_id: "post_created",
-        target_count: 2,
-        current_count: 0,
-        created_at: Time.zone.now
-      )
-      
+      completed =
+        DiscourseSizeUserQuest.create!(
+          user_id: user.id,
+          quest_id: "topic_created",
+          target_count: 1,
+          current_count: 1,
+          created_at: Time.zone.now,
+        )
+
+      incomplete =
+        DiscourseSizeUserQuest.create!(
+          user_id: user.id,
+          quest_id: "post_created",
+          target_count: 2,
+          current_count: 0,
+          created_at: Time.zone.now,
+        )
+
       result = described_class.reroll(user)
       expect(result[:success]).to be true
-      
+
       expect(DiscourseSizeUserQuest.exists?(id: completed.id)).to be true
       expect(DiscourseSizeUserQuest.exists?(id: incomplete.id)).to be false
     end
@@ -137,24 +143,26 @@ describe DiscourseSize::QuestManager do
         quest_id: "topic_created",
         target_count: 1,
         current_count: 1,
-        collected: true
+        collected: true,
       )
       DiscourseSizeUserQuest.create!(
         user_id: user.id,
         quest_id: "post_read",
         target_count: 5,
         current_count: 0,
-        collected: false
+        collected: false,
       )
 
       result = described_class.reroll(user)
       expect(result[:success]).to be true
 
       all_user_quests = DiscourseSizeUserQuest.where(user_id: user.id)
-      topic_post_quests = all_user_quests.select do |q|
-        def_type = DiscourseSize::QuestManager::QUESTS.find { |def_q| def_q[:id] == q.quest_id }[:type]
-        %i[topic_created post_created].include?(def_type)
-      end
+      topic_post_quests =
+        all_user_quests.select do |q|
+          def_type =
+            DiscourseSize::QuestManager::QUESTS.find { |def_q| def_q[:id] == q.quest_id }[:type]
+          %i[topic_created post_created].include?(def_type)
+        end
       expect(topic_post_quests.count).to eq(1)
     end
   end
@@ -162,9 +170,7 @@ describe DiscourseSize::QuestManager do
   describe ".select_quests" do
     it "prevents selecting both topic_created and post_created variants" do
       selected = described_class.select_quests(5, ["topic_created_conv"])
-      topic_post_count = selected.count do |q|
-        %i[topic_created post_created].include?(q[:type])
-      end
+      topic_post_count = selected.count { |q| %i[topic_created post_created].include?(q[:type]) }
       expect(topic_post_count).to eq(0)
     end
 
@@ -181,7 +187,7 @@ describe DiscourseSize::QuestManager do
         user_id: user.id,
         quest_id: "post_created",
         target_count: 2,
-        current_count: 0
+        current_count: 0,
       )
     end
 

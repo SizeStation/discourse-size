@@ -15,28 +15,34 @@ class DiscourseSizeCharacterProperty < ActiveRecord::Base
   end
 
   def interpolated_value
-    active_action = character.discourse_size_actions
-      .where(action_type: "property_change", item_key: name)
-      .where("start_time <= ? AND end_time > ?", Time.now, Time.now)
-      .first
+    active_action =
+      character
+        .discourse_size_actions
+        .where(action_type: "property_change", item_key: name)
+        .where("start_time <= ? AND end_time > ?", Time.now, Time.now)
+        .first
 
     if active_action
       total = active_action.end_time - active_action.start_time
       if total > 0
         progress = (Time.now - active_action.start_time) / total
-        interpolated = active_action.start_offset + (active_action.end_offset - active_action.start_offset) * progress
-        return interpolated.to_s if property_type == 'size' || property_type == 'number'
+        interpolated =
+          active_action.start_offset +
+            (active_action.end_offset - active_action.start_offset) * progress
+        return interpolated.to_s if property_type == "size" || property_type == "number"
         return interpolated.round.to_s
       end
     end
 
     # If action has passed end_time but value wasn't finalized, update it
-    expired_action = character.discourse_size_actions
-      .where(action_type: "property_change", item_key: name)
-      .where("end_time <= ?", Time.now)
-      .where.not(end_time: nil)
-      .order(end_time: :desc)
-      .first
+    expired_action =
+      character
+        .discourse_size_actions
+        .where(action_type: "property_change", item_key: name)
+        .where("end_time <= ?", Time.now)
+        .where.not(end_time: nil)
+        .order(end_time: :desc)
+        .first
 
     if expired_action && expired_action.end_offset.to_s != value
       update_column(:value, expired_action.end_offset.to_s)

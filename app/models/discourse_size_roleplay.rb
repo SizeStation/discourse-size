@@ -6,7 +6,7 @@ class DiscourseSizeRoleplay < ActiveRecord::Base
   has_many :characters, through: :discourse_size_roleplay_members
 
   validates :name, presence: true
-  
+
   before_create :generate_uuid
 
   def generate_uuid

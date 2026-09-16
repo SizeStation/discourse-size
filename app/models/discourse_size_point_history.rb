@@ -8,7 +8,7 @@ class DiscourseSizePointHistory < ActiveRecord::Base
   validates :amount, presence: true
   validates :source_type, presence: true
 
-  # Source types: 
+  # Source types:
   # - admin_correction
   # - grow_character
   # - shrink_character
