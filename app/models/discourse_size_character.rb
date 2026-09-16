@@ -169,9 +169,10 @@ class DiscourseSizeCharacter < ActiveRecord::Base
   def sync_offset!
     new_offset = current_calculated_offset
     if new_offset != current_offset
-      self.current_offset = new_offset
-      self.offset_updated_at = Time.zone.now
-      self.save!
+      # update_columns: this just refreshes a derived cache value from the action
+      # log, so it must not be blocked by unrelated validation failures (e.g. a
+      # base_size that was valid under old bounds but no longer is).
+      update_columns(current_offset: new_offset, offset_updated_at: Time.zone.now)
     end
   end
 
