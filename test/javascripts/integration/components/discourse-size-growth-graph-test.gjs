@@ -1,4 +1,10 @@
-import { render, settled } from "@ember/test-helpers";
+import {
+  fillIn,
+  findAll,
+  render,
+  settled,
+  triggerEvent,
+} from "@ember/test-helpers";
 import { module, test } from "qunit";
 import ModalContainer from "discourse/components/modal-container";
 import { setupRenderingTest } from "discourse/tests/helpers/component-test";
@@ -7,6 +13,88 @@ import { formatSize } from "discourse/plugins/discourse-size/discourse/lib/size-
 
 module("Integration | Component | DiscourseSizeGrowthGraph", function (hooks) {
   setupRenderingTest(hooks, { stubRouter: true });
+
+  test("an end date alone excludes later effects and clips ongoing size and property changes", async function (assert) {
+    const changes = [
+      {
+        start_time: "2026-01-01T00:00:00",
+        end_time: "2026-01-01T12:00:00",
+        from: 1,
+        to: 2,
+      },
+      {
+        start_time: "2026-01-02T12:00:00",
+        end_time: "2026-01-03T12:00:00",
+        from: 2,
+        to: 4,
+      },
+      {
+        start_time: "2026-01-04T00:00:00",
+        end_time: "2026-01-04T12:00:00",
+        from: 4,
+        to: 8,
+      },
+    ];
+    const character = {
+      id: 1,
+      name: "Test character",
+      base_size: 100,
+      measurement_system: "metric",
+      actions: changes.flatMap((change, index) => [
+        {
+          id: index * 2 + 1,
+          action_type: "grow",
+          user: this.currentUser,
+          created_at: change.start_time,
+          start_time: change.start_time,
+          end_time: change.end_time,
+          start_offset: change.from * 100 - 100,
+          end_offset: change.to * 100 - 100,
+        },
+        {
+          id: index * 2 + 2,
+          action_type: "property_change",
+          item_key: "Tail",
+          user: this.currentUser,
+          created_at: change.start_time,
+          start_time: change.start_time,
+          end_time: change.end_time,
+          start_offset: change.from * 10,
+          end_offset: change.to * 10,
+        },
+      ]),
+    };
+    this.currentUser.set("discourse_size_settings", {
+      measurement_system: "metric",
+    });
+
+    await render(<template><ModalContainer /></template>);
+    this.owner.lookup("service:modal").show(DiscourseSizeGrowthGraph, {
+      model: { character },
+    });
+    await settled();
+    await fillIn("#growth-graph-start-date", "");
+    await fillIn("#growth-graph-end-date", "2026-01-02");
+
+    assert
+      .dom(".growth-svg .graph-point")
+      .exists(
+        { count: 8 },
+        "both series exclude later actions and current-time points"
+      );
+
+    const expectedValues = [100, 200, 200, 300, 10, 20, 20, 30];
+    const points = findAll(".growth-svg .graph-point");
+    for (const [index, point] of points.entries()) {
+      await triggerEvent(point, "mouseenter");
+      assert
+        .dom(".graph-tooltip .tooltip-size")
+        .hasText(
+          formatSize(expectedValues[index], "metric"),
+          `point ${index + 1} shows the historical value, interpolated at the cutoff when needed`
+        );
+    }
+  });
 
   test("set-size history displays each action endpoint", async function (assert) {
     const character = {

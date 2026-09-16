@@ -266,19 +266,23 @@ export default class DiscourseSizeGrowthGraph extends Component {
     if (sizeActions.length > 0) {
       const sizePoints = [];
 
-      if (startRange) {
-        // Start of window
-        sizePoints.push({
-          date: startRange,
-          value: calculateSize(char, startRange),
-          actionIdx: -1,
-          isEnd: false,
-        });
+      if (startRange || endRange) {
+        if (startRange) {
+          sizePoints.push({
+            date: startRange,
+            value: calculateSize(char, startRange),
+            actionIdx: -1,
+            isEnd: false,
+          });
+        }
 
         const inWindow = sizeActions.filter((a) => {
           const aStart = new Date(a.start_time);
           const aEnd = new Date(a.end_time);
-          return aEnd >= startRange && (!endRange || aStart <= endRange);
+          return (
+            (!startRange || aEnd >= startRange) &&
+            (!endRange || aStart <= endRange)
+          );
         });
 
         inWindow.forEach((a, idx) => {
@@ -290,7 +294,10 @@ export default class DiscourseSizeGrowthGraph extends Component {
           const endVal =
             (parseFloat(char.base_size) || 0) + (parseFloat(a.end_offset) || 0);
 
-          if (aStart >= startRange && (!endRange || aStart <= endRange)) {
+          if (
+            (!startRange || aStart >= startRange) &&
+            (!endRange || aStart <= endRange)
+          ) {
             sizePoints.push({
               date: aStart,
               value: startVal,
@@ -437,21 +444,26 @@ export default class DiscourseSizeGrowthGraph extends Component {
 
       const points = [];
 
-      if (startRange) {
-        const initialPropVal = calculatePropertyValue(char, name, startRange);
-        if (initialPropVal !== undefined) {
-          points.push({
-            date: startRange,
-            value: initialPropVal,
-            actionIdx: -1,
-            isEnd: false,
-          });
+      if (startRange || endRange) {
+        if (startRange) {
+          const initialPropVal = calculatePropertyValue(char, name, startRange);
+          if (initialPropVal !== undefined) {
+            points.push({
+              date: startRange,
+              value: initialPropVal,
+              actionIdx: -1,
+              isEnd: false,
+            });
+          }
         }
 
         const inWindow = propActions.filter((a) => {
           const aStart = new Date(a.start_time);
           const aEnd = new Date(a.end_time);
-          return aEnd >= startRange && (!endRange || aStart <= endRange);
+          return (
+            (!startRange || aEnd >= startRange) &&
+            (!endRange || aStart <= endRange)
+          );
         });
 
         inWindow.forEach((a, aIdx) => {
@@ -460,7 +472,10 @@ export default class DiscourseSizeGrowthGraph extends Component {
           const startVal = parseFloat(a.start_offset || 0);
           const endVal = parseFloat(a.end_offset || 0);
 
-          if (aStart >= startRange && (!endRange || aStart <= endRange)) {
+          if (
+            (!startRange || aStart >= startRange) &&
+            (!endRange || aStart <= endRange)
+          ) {
             points.push({
               date: aStart,
               value: startVal,
