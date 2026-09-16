@@ -106,108 +106,109 @@ module ::DiscourseSize
         affected_character_ids = [character.id, main_char&.id].compact.uniq.sort
         with_character_locks(affected_character_ids) do
           ActiveRecord::Base.transaction do
-          character.reload
-          main_char&.reload
-          inventory_item.reload(lock: true)
+            character.reload
+            main_char&.reload
+            inventory_item.reload(lock: true)
 
-          # Apply effect
-          # Sequential stacking logic
-          start_offset = character.target_offset
-          current_target_total = character.base_size + start_offset
-          if item.effect == "static"
-            new_target_total = item.amount.to_f
-          elsif item.effect == "shrink"
-            new_target_total = current_target_total * (1.0 - item.amount.to_f / 100.0)
-          else
-            new_target_total = current_target_total * (1.0 + item.amount.to_f / 100.0)
-          end
-          size_change = new_target_total - current_target_total
-
-          # Track quest activity (only if targeting someone else)
-          if character.user_id != user.id
-            quest_type =
-              if item.effect == "grow"
-                :character_grow
-              elsif item.effect == "shrink"
-                :character_shrink
-              elsif size_change > 0
-                :character_grow
-              elsif size_change < 0
-                :character_shrink
-              end
-            ::DiscourseSize::QuestManager.track_activity(user, quest_type) if quest_type
-          end
-
-          capped_type = nil
-          action_result =
-            character.add_queued_action(
-              action_type: item.effect == "static" ? "set_size" : item.effect,
-              size_change: size_change,
-              duration_minutes: item.duration_minutes.to_f,
-              user_id: user.id,
-              item_key: item.key,
-              effect_type: item.effect,
-              effect_amount: item.amount,
-            )
-          capped_type = action_result[:capped] if action_result[:capped]
-
-          # Send notification
-          notification_id =
-            NotificationManager.send_growth_notification(
-              user,
-              character,
-              item.effect,
-              item.effect == "static" ? item.amount.to_f : action_result[:size_change],
-              item_name: item.name,
-            )
-
-          # Attach notification_id to the created action
-          action = action_result[:action]
-          action.update_column(:notification_id, notification_id) if notification_id && action
-
-          # Apply self-effect if configured and applicable (only for game type main characters)
-          if main_char&.game?
-            self_start_offset = main_char.target_offset
-            self_current_total = main_char.base_size + self_start_offset
-            if item.self_effect == "static"
-              self_new_total = item.self_amount.to_f
-            elsif item.self_effect == "shrink"
-              self_new_total = self_current_total * (1.0 - item.self_amount.to_f / 100.0)
+            # Apply effect
+            # Sequential stacking logic
+            start_offset = character.target_offset
+            current_target_total = character.base_size + start_offset
+            if item.effect == "static"
+              new_target_total = item.amount.to_f
+            elsif item.effect == "shrink"
+              new_target_total = current_target_total * (1.0 - item.amount.to_f / 100.0)
             else
-              self_new_total = self_current_total * (1.0 + item.self_amount.to_f / 100.0)
+              new_target_total = current_target_total * (1.0 + item.amount.to_f / 100.0)
             end
-            self_size_change = self_new_total - self_current_total
+            size_change = new_target_total - current_target_total
 
-            self_action_result =
-              main_char.add_queued_action(
-                action_type: item.self_effect == "static" ? "set_size" : item.self_effect,
-                size_change: self_size_change,
+            # Track quest activity (only if targeting someone else)
+            if character.user_id != user.id
+              quest_type =
+                if item.effect == "grow"
+                  :character_grow
+                elsif item.effect == "shrink"
+                  :character_shrink
+                elsif size_change > 0
+                  :character_grow
+                elsif size_change < 0
+                  :character_shrink
+                end
+              ::DiscourseSize::QuestManager.track_activity(user, quest_type) if quest_type
+            end
+
+            capped_type = nil
+            action_result =
+              character.add_queued_action(
+                action_type: item.effect == "static" ? "set_size" : item.effect,
+                size_change: size_change,
                 duration_minutes: item.duration_minutes.to_f,
                 user_id: user.id,
                 item_key: item.key,
-                parent_action_id: action&.id,
-                effect_type: item.self_effect,
-                effect_amount: item.self_amount,
+                effect_type: item.effect,
+                effect_amount: item.amount,
               )
-            capped_type = self_action_result[:capped] if self_action_result[:capped] && !capped_type
-          end
+            capped_type = action_result[:capped] if action_result[:capped]
 
-          # Decrease uses
-          if inventory_item.uses_remaining < 999_999
-            inventory_item.uses_remaining -= 1
-            if inventory_item.uses_remaining <= 0
-              inventory_item.destroy
-            else
-              inventory_item.save!
+            # Send notification
+            notification_id =
+              NotificationManager.send_growth_notification(
+                user,
+                character,
+                item.effect,
+                item.effect == "static" ? item.amount.to_f : action_result[:size_change],
+                item_name: item.name,
+              )
+
+            # Attach notification_id to the created action
+            action = action_result[:action]
+            action.update_column(:notification_id, notification_id) if notification_id && action
+
+            # Apply self-effect if configured and applicable (only for game type main characters)
+            if main_char&.game?
+              self_start_offset = main_char.target_offset
+              self_current_total = main_char.base_size + self_start_offset
+              if item.self_effect == "static"
+                self_new_total = item.self_amount.to_f
+              elsif item.self_effect == "shrink"
+                self_new_total = self_current_total * (1.0 - item.self_amount.to_f / 100.0)
+              else
+                self_new_total = self_current_total * (1.0 + item.self_amount.to_f / 100.0)
+              end
+              self_size_change = self_new_total - self_current_total
+
+              self_action_result =
+                main_char.add_queued_action(
+                  action_type: item.self_effect == "static" ? "set_size" : item.self_effect,
+                  size_change: self_size_change,
+                  duration_minutes: item.duration_minutes.to_f,
+                  user_id: user.id,
+                  item_key: item.key,
+                  parent_action_id: action&.id,
+                  effect_type: item.self_effect,
+                  effect_amount: item.self_amount,
+                )
+              capped_type = self_action_result[:capped] if self_action_result[:capped] &&
+                !capped_type
             end
-          end
 
-          {
-            success: true,
-            character: character,
-            main_character: main_char,
-            capped_type: capped_type,
-          }
+            # Decrease uses
+            if inventory_item.uses_remaining < 999_999
+              inventory_item.uses_remaining -= 1
+              if inventory_item.uses_remaining <= 0
+                inventory_item.destroy
+              else
+                inventory_item.save!
+              end
+            end
+
+            {
+              success: true,
+              character: character,
+              main_character: main_char,
+              capped_type: capped_type,
+            }
           end
         end
       end
@@ -254,17 +255,23 @@ module ::DiscourseSize
             end
 
             if action.action_type == "boost_speed"
-              character.update!(growth_rate_bought: character.growth_rate_bought - action.size_change)
+              character.update!(
+                growth_rate_bought: character.growth_rate_bought - action.size_change,
+              )
             end
 
             boundaries =
-              removed_actions.group_by(&:character_id).transform_values do |actions|
-                actions.min_by { |removed| [removed.created_at, removed.id] }
-              end
+              removed_actions
+                .group_by(&:character_id)
+                .transform_values do |actions|
+                  actions.min_by { |removed| [removed.created_at, removed.id] }
+                end
             action.destroy!
-            DiscourseSizeCharacter.where(id: boundaries.keys).find_each do |affected|
-              affected.recalculate_pending_actions!(from_action: boundaries.fetch(affected.id))
-            end
+            DiscourseSizeCharacter
+              .where(id: boundaries.keys)
+              .find_each do |affected|
+                affected.recalculate_pending_actions!(from_action: boundaries.fetch(affected.id))
+              end
           end
           return
         end

@@ -25,8 +25,7 @@ describe DiscourseSize::InventoryManager do
   end
 
   def use_item(item, target: character, actor: user)
-    inventory =
-      DiscourseSizeInventory.create!(user: actor, item_key: item.key, uses_remaining: 1)
+    inventory = DiscourseSizeInventory.create!(user: actor, item_key: item.key, uses_remaining: 1)
     result = described_class.use_item(actor, inventory.id, target.id)
     expect(result[:success]).to eq(true), result.inspect
     target.discourse_size_actions.order(created_at: :desc, id: :desc).first
@@ -38,8 +37,7 @@ describe DiscourseSize::InventoryManager do
       character.update!(character_type: DiscourseSizeCharacter::TYPE_GAME, is_main: true)
       character.update_column(:name, "")
       item = create_item("invalid_paired_growth", self_effect: "grow", self_amount: 25.0)
-      inventory =
-        DiscourseSizeInventory.create!(user: user, item_key: item.key, uses_remaining: 1)
+      inventory = DiscourseSizeInventory.create!(user: user, item_key: item.key, uses_remaining: 1)
       original_characters = [target, character].map { |record| record.reload.attributes }
       original_inventory = inventory.attributes
 
@@ -309,13 +307,21 @@ describe DiscourseSize::InventoryManager do
 
       described_class.refund_action(first)
 
-      expect(grown.reload).to have_attributes(start_offset: 0.0, end_offset: 50.0, size_change: 50.0)
+      expect(grown.reload).to have_attributes(
+        start_offset: 0.0,
+        end_offset: 50.0,
+        size_change: 50.0,
+      )
       expect(shrunk.reload).to have_attributes(
         start_offset: 50.0,
         end_offset: 20.0,
         size_change: -30.0,
       )
-      expect(fixed.reload).to have_attributes(start_offset: 20.0, end_offset: 80.0, size_change: 60.0)
+      expect(fixed.reload).to have_attributes(
+        start_offset: 20.0,
+        end_offset: 80.0,
+        size_change: 60.0,
+      )
       expect(character.reload.current_size).to eq(180.0)
     end
 
@@ -346,8 +352,16 @@ describe DiscourseSize::InventoryManager do
         end_offset: 100.0,
         size_change: 100.0,
       )
-      expect(fixed.reload).to have_attributes(start_offset: 100.0, end_offset: 80.0, size_change: -20.0)
-      expect(shrunk.reload).to have_attributes(start_offset: 80.0, end_offset: 44.0, size_change: -36.0)
+      expect(fixed.reload).to have_attributes(
+        start_offset: 100.0,
+        end_offset: 80.0,
+        size_change: -20.0,
+      )
+      expect(shrunk.reload).to have_attributes(
+        start_offset: 80.0,
+        end_offset: 44.0,
+        size_change: -36.0,
+      )
       expect(character.reload.current_size).to eq(144.0)
     end
 
@@ -396,7 +410,9 @@ describe DiscourseSizeCharacter do
           duration_minutes: 0,
           user_id: user.id,
           item_key: item.key,
-        )[:action]
+        )[
+          :action
+        ]
       second =
         character.add_queued_action(
           action_type: "grow",
@@ -406,7 +422,9 @@ describe DiscourseSizeCharacter do
           item_key: item.key,
           effect_type: "grow",
           effect_amount: 25.0,
-        )[:action]
+        )[
+          :action
+        ]
       item.update!(amount: 75.0)
 
       character.rebuild_offset_chain!

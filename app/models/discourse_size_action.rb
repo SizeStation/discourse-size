@@ -109,6 +109,8 @@ end
 #  id               :bigint           not null, primary key
 #  action_type      :string           not null
 #  duration_minutes :integer          default(0)
+#  effect_amount    :float
+#  effect_type      :string
 #  end_offset       :float
 #  end_time         :datetime
 #  item_key         :string

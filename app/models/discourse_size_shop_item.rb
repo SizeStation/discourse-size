@@ -51,6 +51,7 @@ end
 #  can_only_use_on_others :boolean          default(FALSE), not null
 #  can_only_use_on_self   :boolean          default(FALSE), not null
 #  color                  :string
+#  deleted_at             :datetime
 #  description            :text
 #  duration_minutes       :integer          default(60), not null
 #  effect                 :string

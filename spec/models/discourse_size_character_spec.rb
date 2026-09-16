@@ -383,11 +383,7 @@ describe DiscourseSizeCharacter do
 
   describe "#current_size" do
     it "returns the minimum size when an action produces a non-finite offset" do
-      character_1.update_columns(
-        base_size: 100.0,
-        current_offset: 0.0,
-        target_offset: 0.0,
-      )
+      character_1.update_columns(base_size: 100.0, current_offset: 0.0, target_offset: 0.0)
       DiscourseSizeAction.create!(
         character_id: character_1.id,
         user_id: user.id,

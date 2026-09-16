@@ -25,8 +25,7 @@ describe DiscourseSize::CharactersController do
   end
 
   def use_item(actor: user)
-    inventory =
-      DiscourseSizeInventory.create!(user: actor, item_key: item.key, uses_remaining: 1)
+    inventory = DiscourseSizeInventory.create!(user: actor, item_key: item.key, uses_remaining: 1)
     result = DiscourseSize::InventoryManager.use_item(actor, inventory.id, character.id)
     expect(result[:success]).to eq(true), result.inspect
     character.discourse_size_actions.order(created_at: :desc, id: :desc).first

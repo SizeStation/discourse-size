@@ -93,16 +93,22 @@ class DiscourseSizeCharacter < ActiveRecord::Base
       DiscourseSize::InventoryManager.with_character_locks(character_ids) do
         reload
         boundaries =
-          linked_actions.to_a.group_by(&:character_id).transform_values do |actions|
-            actions.min_by { |action| [action.created_at, action.id] }
-          end
+          linked_actions
+            .to_a
+            .group_by(&:character_id)
+            .transform_values do |actions|
+              actions.min_by { |action| [action.created_at, action.id] }
+            end
         next if (boundaries.keys - character_ids).any?
 
         self.class.transaction do
           destroy!
-          self.class.where(id: boundaries.keys).find_each do |character|
-            character.recalculate_pending_actions!(from_action: boundaries.fetch(character.id))
-          end
+          self
+            .class
+            .where(id: boundaries.keys)
+            .find_each do |character|
+              character.recalculate_pending_actions!(from_action: boundaries.fetch(character.id))
+            end
         end
         return self
       end
@@ -303,8 +309,7 @@ class DiscourseSizeCharacter < ActiveRecord::Base
       previous_action =
         actions.where("(created_at, id) < (?, ?)", from_action.created_at, from_action.id).last
       current_chain_offset = previous_action&.end_offset.to_f
-      actions =
-        actions.where("(created_at, id) >= (?, ?)", from_action.created_at, from_action.id)
+      actions = actions.where("(created_at, id) >= (?, ?)", from_action.created_at, from_action.id)
     end
 
     actions.each do |action|
@@ -339,15 +344,16 @@ class DiscourseSizeCharacter < ActiveRecord::Base
     now = Time.zone.now
     pending = ordered_size_actions.where("end_time > ?", now)
     if from_action
-      pending =
-        pending.where("(created_at, id) >= (?, ?)", from_action.created_at, from_action.id)
+      pending = pending.where("(created_at, id) >= (?, ?)", from_action.created_at, from_action.id)
     end
 
     if first_action = pending.first
       previous_action =
-        ordered_size_actions
-          .where("(created_at, id) < (?, ?)", first_action.created_at, first_action.id)
-          .last
+        ordered_size_actions.where(
+          "(created_at, id) < (?, ?)",
+          first_action.created_at,
+          first_action.id,
+        ).last
       chain_time = [now, previous_action&.end_time].compact.max
       pending.each_with_index do |action, index|
         unless index == 0 && action.start_time && action.start_time <= now && chain_time == now

@@ -36,9 +36,7 @@ module DiscourseSize
       end
 
       # Check if we are AFTER the last action
-      if actions.last.end_time <= time
-        return safe_offset(character, actions.last.end_offset.to_f)
-      end
+      return safe_offset(character, actions.last.end_offset.to_f) if actions.last.end_time <= time
 
       # We are in a gap between actions. The size should be the end_offset of the most recent past action.
       last_past_action = actions.reverse_each.find { |a| a.end_time <= time }
