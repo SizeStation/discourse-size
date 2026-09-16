@@ -274,9 +274,7 @@ class DiscourseSizeCharacter < ActiveRecord::Base
       size_change = action.size_change
 
       if item
-        is_self_effect =
-          item.self_effect.present? &&
-            (action.parent_action_id.present? || action.action_type == item.self_effect)
+        is_self_effect = item.self_effect.present? && action.parent_action_id.present?
         if is_self_effect
           effect = item.self_effect
           amount = item.self_amount.to_f

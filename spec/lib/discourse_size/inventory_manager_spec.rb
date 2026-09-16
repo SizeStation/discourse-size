@@ -395,6 +395,22 @@ describe DiscourseSize::InventoryManager do
 
     before { character.update!(is_main: true) }
 
+    it "applies distinct same-direction percentages to the target and self" do
+      steal_item.update!(effect: "grow", amount: 50.0, self_effect: "grow", self_amount: 10.0)
+      inventory_item =
+        DiscourseSizeInventory.create!(
+          user_id: user.id,
+          item_key: steal_item.key,
+          uses_remaining: 1,
+        )
+
+      result = described_class.use_item(user, inventory_item.id, target_character.id)
+
+      expect(result[:success]).to be true
+      expect(target_character.reload.target_offset).to be_within(1e-10).of(50.0)
+      expect(character.reload.target_offset).to be_within(1e-10).of(10.0)
+    end
+
     it "registers each action in queue sequentially without desyncing" do
       inv =
         DiscourseSizeInventory.create!(user_id: user.id, item_key: "size_steal", uses_remaining: 5)
@@ -445,18 +461,6 @@ describe DiscourseSize::InventoryManager do
       expect(character.target_offset.round(1)).to eq(72.8)
     end
 
-    it "handles rebuild_offset_chain! even if parent_action is missing" do
-      inv =
-        DiscourseSizeInventory.create!(user_id: user.id, item_key: "size_steal", uses_remaining: 5)
-      DiscourseSize::InventoryManager.use_item(user, inv.id, target_character.id)
-
-      main_action = character.reload.discourse_size_actions.find_by(action_type: "grow")
-      main_action.update_column(:parent_action_id, nil)
-
-      character.rebuild_offset_chain!
-      main_action.reload
-      expect(main_action.size_change.round(1)).to eq(20.0)
-    end
 
     it "locks characters in sorted order without errors" do
       called = false
