@@ -1212,7 +1212,7 @@ export default class DiscourseSizeGrowthGraph extends Component {
                       {{else if (eq activity.action_type "set_size")}}
                         {{i18n "discourse_size.activity.set_size_to"}}
                         {{formatSize0
-                          @model.character.current_size
+                          activity.end_total_size
                           @model.character.measurement_system
                         }}
                       {{else if (eq activity.action_type "property_change")}}
