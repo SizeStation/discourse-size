@@ -38,6 +38,118 @@ describe DiscourseSizeCharacter do
     expect(character_1.is_main).to be false
   end
 
+  describe "#destroy_with_linked_effects!" do
+    fab!(:actor, :user)
+    fab!(:main_character) do
+      Fabricate(
+        :discourse_size_character,
+        user: actor,
+        is_main: true,
+        character_type: DiscourseSizeCharacter::TYPE_GAME,
+        base_size: 100.0,
+      )
+    end
+    fab!(:paired_item) do
+      DiscourseSizeShopItem.create!(
+        key: "paired_growth",
+        name: "Paired growth",
+        price: 0,
+        effect: "grow",
+        amount: 50.0,
+        self_effect: "grow",
+        self_amount: 20.0,
+        duration_minutes: 0,
+        uses: 1,
+      )
+    end
+    fab!(:growth_item) do
+      DiscourseSizeShopItem.create!(
+        key: "grow_half",
+        name: "Grow half",
+        price: 0,
+        effect: "grow",
+        amount: 50.0,
+        duration_minutes: 0,
+        uses: 1,
+      )
+    end
+
+    before do
+      freeze_time
+      inventory_item =
+        DiscourseSizeInventory.create!(
+          user_id: actor.id,
+          item_key: paired_item.key,
+          uses_remaining: 1,
+        )
+      DiscourseSize::InventoryManager.use_item(actor, inventory_item.id, character_1.id)
+    end
+
+    it "recalculates surviving percentage effects after deleting linked self-effects" do
+      main_character.reload.add_queued_action(
+        action_type: "grow",
+        size_change: 60.0,
+        duration_minutes: 0,
+        user_id: actor.id,
+        item_key: growth_item.key,
+      )
+      expect(main_character.current_size).to eq(180.0)
+      linked_action = main_character.discourse_size_actions.find_by!(item_key: paired_item.key)
+
+      character_1.destroy_with_linked_effects!
+
+      expect(DiscourseSizeCharacter.exists?(character_1.id)).to be false
+      expect(DiscourseSizeAction.exists?(linked_action.id)).to be false
+      expect(main_character.reload.current_size).to eq(150.0)
+      expect(main_character.target_offset).to eq(50.0)
+      remaining_action = main_character.discourse_size_actions.sole
+      expect(remaining_action.start_offset).to eq(0.0)
+      expect(remaining_action.end_offset).to eq(50.0)
+      expect(remaining_action.size_change).to eq(50.0)
+    end
+
+    it "returns surviving characters to their base when no size effects remain" do
+      character_1.destroy_with_linked_effects!
+
+      expect(main_character.reload.current_size).to eq(100.0)
+      expect(main_character.current_offset).to eq(0.0)
+      expect(main_character.target_offset).to eq(0.0)
+      expect(main_character.discourse_size_actions).to be_empty
+    end
+
+    it "recalculates active and queued effects on surviving characters" do
+      [60.0, 90.0].each do |size_change|
+        main_character.reload.add_queued_action(
+          action_type: "grow",
+          size_change: size_change,
+          duration_minutes: 60,
+          user_id: actor.id,
+          item_key: growth_item.key,
+        )
+      end
+      freeze_time 30.minutes.from_now
+
+      character_1.destroy_with_linked_effects!
+
+      expect(main_character.reload.current_size).to be_within(1e-6).of(125.0)
+      expect(main_character.base_size + main_character.target_offset).to eq(225.0)
+      expect(main_character.size_at(2.hours.from_now)).to eq(225.0)
+    end
+
+    it "rolls back deletion if a surviving character cannot be recalculated" do
+      main_character.update_column(:character_type, "invalid")
+      action_ids = DiscourseSizeAction.order(:id).pluck(:id)
+
+      expect { character_1.destroy_with_linked_effects! }.to raise_error(
+        ActiveRecord::RecordInvalid,
+      )
+
+      expect(DiscourseSizeCharacter.exists?(character_1.id)).to be true
+      expect(DiscourseSizeAction.order(:id).pluck(:id)).to eq(action_ids)
+      expect(main_character.reload.target_offset).to eq(20.0)
+    end
+  end
+
   describe "#update!" do
     fab!(:growth_item) do
       DiscourseSizeShopItem.create!(

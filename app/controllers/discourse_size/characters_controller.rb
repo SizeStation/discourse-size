@@ -102,7 +102,7 @@ module DiscourseSize
         raise Discourse::InvalidAccess
       end
 
-      character.destroy
+      character.destroy_with_linked_effects!
       render json: success_json
     end
 

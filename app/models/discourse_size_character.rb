@@ -85,6 +85,25 @@ class DiscourseSizeCharacter < ActiveRecord::Base
     character_type == TYPE_NORMAL
   end
 
+  def destroy_with_linked_effects!
+    character_ids = [id]
+
+    loop do
+      character_ids |= linked_character_ids
+      DiscourseSize::InventoryManager.with_character_locks(character_ids) do
+        reload
+        affected_ids = linked_character_ids
+        next if (affected_ids - character_ids).any?
+
+        self.class.transaction do
+          destroy!
+          self.class.where(id: affected_ids).find_each(&:recalculate_pending_actions!)
+        end
+        return self
+      end
+    end
+  end
+
   def update_size_target(amount)
     sync_offset!
     self.start_offset = self.current_offset
@@ -392,6 +411,14 @@ class DiscourseSizeCharacter < ActiveRecord::Base
   end
 
   private
+
+  def linked_character_ids
+    DiscourseSizeAction
+      .where(parent_action_id: discourse_size_actions.select(:id))
+      .where.not(character_id: id)
+      .distinct
+      .pluck(:character_id)
+  end
 
   def trim_fields
     self.name = name&.strip
