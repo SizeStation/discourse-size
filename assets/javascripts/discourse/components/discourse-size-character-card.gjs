@@ -8,9 +8,9 @@ import { trustHTML } from "@ember/template";
 import { eq, gt, or } from "truth-helpers";
 import DButton from "discourse/components/d-button";
 import icon from "discourse/helpers/d-icon";
-import formatDate from "discourse/helpers/format-date";
 import { ajax } from "discourse/lib/ajax";
 import { popupAjaxError } from "discourse/lib/ajax-error";
+import dAgeWithTooltip from "discourse/ui-kit/helpers/d-age-with-tooltip";
 import { i18n } from "discourse-i18n";
 import abs from "../helpers/abs";
 import formatSize0 from "../helpers/format-size";
@@ -955,11 +955,9 @@ export default class DiscourseSizeCharacterCard extends Component {
           <ul>
             {{#each this.recentActions as |activity|}}
               <li>
-                <span class="activity-date">{{formatDate
-                    activity.created_at
-                    format="medium"
-                  }}
-                  ago</span>
+                <span class="activity-date">
+                  {{dAgeWithTooltip activity.created_at}}
+                </span>
                 &mdash;
                 <span class="activity-text">
                   <strong>
