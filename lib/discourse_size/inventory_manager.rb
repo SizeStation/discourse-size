@@ -61,7 +61,7 @@ module ::DiscourseSize
       acquire_locks.call(ids)
     end
 
-    def self.use_item(user, inventory_item_id, target_character_id)
+    def self.use_item(user, inventory_item_id, target_character_id, confirm_no_size_change: false)
       return { error: "Item not in inventory" } if user.nil? || inventory_item_id.blank?
 
       DistributedMutex.synchronize("discourse_size_use_item_#{inventory_item_id}") do
@@ -109,6 +109,17 @@ module ::DiscourseSize
             character.reload
             main_char&.reload
             inventory_item.reload(lock: true)
+
+            unless confirm_no_size_change
+              no_size_effects = [no_size_effect(character, item.effect, item.amount)]
+              if main_char&.game?
+                no_size_effects << no_size_effect(main_char, item.self_effect, item.self_amount)
+              end
+              no_size_effects.compact!
+              if no_size_effects.any?
+                next { confirmation_required: true, no_size_effects: no_size_effects }
+              end
+            end
 
             # Apply effect
             # Sequential stacking logic
@@ -213,6 +224,12 @@ module ::DiscourseSize
         end
       end
     end
+
+    def self.no_size_effect(character, effect, amount)
+      reason = character.no_size_change_reason(effect_type: effect, effect_amount: amount)
+      { character_name: character.name, reason: reason } if reason
+    end
+    private_class_method :no_size_effect
 
     def self.refund_action(action)
       character_ids = [action.character_id]

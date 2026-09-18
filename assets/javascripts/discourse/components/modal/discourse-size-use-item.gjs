@@ -206,13 +206,30 @@ export default class DiscourseSizeUseItem extends Component {
     }
 
     try {
-      const result = await ajax("/size/inventory/use", {
+      const data = {
+        inventory_item_id: item.id,
+        character_id: char.id,
+      };
+      let result = await ajax("/size/inventory/use", {
         type: "POST",
-        data: {
-          inventory_item_id: item.id,
-          character_id: this.args.model.character.id,
-        },
+        data,
       });
+
+      if (result.confirmation_required) {
+        const warnings = result.no_size_effects.map((effect) =>
+          i18n(`discourse_size.inventory.${effect.reason}_warning`, {
+            character_name: effect.character_name,
+          })
+        );
+        warnings.push(i18n("discourse_size.inventory.no_size_change_confirm"));
+        if (!confirm(warnings.join("\n\n"))) {
+          return;
+        }
+        result = await ajax("/size/inventory/use", {
+          type: "POST",
+          data: { ...data, confirm_no_size_change: true },
+        });
+      }
 
       if (result.success) {
         if (result.capped_type) {
@@ -229,6 +246,7 @@ export default class DiscourseSizeUseItem extends Component {
       }
     } catch (e) {
       popupAjaxError(e);
+    } finally {
       this.isUsing = false;
       this.usingItemId = null;
       const nextDisabled = new Set(this.disabledItemIds);

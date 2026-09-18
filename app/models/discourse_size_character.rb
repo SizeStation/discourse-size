@@ -246,6 +246,23 @@ class DiscourseSizeCharacter < ActiveRecord::Base
     false
   end
 
+  def no_size_change_reason(effect_type:, effect_amount:)
+    # Match the queued action's stored endpoint, including base-relative float rounding.
+    start_offset = ordered_size_actions.last&.end_offset.to_f
+    start_total = base_size + start_offset
+    action = DiscourseSizeAction.new(effect_type: effect_type, effect_amount: effect_amount)
+    new_total = action.size_after_effect(start_total).clamp(MIN_SIZE, MAX_SIZE)
+    end_offset = new_total - base_size
+    stored_total = base_size + end_offset
+    return unless stored_total.clamp(MIN_SIZE, MAX_SIZE) == start_total.clamp(MIN_SIZE, MAX_SIZE)
+
+    if start_total <= MIN_SIZE && new_total <= MIN_SIZE
+      "minimum_size"
+    else
+      "unchanged_size"
+    end
+  end
+
   def add_queued_action(
     action_type:,
     size_change:,

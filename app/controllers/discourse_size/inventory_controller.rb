@@ -26,6 +26,7 @@ module DiscourseSize
           current_user,
           params[:inventory_item_id],
           params[:character_id],
+          confirm_no_size_change: params[:confirm_no_size_change].to_s == "true",
         )
 
       if result[:success]
@@ -41,6 +42,8 @@ module DiscourseSize
           )
         end
         render json: payload
+      elsif result[:confirmation_required]
+        render json: result
       else
         render json: { failed: true, message: result[:error] }, status: :unprocessable_content
       end
