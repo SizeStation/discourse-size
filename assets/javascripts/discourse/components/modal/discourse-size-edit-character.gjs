@@ -14,7 +14,7 @@ import icon from "discourse/helpers/d-icon";
 import { ajax } from "discourse/lib/ajax";
 import { i18n } from "discourse-i18n";
 import EmailGroupUserChooser from "select-kit/components/email-group-user-chooser";
-import { calculateTargetSize } from "../../lib/size-calculator";
+import { calculateTargetSize, isInfiniteSize } from "../../lib/size-calculator";
 import { formatSize, getBestUnit, UNITS } from "../../lib/size-formatter";
 import DiscourseSizeTriggerHelp from "./discourse-size-trigger-help";
 
@@ -68,8 +68,12 @@ export default class DiscourseSizeEditCharacter extends Component {
     this.age = ov.age ?? char.age ?? "";
     this.species = ov.species ?? char.species ?? "";
     this.description = ov.description ?? char.description ?? "";
-    this.baseSize =
-      ov.base_size != null ? parseFloat(ov.base_size) : char.base_size || 170.0;
+    const rawBase = ov.base_size != null ? ov.base_size : char.base_size;
+    this.baseSize = isInfiniteSize(rawBase)
+      ? Infinity
+      : rawBase != null
+        ? parseFloat(rawBase)
+        : 170.0;
     this.isMain = ov.is_main ?? (char.is_main || false);
     this.characterType = char.character_type || "game";
     this.showComparison = ov.show_comparison ?? char.show_comparison !== false;
@@ -101,13 +105,18 @@ export default class DiscourseSizeEditCharacter extends Component {
       char.current_size != null
         ? char.current_size
         : this.baseSize;
-    const preferredSystem =
-      this.currentUser?.discourse_size_settings?.measurement_system ||
-      char.measurement_system ||
-      "imperial";
-    const unit = getBestUnit(initialSize, preferredSystem);
-    this.sizeUnit = unit.id;
-    this.displaySize = parseFloat((initialSize / unit.factor).toPrecision(5));
+    if (isInfiniteSize(initialSize)) {
+      this.sizeUnit = "cm";
+      this.displaySize = "∞";
+    } else {
+      const preferredSystem =
+        this.currentUser?.discourse_size_settings?.measurement_system ||
+        char.measurement_system ||
+        "imperial";
+      const unit = getBestUnit(initialSize, preferredSystem);
+      this.sizeUnit = unit.id;
+      this.displaySize = parseFloat((initialSize / unit.factor).toPrecision(5));
+    }
 
     this._initialDisplaySize = this.displaySize;
     this._initialSizeUnit = this.sizeUnit;
@@ -161,7 +170,13 @@ export default class DiscourseSizeEditCharacter extends Component {
     const char = this.args?.model?.character || {};
     const parent = (key) => char[key];
     if (field === "base_size") {
-      const originalSize = parseFloat(parent("base_size") || 0);
+      const original = parent("base_size");
+      const origInfinite = isInfiniteSize(original);
+      const curInfinite = isInfiniteSize(this.baseSizeInCm);
+      if (origInfinite || curInfinite) {
+        return origInfinite !== curInfinite;
+      }
+      const originalSize = parseFloat(original || 0);
       return (
         Math.abs(this.baseSizeInCm - originalSize) >
         Math.max(Math.abs(originalSize) * 1e-9, 1e-40)
@@ -194,13 +209,20 @@ export default class DiscourseSizeEditCharacter extends Component {
   resetField(field) {
     const char = this.args?.model?.character || {};
     if (field === "base_size") {
-      const originalSize = parseFloat(char.base_size || 170.0);
-      this.baseSize = originalSize;
-      const unit = getBestUnit(originalSize, this.preferredSystem);
-      this.sizeUnit = unit.id;
-      this.displaySize = parseFloat(
-        (originalSize / unit.factor).toPrecision(5)
-      );
+      const orig = char.base_size;
+      if (isInfiniteSize(orig)) {
+        this.baseSize = Infinity;
+        this.displaySize = "∞";
+        this.sizeUnit = "cm";
+      } else {
+        const originalSize = parseFloat(orig || 170.0);
+        this.baseSize = originalSize;
+        const unit = getBestUnit(originalSize, this.preferredSystem);
+        this.sizeUnit = unit.id;
+        this.displaySize = parseFloat(
+          (originalSize / unit.factor).toPrecision(5)
+        );
+      }
       return;
     }
     if (field === "properties") {
@@ -263,7 +285,11 @@ export default class DiscourseSizeEditCharacter extends Component {
       this.showComparison !== (orig("show_comparison") ?? true) ||
       this.isMain !== (orig("is_main") || false) ||
       this.characterType !== (char.character_type || "game") ||
-      parseFloat(this.displaySize) !== parseFloat(this._initialDisplaySize) ||
+      isInfiniteSize(this.displaySize) !==
+        isInfiniteSize(this._initialDisplaySize) ||
+      (!isInfiniteSize(this.displaySize) &&
+        parseFloat(this.displaySize) !==
+          parseFloat(this._initialDisplaySize)) ||
       this.sizeUnit !== this._initialSizeUnit ||
       !this._propsEqual(this.properties, origArr("properties")) ||
       !this._triggersEqual(this.triggers, origArr("triggers"))
@@ -310,6 +336,10 @@ export default class DiscourseSizeEditCharacter extends Component {
 
   _checkSize(val) {
     this.isClampedNotice = false;
+    if (this.characterType === "normal" && isInfiniteSize(val)) {
+      this.sizeError = null;
+      return;
+    }
     if (isNaN(val)) {
       this.sizeError = i18n("discourse_size.fields.invalid_number");
       return;
@@ -330,7 +360,7 @@ export default class DiscourseSizeEditCharacter extends Component {
         this.sizeError = null;
       }
     } else {
-      // Freeform/Roleplay: allow any positive number
+      // Freeform/Roleplay: allow any positive number or Infinity
       if (val <= 0) {
         this.sizeError = i18n("discourse_size.fields.size_greater_than_zero");
       } else {
@@ -346,6 +376,12 @@ export default class DiscourseSizeEditCharacter extends Component {
 
   @action
   onBaseSizeInput(event) {
+    const raw = (event.target.value ?? "").trim();
+    if (this.characterType === "normal" && isInfiniteSize(raw)) {
+      this.displaySize = "∞";
+      this.sizeError = null;
+      return;
+    }
     const val = parseFloat(event.target.value);
     this.displaySize = isNaN(val) ? event.target.value : val;
     this._checkSize(this.baseSizeInCm);
@@ -356,6 +392,10 @@ export default class DiscourseSizeEditCharacter extends Component {
     const newUnitId = event?.target ? event.target.value : event;
     const oldUnit = UNITS.find((u) => u.id === this.sizeUnit) || { factor: 1 };
     const newUnit = UNITS.find((u) => u.id === newUnitId) || { factor: 1 };
+    if (isInfiniteSize(this.displaySize)) {
+      this.sizeUnit = newUnitId;
+      return;
+    }
     const parsed = parseFloat(this.displaySize);
     if (!isNaN(parsed)) {
       const currentCm = parsed * oldUnit.factor;
@@ -368,12 +408,23 @@ export default class DiscourseSizeEditCharacter extends Component {
   }
 
   get baseSizeInCm() {
+    if (isInfiniteSize(this.displaySize)) {
+      return Infinity;
+    }
     const unit = UNITS.find((u) => u.id === this.sizeUnit) || { factor: 1 };
     return parseFloat(this.displaySize) * unit.factor;
   }
 
   @action
   onBaseSizeBlur(event) {
+    const raw = (event.target.value ?? "").trim();
+    if (this.characterType === "normal" && isInfiniteSize(raw)) {
+      this.displaySize = "∞";
+      this.sizeError = null;
+      this.isClampedNotice = false;
+      return;
+    }
+
     let val = parseFloat(event.target.value);
     const unit = UNITS.find((u) => u.id === this.sizeUnit) || { factor: 1 };
     let valCm = val * unit.factor;
@@ -445,7 +496,11 @@ export default class DiscourseSizeEditCharacter extends Component {
   async save() {
     // Final clamp before submitting
     const sizeEdited =
-      parseFloat(this.displaySize) !== parseFloat(this._initialDisplaySize) ||
+      isInfiniteSize(this.displaySize) !==
+        isInfiniteSize(this._initialDisplaySize) ||
+      (!isInfiniteSize(this.displaySize) &&
+        parseFloat(this.displaySize) !==
+          parseFloat(this._initialDisplaySize)) ||
       this.sizeUnit !== this._initialSizeUnit;
     let valCm = sizeEdited
       ? this.baseSizeInCm
@@ -459,10 +514,10 @@ export default class DiscourseSizeEditCharacter extends Component {
         valCm = this.max;
       }
     } else {
-      if (isNaN(valCm) || valCm < 1e-35) {
-        valCm = 1e-35;
-      } else if (valCm > 1e120) {
-        valCm = 1e120;
+      if (isInfiniteSize(valCm)) {
+        valCm = "Infinity";
+      } else if (isNaN(valCm) || valCm <= 0) {
+        valCm = 1.0;
       }
     }
     this.sizeError = null;
@@ -523,6 +578,18 @@ export default class DiscourseSizeEditCharacter extends Component {
         const overrideData = {};
 
         const _set = (k, cur, orig) => {
+          if (k === "base_size") {
+            const curInf = isInfiniteSize(cur);
+            const origInf = isInfiniteSize(orig);
+            if (curInf || origInf) {
+              if (curInf !== origInf) {
+                overrideData[k] = cur;
+              } else if (priorOv[k] !== undefined) {
+                overrideData[k] = null;
+              }
+              return;
+            }
+          }
           if (cur !== orig) {
             overrideData[k] = cur;
           } else if (priorOv[k] !== undefined) {
@@ -590,9 +657,15 @@ export default class DiscourseSizeEditCharacter extends Component {
       } else {
         const character = this.args.model.character;
         if (this.characterType === "normal") {
-          data.base_size = character.base_size;
-          if (valCm !== character.current_size) {
-            data.current_size = valCm;
+          data.base_size = isInfiniteSize(character.base_size)
+            ? "Infinity"
+            : character.base_size;
+          const curChanged =
+            isInfiniteSize(valCm) !== isInfiniteSize(character.current_size) ||
+            (!isInfiniteSize(valCm) &&
+              parseFloat(valCm) !== parseFloat(character.current_size));
+          if (curChanged) {
+            data.current_size = isInfiniteSize(valCm) ? "Infinity" : valCm;
           }
         }
         result = await ajax(
@@ -617,7 +690,7 @@ export default class DiscourseSizeEditCharacter extends Component {
 
   get refundAmount() {
     const char = this.args?.model?.character;
-    if (!char) {
+    if (!char || isInfiniteSize(char.base_size)) {
       return 0;
     }
 
@@ -1048,10 +1121,18 @@ export default class DiscourseSizeEditCharacter extends Component {
     this.age = char.age || "";
     this.species = char.species || "";
     this.description = char.description || "";
-    this.baseSize = parseFloat(char.base_size || 170.0);
-    const unit = getBestUnit(this.baseSize, this.preferredSystem);
-    this.sizeUnit = unit.id;
-    this.displaySize = parseFloat((this.baseSize / unit.factor).toPrecision(5));
+    if (isInfiniteSize(char.base_size)) {
+      this.baseSize = Infinity;
+      this.displaySize = "∞";
+      this.sizeUnit = "cm";
+    } else {
+      this.baseSize = parseFloat(char.base_size || 170.0);
+      const unit = getBestUnit(this.baseSize, this.preferredSystem);
+      this.sizeUnit = unit.id;
+      this.displaySize = parseFloat(
+        (this.baseSize / unit.factor).toPrecision(5)
+      );
+    }
     this.properties = parentArr("properties").map((p) => ({
       ...p,
       _valueUnit: p.property_type === "size" ? "cm" : undefined,
@@ -1353,15 +1434,17 @@ export default class DiscourseSizeEditCharacter extends Component {
               }}</span>
             <div class="size-input-wrapper">
               <input
-                type="number"
+                type={{if (eq this.characterType "normal") "text" "number"}}
+                inputmode={{if (eq this.characterType "normal") "decimal"}}
                 value={{this.displaySize}}
-                step="any"
+                step={{if (eq this.characterType "game") "any"}}
                 class="base-size-input"
                 {{on "input" this.onBaseSizeInput}}
                 {{on "blur" this.onBaseSizeBlur}}
               />
               <select
                 class="size-unit-selector"
+                disabled={{eq this.displaySize "∞"}}
                 {{on "change" this.onUnitChange}}
               >
                 {{#each this.units as |unit|}}

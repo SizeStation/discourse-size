@@ -1,6 +1,26 @@
 export const MIN_SIZE = 1e-35;
 export const MAX_SIZE = 1e120;
 
+export function isInfiniteSize(val) {
+  if (val === Infinity || val === -Infinity) {
+    return true;
+  }
+  if (typeof val === "string") {
+    const s = val.trim().toLowerCase();
+    return (
+      s === "infinity" ||
+      s === "+infinity" ||
+      s === "-infinity" ||
+      s === "∞" ||
+      s === "-∞" ||
+      s === "inf" ||
+      s === "+inf" ||
+      s === "-inf"
+    );
+  }
+  return false;
+}
+
 export function clampSize(value) {
   const size = parseFloat(value);
   return Number.isFinite(size)
@@ -9,18 +29,39 @@ export function clampSize(value) {
 }
 
 export function getActionStartSize(character, action) {
-  return clampSize(
+  const isNormal = character?.character_type === "normal";
+  const raw =
     action.start_size ??
-      parseFloat(character?.base_size ?? 0) +
-        parseFloat(action.start_offset ?? 0)
-  );
+    (isNormal && isInfiniteSize(character?.base_size)
+      ? Infinity
+      : parseFloat(character?.base_size ?? 0) +
+        parseFloat(action.start_offset ?? 0));
+  if (isNormal && isInfiniteSize(raw)) {
+    return Infinity;
+  }
+  if (isNormal && Number.isFinite(parseFloat(raw))) {
+    const val = parseFloat(raw);
+    return val <= 0 ? MIN_SIZE : val;
+  }
+  return clampSize(raw);
 }
 
 export function getActionEndSize(character, action) {
-  return clampSize(
+  const isNormal = character?.character_type === "normal";
+  const raw =
     action.end_size ??
-      parseFloat(character?.base_size ?? 0) + parseFloat(action.end_offset ?? 0)
-  );
+    (isNormal && isInfiniteSize(character?.base_size)
+      ? Infinity
+      : parseFloat(character?.base_size ?? 0) +
+        parseFloat(action.end_offset ?? 0));
+  if (isNormal && isInfiniteSize(raw)) {
+    return Infinity;
+  }
+  if (isNormal && Number.isFinite(parseFloat(raw))) {
+    const val = parseFloat(raw);
+    return val <= 0 ? MIN_SIZE : val;
+  }
+  return clampSize(raw);
 }
 
 export function getSizeActions(character) {
@@ -39,13 +80,25 @@ export function getSizeActions(character) {
 }
 
 export function calculateTargetSize(character) {
+  const isNormal = character?.character_type === "normal";
   if (!Array.isArray(character?.actions)) {
-    return clampSize(
+    const raw =
       character?.target_size ??
-        character?.current_size ??
-        parseFloat(character?.base_size ?? 0) +
-          parseFloat(character?.target_offset ?? character?.current_offset ?? 0)
-    );
+      character?.current_size ??
+      (isNormal && isInfiniteSize(character?.base_size)
+        ? Infinity
+        : parseFloat(character?.base_size ?? 0) +
+          parseFloat(
+            character?.target_offset ?? character?.current_offset ?? 0
+          ));
+    if (isNormal && isInfiniteSize(raw)) {
+      return Infinity;
+    }
+    if (isNormal && Number.isFinite(parseFloat(raw))) {
+      const val = parseFloat(raw);
+      return val <= 0 ? MIN_SIZE : val;
+    }
+    return clampSize(raw);
   }
 
   const actions = character.actions
@@ -58,9 +111,16 @@ export function calculateTargetSize(character) {
           new Date(b.created_at || b.start_time || 0) ||
         (a.id || 0) - (b.id || 0)
     );
-  return actions.length
-    ? getActionEndSize(character, actions[actions.length - 1])
-    : clampSize(character.base_size);
+  if (actions.length) {
+    return getActionEndSize(character, actions[actions.length - 1]);
+  }
+  if (isNormal && isInfiniteSize(character.base_size)) {
+    return Infinity;
+  }
+  if (isNormal && Number.isFinite(parseFloat(character.base_size))) {
+    return parseFloat(character.base_size);
+  }
+  return clampSize(character.base_size);
 }
 
 export function calculateSize(character, time = new Date()) {
@@ -68,18 +128,35 @@ export function calculateSize(character, time = new Date()) {
     return 0;
   }
 
+  const isNormal = character.character_type === "normal";
+
   // Omitted actions mean a summary payload, not an empty history.
   if (!Array.isArray(character.actions)) {
-    return clampSize(
+    const raw =
       character.current_size ??
-        character.target_size ??
-        parseFloat(character.base_size ?? 0) +
-          parseFloat(character.current_offset ?? character.target_offset ?? 0)
-    );
+      character.target_size ??
+      (isNormal && isInfiniteSize(character.base_size)
+        ? Infinity
+        : parseFloat(character.base_size ?? 0) +
+          parseFloat(character.current_offset ?? character.target_offset ?? 0));
+    if (isNormal && isInfiniteSize(raw)) {
+      return Infinity;
+    }
+    if (isNormal && Number.isFinite(parseFloat(raw))) {
+      const val = parseFloat(raw);
+      return val <= 0 ? MIN_SIZE : val;
+    }
+    return clampSize(raw);
   }
 
   const actions = getSizeActions(character);
   if (!actions.length) {
+    if (isNormal && isInfiniteSize(character.base_size)) {
+      return Infinity;
+    }
+    if (isNormal && Number.isFinite(parseFloat(character.base_size))) {
+      return parseFloat(character.base_size);
+    }
     return clampSize(character.base_size);
   }
 
@@ -92,6 +169,9 @@ export function calculateSize(character, time = new Date()) {
     const progress = (time - start) / (end - start);
     const startSize = getActionStartSize(character, active);
     const endSize = getActionEndSize(character, active);
+    if (startSize === Infinity || endSize === Infinity) {
+      return Infinity;
+    }
     if (progress <= 0) {
       return startSize;
     }
@@ -99,7 +179,8 @@ export function calculateSize(character, time = new Date()) {
       return endSize;
     }
     // Subtracting endpoints first loses a tiny destination when shrinking.
-    return clampSize((1 - progress) * startSize + progress * endSize);
+    const interpolated = (1 - progress) * startSize + progress * endSize;
+    return isNormal ? interpolated : clampSize(interpolated);
   }
 
   if (time < new Date(actions[0].start_time)) {
@@ -110,13 +191,24 @@ export function calculateSize(character, time = new Date()) {
     .slice()
     .reverse()
     .find((a) => new Date(a.end_time) <= time);
-  return past
-    ? getActionEndSize(character, past)
-    : clampSize(character.base_size);
+  if (past) {
+    return getActionEndSize(character, past);
+  }
+
+  if (isNormal && isInfiniteSize(character.base_size)) {
+    return Infinity;
+  }
+  if (isNormal && Number.isFinite(parseFloat(character.base_size))) {
+    return parseFloat(character.base_size);
+  }
+  return clampSize(character.base_size);
 }
 
 /** Compatibility only: adding this offset back to a large base can lose precision. */
 export function calculateOffset(character, time = new Date()) {
+  if (isInfiniteSize(character?.base_size)) {
+    return 0;
+  }
   const base = parseFloat(character?.base_size);
   return calculateSize(character, time) - (Number.isFinite(base) ? base : 0);
 }

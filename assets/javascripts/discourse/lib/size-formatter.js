@@ -2,6 +2,7 @@ import {
   calculateTargetSize,
   getActionEndSize,
   getSizeActions,
+  isInfiniteSize,
 } from "./size-calculator";
 
 export const COMPARISONS = [
@@ -630,7 +631,7 @@ function formatDuration(seconds) {
 }
 
 export function getGrowthComparison(character, currentSize) {
-  if (!character || !currentSize) {
+  if (!character || !currentSize || isInfiniteSize(currentSize)) {
     return null;
   }
 
@@ -642,7 +643,7 @@ export function getGrowthComparison(character, currentSize) {
   const targetSize = active
     ? getActionEndSize(c, active)
     : calculateTargetSize(c);
-  if (targetSize === currentSize) {
+  if (targetSize === currentSize || isInfiniteSize(targetSize)) {
     return null;
   }
 
@@ -725,6 +726,10 @@ export function getComparison(character) {
   const sizeCm = character.current_size;
   const name = character.name || "this character";
 
+  if (isInfiniteSize(sizeCm)) {
+    return `${name} is infinitely large.`;
+  }
+
   let rankText = `${name} is `;
 
   let best = COMPARISONS[0];
@@ -789,6 +794,10 @@ function smartFixed(val, system = "metric") {
 }
 
 export function formatSize(sizeCm, system = "metric") {
+  if (isInfiniteSize(sizeCm)) {
+    return String(sizeCm).startsWith("-") ? "-∞" : "∞";
+  }
+
   // We'll handle the default in the helper or component
   const parsedSize = parseFloat(sizeCm);
   if (isNaN(parsedSize) || parsedSize === 0) {

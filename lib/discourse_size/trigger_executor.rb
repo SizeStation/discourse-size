@@ -250,11 +250,7 @@ module ::DiscourseSize
         end_size = start_size
 
         if state[:new_size]
-          end_size =
-            state[:new_size].to_f.clamp(
-              DiscourseSizeCharacter::MIN_SIZE,
-              DiscourseSizeCharacter::MAX_SIZE,
-            )
+          end_size = state[:new_size].to_f
           character
             .discourse_size_actions
             .where(action_type: %w[grow shrink set_size])
@@ -262,9 +258,23 @@ module ::DiscourseSize
             .destroy_all
         end
 
-        size_change = end_size - start_size
-        start_offset = start_size - character.base_size
-        end_offset = end_size - character.base_size
+        size_change = (end_size.infinite? || start_size.infinite?) ? 0.0 : (end_size - start_size)
+        start_offset =
+          (
+            if (start_size.infinite? || character.base_size&.infinite?)
+              0.0
+            else
+              (start_size - character.base_size)
+            end
+          )
+        end_offset =
+          (
+            if (end_size.infinite? || character.base_size&.infinite?)
+              0.0
+            else
+              (end_size - character.base_size)
+            end
+          )
 
         # Apply instant property changes
         state[:property_changes].each do |name, value|
@@ -325,21 +335,41 @@ module ::DiscourseSize
             else
               animation_start_size + anim[:target_delta]
             end
-          animation_end_size =
-            animation_end_size.clamp(
-              DiscourseSizeCharacter::MIN_SIZE,
-              DiscourseSizeCharacter::MAX_SIZE,
+
+          anim_size_change =
+            (
+              if (animation_end_size.infinite? || animation_start_size.infinite?)
+                0.0
+              else
+                (animation_end_size - animation_start_size)
+              end
+            )
+          anim_start_offset =
+            (
+              if (animation_start_size.infinite? || character.base_size&.infinite?)
+                0.0
+              else
+                (animation_start_size - character.base_size)
+              end
+            )
+          anim_end_offset =
+            (
+              if (animation_end_size.infinite? || character.base_size&.infinite?)
+                0.0
+              else
+                (animation_end_size - character.base_size)
+              end
             )
 
           DiscourseSizeAction.create!(
             character_id: character.id,
             user_id: actor.id,
             action_type: anim[:action_type],
-            size_change: animation_end_size - animation_start_size,
+            size_change: anim_size_change,
             start_size: animation_start_size,
             end_size: animation_end_size,
-            start_offset: animation_start_size - character.base_size,
-            end_offset: animation_end_size - character.base_size,
+            start_offset: anim_start_offset,
+            end_offset: anim_end_offset,
             duration_minutes: anim[:duration_minutes],
             start_time: start_time,
             end_time: start_time + anim[:duration_minutes].minutes,

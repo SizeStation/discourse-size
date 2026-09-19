@@ -234,6 +234,9 @@ export default class DiscourseSizeCharacterCard extends Component {
   }
 
   get isMaxSize() {
+    if (this.args?.character?.character_type !== "game") {
+      return false;
+    }
     if (this.args?.character?.is_max_size) {
       return true;
     }
@@ -242,6 +245,9 @@ export default class DiscourseSizeCharacterCard extends Component {
   }
 
   get isMinSize() {
+    if (this.args?.character?.character_type !== "game") {
+      return false;
+    }
     if (this.args?.character?.is_min_size) {
       return true;
     }

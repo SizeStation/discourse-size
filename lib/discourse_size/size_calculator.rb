@@ -12,7 +12,10 @@ module DiscourseSize
           .order(start_time: :asc, id: :asc)
           .to_a
 
-      return clamp_size(character.base_size) if actions.empty?
+      if actions.empty?
+        return character.base_size.to_f if character.normal?
+        return clamp_size(character.base_size)
+      end
 
       active_action = actions.find { |action| action.start_time <= time && action.end_time > time }
       if active_action
@@ -20,8 +23,10 @@ module DiscourseSize
           (time - active_action.start_time) / (active_action.end_time - active_action.start_time)
         start_size = active_action.start_total_size(character.base_size)
         end_size = active_action.end_total_size(character.base_size)
+        return Float::INFINITY if start_size.infinite? || end_size.infinite?
         # Subtracting endpoints first can erase a tiny destination when shrinking.
-        return clamp_size((1 - progress) * start_size + progress * end_size)
+        interpolated = (1 - progress) * start_size + progress * end_size
+        return character.normal? ? interpolated : clamp_size(interpolated)
       end
 
       return actions.first.start_total_size(character.base_size) if actions.first.start_time > time
@@ -29,7 +34,7 @@ module DiscourseSize
       last_past_action = actions.reverse_each.find { |action| action.end_time <= time }
       return last_past_action.end_total_size(character.base_size) if last_past_action
 
-      clamp_size(character.base_size)
+      character.normal? ? character.base_size.to_f : clamp_size(character.base_size)
     end
 
     def self.clamp_size(value)
@@ -41,6 +46,7 @@ module DiscourseSize
 
     # Compatibility cache only; never reconstruct authoritative sizes from this offset.
     def self.calculate_offset(character, time = Time.now)
+      return 0.0 if character.base_size&.infinite?
       calculate_size(character, time) - character.base_size
     end
   end

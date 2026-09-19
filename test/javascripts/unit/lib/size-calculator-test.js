@@ -6,6 +6,7 @@ import {
   calculateTargetSize,
   getActionEndSize,
   getActionStartSize,
+  isInfiniteSize,
   MAX_SIZE,
   MIN_SIZE,
 } from "discourse/plugins/discourse-size/discourse/lib/size-calculator";
@@ -308,6 +309,88 @@ module("Unit | Lib | size-calculator", function () {
       calculatePropertyValue(character, "Tail", new Date(2000)),
       0,
       "zero property endpoints are not height-clamped"
+    );
+  });
+
+  test("isInfiniteSize identifies infinite values correctly", function (assert) {
+    assert.true(isInfiniteSize(Infinity));
+    assert.true(isInfiniteSize(-Infinity));
+    assert.true(isInfiniteSize("Infinity"));
+    assert.true(isInfiniteSize("+infinity"));
+    assert.true(isInfiniteSize("-infinity"));
+    assert.true(isInfiniteSize("∞"));
+    assert.true(isInfiniteSize("-∞"));
+    assert.true(isInfiniteSize("inf"));
+    assert.true(isInfiniteSize("+inf"));
+    assert.true(isInfiniteSize("-inf"));
+
+    assert.false(isInfiniteSize(100));
+    assert.false(isInfiniteSize("100"));
+    assert.false(isInfiniteSize(0));
+    assert.false(isInfiniteSize(null));
+    assert.false(isInfiniteSize(undefined));
+    assert.false(isInfiniteSize(NaN));
+  });
+
+  test("normal characters support unclamped sizes and infinity", function (assert) {
+    const tinyNormal = {
+      character_type: "normal",
+      base_size: 1e-40,
+    };
+    assert.strictEqual(
+      calculateSize(tinyNormal),
+      1e-40,
+      "normal character can be below MIN_SIZE"
+    );
+    assert.strictEqual(
+      calculateTargetSize(tinyNormal),
+      1e-40,
+      "normal character target size can be below MIN_SIZE"
+    );
+
+    const hugeNormal = {
+      character_type: "normal",
+      base_size: 1e150,
+    };
+    assert.strictEqual(
+      calculateSize(hugeNormal),
+      1e150,
+      "normal character can be above MAX_SIZE"
+    );
+    assert.strictEqual(
+      calculateTargetSize(hugeNormal),
+      1e150,
+      "normal character target size can be above MAX_SIZE"
+    );
+
+    const infiniteNormal = {
+      character_type: "normal",
+      base_size: Infinity,
+    };
+    assert.strictEqual(
+      calculateSize(infiniteNormal),
+      Infinity,
+      "normal character can have infinite size"
+    );
+    assert.strictEqual(
+      calculateTargetSize(infiniteNormal),
+      Infinity,
+      "normal character target size can be infinity"
+    );
+    assert.strictEqual(
+      calculateOffset(infiniteNormal),
+      0,
+      "infinite offset returns 0 without NaN"
+    );
+
+    const infiniteStringNormal = {
+      character_type: "normal",
+      base_size: "∞",
+    };
+    assert.strictEqual(
+      calculateSize(infiniteStringNormal),
+      Infinity,
+      "normal character base_size '∞' calculates to Infinity"
     );
   });
 });

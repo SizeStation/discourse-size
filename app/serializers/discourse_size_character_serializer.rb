@@ -86,6 +86,18 @@ class DiscourseSizeCharacterSerializer < ApplicationSerializer
     DiscourseSizeUserSetting.for_user(viewing_user).measurement_system
   end
 
+  def base_size
+    object.base_size&.infinite? ? "Infinity" : object.base_size
+  end
+
+  def current_size
+    object.current_size&.infinite? ? "Infinity" : object.current_size
+  end
+
+  def target_size
+    object.target_size&.infinite? ? "Infinity" : object.target_size
+  end
+
   def is_max_size
     object.is_max_size?
   end

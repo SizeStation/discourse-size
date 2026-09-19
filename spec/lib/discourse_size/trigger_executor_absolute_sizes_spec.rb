@@ -155,5 +155,18 @@ describe DiscourseSize::TriggerExecutor do
       freeze_time 30.seconds.from_now
       expect(character.current_size).to eq(target_size)
     end
+
+    it "allows normal characters to set sizes below MIN_SIZE or to Infinity via triggers" do
+      character.update!(character_type: DiscourseSizeCharacter::TYPE_NORMAL)
+
+      res_sub = execute_script("character.setSize(1e-40);")
+      expect(res_sub[:success]).to eq(true)
+      expect(character.reload.current_size).to eq(1e-40)
+
+      res_inf = execute_script("character.setSize(Infinity);")
+      expect(res_inf[:success]).to eq(true)
+      expect(character.reload.current_size).to eq(Float::INFINITY)
+      expect(character.reload.target_size).to eq(Float::INFINITY)
+    end
   end
 end

@@ -123,11 +123,15 @@ class DiscourseSizeActionSerializer < ApplicationSerializer
   end
 
   def start_size
-    object.start_total_size if %w[grow shrink set_size].include?(object.action_type)
+    return if %w[grow shrink set_size].exclude?(object.action_type)
+    size = object.start_total_size
+    size&.infinite? ? "Infinity" : size
   end
 
   def end_size
-    object.end_total_size if %w[grow shrink set_size].include?(object.action_type)
+    return if %w[grow shrink set_size].exclude?(object.action_type)
+    size = object.end_total_size
+    size&.infinite? ? "Infinity" : size
   end
 
   def end_total_size

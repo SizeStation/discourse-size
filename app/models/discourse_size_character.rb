@@ -59,19 +59,34 @@ class DiscourseSizeCharacter < ActiveRecord::Base
   def self.move_to_folder(user, character_ids, folder_id)
     where(id: character_ids, user_id: user.id).update_all(folder_id: folder_id)
   end
+  def base_size=(val)
+    if val.is_a?(String) &&
+         (val.strip == "∞" || val.strip.casecmp?("infinity") || val.strip.casecmp?("inf"))
+      super(Float::INFINITY)
+    else
+      super
+    end
+  end
+
   validates :base_size,
             numericality: {
               greater_than_or_equal_to: -> { SiteSetting.discourse_size_min_base_size },
               less_than_or_equal_to: -> { SiteSetting.discourse_size_max_base_size },
             },
             if: :game?
-  validates :base_size,
-            numericality: {
-              greater_than_or_equal_to: MIN_SIZE,
-              less_than_or_equal_to: MAX_SIZE,
-            },
-            if: :normal?
+  validate :validate_normal_base_size, if: :normal?
   validates :user_id, presence: true
+
+  def validate_normal_base_size
+    if base_size.blank?
+      errors.add(:base_size, :blank)
+      return
+    end
+
+    return if base_size == Float::INFINITY || (base_size.is_a?(Numeric) && base_size.positive?)
+
+    errors.add(:base_size, :greater_than, count: 0)
+  end
 
   has_many :discourse_size_actions, foreign_key: "character_id", dependent: :destroy
 
@@ -125,9 +140,22 @@ class DiscourseSizeCharacter < ActiveRecord::Base
   end
 
   def update_size(new_total_cm, actor)
-    new_total_cm = new_total_cm.to_f
-    new_total_cm = MIN_SIZE if new_total_cm < MIN_SIZE
-    new_total_cm = MAX_SIZE if new_total_cm > MAX_SIZE
+    if new_total_cm.is_a?(String) &&
+         (
+           new_total_cm.strip == "∞" || new_total_cm.strip.casecmp?("infinity") ||
+             new_total_cm.strip.casecmp?("inf")
+         )
+      new_total_cm = Float::INFINITY
+    else
+      new_total_cm = new_total_cm.to_f
+    end
+
+    if game?
+      new_total_cm = MIN_SIZE if new_total_cm < MIN_SIZE
+      new_total_cm = MAX_SIZE if new_total_cm > MAX_SIZE
+    else
+      new_total_cm = MIN_SIZE if !new_total_cm.infinite? && new_total_cm <= 0
+    end
 
     self.class.transaction do
       self.class.where(id: id).lock.load
@@ -137,7 +165,13 @@ class DiscourseSizeCharacter < ActiveRecord::Base
         .where("end_time > ?", Time.zone.now)
         .destroy_all
 
-      new_offset = new_total_cm - base_size
+      new_offset =
+        if new_total_cm.infinite? || base_size&.infinite?
+          0.0
+        else
+          new_total_cm - base_size
+        end
+
       self.current_offset = new_offset
       self.target_offset = new_offset
       self.start_offset = new_offset
@@ -148,11 +182,19 @@ class DiscourseSizeCharacter < ActiveRecord::Base
         character_id: id,
         user_id: actor.id,
         action_type: "set_size",
-        size_change: new_total_cm - old_target_size,
+        size_change:
+          (
+            if (new_total_cm.infinite? || old_target_size.infinite?)
+              0.0
+            else
+              (new_total_cm - old_target_size)
+            end
+          ),
         points_spent: 0,
         start_size: old_target_size,
         end_size: new_total_cm,
-        start_offset: old_target_size - base_size,
+        start_offset:
+          (old_target_size.infinite? || base_size&.infinite?) ? 0.0 : (old_target_size - base_size),
         end_offset: new_offset,
         duration_minutes: 0,
         start_time: Time.zone.now,
@@ -166,11 +208,16 @@ class DiscourseSizeCharacter < ActiveRecord::Base
   end
 
   def target_size
-    ordered_size_actions.last&.end_total_size(base_size) ||
-      DiscourseSize::SizeCalculator.clamp_size(base_size)
+    action_size = ordered_size_actions.last&.end_total_size(base_size)
+    if normal?
+      action_size || (base_size&.infinite? ? Float::INFINITY : base_size.to_f)
+    else
+      action_size || DiscourseSize::SizeCalculator.clamp_size(base_size)
+    end
   end
 
   def current_calculated_offset
+    return 0.0 if base_size&.infinite? || current_size&.infinite?
     DiscourseSize::SizeCalculator.calculate_offset(self)
   end
 
@@ -179,10 +226,12 @@ class DiscourseSizeCharacter < ActiveRecord::Base
   end
 
   def is_max_size?
+    return false unless game?
     current_size >= MAX_SIZE || (MAX_SIZE - current_size) / MAX_SIZE < 1e-12
   end
 
   def is_min_size?
+    return false unless game?
     current_size <= MIN_SIZE || (current_size - MIN_SIZE) / MIN_SIZE < 1e-12
   end
 
@@ -324,10 +373,12 @@ class DiscourseSizeCharacter < ActiveRecord::Base
   end
 
   def rebuild_offset_chain!(from_action: nil)
+    return if normal? && base_size&.infinite?
+
     self.class.transaction do
       self.class.where(id: id).lock.load
       actions = ordered_size_actions
-      current_total = DiscourseSize::SizeCalculator.clamp_size(base_size)
+      current_total = normal? ? base_size.to_f : DiscourseSize::SizeCalculator.clamp_size(base_size)
       if from_action
         previous_action =
           actions.where("(created_at, id) < (?, ?)", from_action.created_at, from_action.id).last
@@ -347,18 +398,20 @@ class DiscourseSizeCharacter < ActiveRecord::Base
               current_total + action.size_change
             end
         end
-        new_total = new_total.clamp(MIN_SIZE, MAX_SIZE)
+        new_total = new_total.clamp(MIN_SIZE, MAX_SIZE) if game?
         action.update!(
           size_change: new_total - current_total,
           start_size: current_total,
           end_size: new_total,
-          start_offset: current_total - base_size,
-          end_offset: new_total - base_size,
+          start_offset:
+            (current_total.infinite? || base_size&.infinite?) ? 0.0 : (current_total - base_size),
+          end_offset: (new_total.infinite? || base_size&.infinite?) ? 0.0 : (new_total - base_size),
         )
         current_total = new_total
       end
 
-      self.target_offset = current_total - base_size
+      self.target_offset =
+        (current_total.infinite? || base_size&.infinite?) ? 0.0 : (current_total - base_size)
       save!
       sync_offset!
     end

@@ -32,11 +32,33 @@ class DiscourseSizeAction < ActiveRecord::Base
   validates :effect_amount, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
 
   def start_total_size(base_size = character.base_size)
-    DiscourseSize::SizeCalculator.clamp_size(start_size || (base_size + start_offset.to_f))
+    raw = start_size || (base_size + start_offset.to_f)
+    if raw&.infinite?
+      Float::INFINITY
+    elsif character&.normal?
+      if !raw.to_f.finite? || raw.to_f <= 0
+        DiscourseSizeCharacter::MIN_SIZE
+      else
+        raw.to_f
+      end
+    else
+      DiscourseSize::SizeCalculator.clamp_size(raw)
+    end
   end
 
   def end_total_size(base_size = character.base_size)
-    DiscourseSize::SizeCalculator.clamp_size(end_size || (base_size + end_offset.to_f))
+    raw = end_size || (base_size + end_offset.to_f)
+    if raw&.infinite?
+      Float::INFINITY
+    elsif character&.normal?
+      if !raw.to_f.finite? || raw.to_f <= 0
+        DiscourseSizeCharacter::MIN_SIZE
+      else
+        raw.to_f
+      end
+    else
+      DiscourseSize::SizeCalculator.clamp_size(raw)
+    end
   end
 
   def size_after_effect(start_size)

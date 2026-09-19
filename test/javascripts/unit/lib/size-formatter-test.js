@@ -2,6 +2,7 @@ import { module, test } from "qunit";
 import {
   formatSize,
   getBestUnit,
+  getComparison,
   getGrowthComparison,
 } from "discourse/plugins/discourse-size/discourse/lib/size-formatter";
 
@@ -97,5 +98,23 @@ module("Unit | discourse-size | size-formatter", function () {
     assert.strictEqual(getBestUnit(1e-16).id, "am");
     assert.strictEqual(getBestUnit(1e-13).id, "fm");
     assert.strictEqual(getBestUnit(1e-10).id, "pm");
+  });
+
+  test("formatSize formats infinite sizes as ∞", function (assert) {
+    assert.strictEqual(formatSize(Infinity), "∞");
+    assert.strictEqual(formatSize("Infinity"), "∞");
+    assert.strictEqual(formatSize("∞"), "∞");
+    assert.strictEqual(formatSize(Infinity, "imperial"), "∞");
+    assert.strictEqual(formatSize("Infinity", "imperial"), "∞");
+    assert.strictEqual(formatSize("∞", "imperial"), "∞");
+  });
+
+  test("getComparison handles infinite sizes", function (assert) {
+    const character = { name: "Titan", current_size: Infinity };
+    assert.strictEqual(getComparison(character), "Titan is infinitely large.");
+    const charString = { name: "Titan", current_size: "Infinity" };
+    assert.strictEqual(getComparison(charString), "Titan is infinitely large.");
+    const charSymbol = { name: "Titan", current_size: "∞" };
+    assert.strictEqual(getComparison(charSymbol), "Titan is infinitely large.");
   });
 });

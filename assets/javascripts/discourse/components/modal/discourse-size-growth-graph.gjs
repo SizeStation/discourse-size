@@ -192,6 +192,9 @@ export default class DiscourseSizeGrowthGraph extends Component {
   }
 
   get isMaxSize() {
+    if (this.character?.character_type !== "game") {
+      return false;
+    }
     if (this.character?.is_max_size) {
       return true;
     }
@@ -200,6 +203,9 @@ export default class DiscourseSizeGrowthGraph extends Component {
   }
 
   get isMinSize() {
+    if (this.character?.character_type !== "game") {
+      return false;
+    }
     if (this.character?.is_min_size) {
       return true;
     }
