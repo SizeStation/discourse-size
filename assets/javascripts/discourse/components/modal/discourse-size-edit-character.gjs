@@ -1438,7 +1438,8 @@ export default class DiscourseSizeEditCharacter extends Component {
                 inputmode={{if (eq this.characterType "normal") "decimal"}}
                 value={{this.displaySize}}
                 step={{if (eq this.characterType "game") "any"}}
-                class="base-size-input"
+                class="base-size-input
+                  {{if (eq this.displaySize '∞') 'is-infinite'}}"
                 {{on "input" this.onBaseSizeInput}}
                 {{on "blur" this.onBaseSizeBlur}}
               />

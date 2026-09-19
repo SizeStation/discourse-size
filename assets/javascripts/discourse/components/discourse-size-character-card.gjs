@@ -22,6 +22,7 @@ import {
   getActionStartSize,
   getSizeActions,
   isAnimating,
+  isInfiniteSize,
 } from "../lib/size-calculator";
 import {
   formatSize,
@@ -199,6 +200,10 @@ export default class DiscourseSizeCharacterCard extends Component {
 
   get formattedSize() {
     return formatSize(this.calculatedSizeCm, this.preferredSystem);
+  }
+
+  get isInfiniteSize() {
+    return isInfiniteSize(this.calculatedSizeCm);
   }
 
   get targetSizeCm() {
@@ -743,9 +748,21 @@ export default class DiscourseSizeCharacterCard extends Component {
           </div>
 
           <div class="character-header-meta">
-            <span class="header-meta-card size">
+            <span
+              class="header-meta-card size
+                {{if this.isInfiniteSize 'is-infinite'}}"
+            >
               <span class="label">Size</span>
-              <span class="value">{{this.formattedSize}}</span>
+              <span class="value">
+                {{#if this.isInfiniteSize}}
+                  <span
+                    class="ds-infinity-symbol"
+                    aria-label="infinity"
+                  >∞</span>
+                {{else}}
+                  {{this.formattedSize}}
+                {{/if}}
+              </span>
             </span>
             {{#if @character.gender}}
               <span class="header-meta-card gender">
@@ -831,7 +848,19 @@ export default class DiscourseSizeCharacterCard extends Component {
                   </div>
 
                   <div class="progress-bar-wrapper">
-                    <span class="size-bound">{{this.formattedStartSize}}</span>
+                    <span
+                      class="size-bound
+                        {{if (eq this.formattedStartSize '∞') 'is-infinite'}}"
+                    >
+                      {{#if (eq this.formattedStartSize "∞")}}
+                        <span
+                          class="ds-infinity-symbol"
+                          aria-label="infinity"
+                        >∞</span>
+                      {{else}}
+                        {{this.formattedStartSize}}
+                      {{/if}}
+                    </span>
                     <div class="progress-bar-mini">
                       <div
                         class="progress-fill"
@@ -840,7 +869,19 @@ export default class DiscourseSizeCharacterCard extends Component {
                         }}
                       ></div>
                     </div>
-                    <span class="size-bound">{{this.formattedTargetSize}}</span>
+                    <span
+                      class="size-bound
+                        {{if (eq this.formattedTargetSize '∞') 'is-infinite'}}"
+                    >
+                      {{#if (eq this.formattedTargetSize "∞")}}
+                        <span
+                          class="ds-infinity-symbol"
+                          aria-label="infinity"
+                        >∞</span>
+                      {{else}}
+                        {{this.formattedTargetSize}}
+                      {{/if}}
+                    </span>
                   </div>
                   {{#if this.formattedQueuedActions}}
                     <div class="queued-actions">
@@ -1059,7 +1100,9 @@ export default class DiscourseSizeCharacterCard extends Component {
                       "discourse_size.activity.set_size"
                       character=@character.name
                       size=(formatSize0
-                        activity.end_total_size @character.measurement_system
+                        activity.end_total_size
+                        @character.measurement_system
+                        plainText=true
                       )
                     }}
                   {{else if (eq activity.action_type "trigger")}}

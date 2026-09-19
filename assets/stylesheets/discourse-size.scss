@@ -40,6 +40,12 @@
   .ds-card-size {
     color: var(--tertiary);
     font-weight: 600;
+
+    .ds-infinity-symbol {
+      font-size: 1.35em;
+      line-height: 1;
+      vertical-align: middle;
+    }
   }
 
   .ds-card-status {
@@ -53,6 +59,17 @@
       vertical-align: middle;
     }
   }
+}
+
+.ds-infinity-symbol {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.55em;
+  font-weight: 700;
+  line-height: 1;
+  vertical-align: middle;
+  transform: translateY(-0.02em);
 }
 
 .growing {
@@ -94,6 +111,12 @@
     color: var(--tertiary);
     font-weight: 600;
     margin-top: 1px;
+
+    .ds-infinity-symbol {
+      font-size: 1.4em;
+      line-height: 1;
+      vertical-align: middle;
+    }
   }
 
   .ds-profile-status {
@@ -807,6 +830,20 @@
         &.species .value {
           color: #4caf50;
         }
+
+        &.size.is-infinite {
+          .value {
+            display: flex;
+            align-items: center;
+          }
+
+          .ds-infinity-symbol {
+            font-size: 1.75em;
+            font-weight: 700;
+            color: var(--tertiary);
+            text-shadow: 0 0 10px var(--tertiary-low);
+          }
+        }
       }
     }
 
@@ -891,6 +928,12 @@
           white-space: nowrap;
           min-width: 60px;
           text-align: center;
+
+          .ds-infinity-symbol {
+            font-size: 1.5em;
+            line-height: 1;
+            vertical-align: middle;
+          }
         }
 
         .progress-bar-mini {
@@ -2467,6 +2510,13 @@
   input {
     flex: 1;
     margin-bottom: 0 !important;
+
+    &.is-infinite {
+      font-size: 1.6em;
+      font-weight: 700;
+      color: var(--tertiary);
+      text-align: center;
+    }
   }
 
   select {
