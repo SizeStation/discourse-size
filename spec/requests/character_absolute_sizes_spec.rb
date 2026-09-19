@@ -39,6 +39,30 @@ RSpec.describe DiscourseSize::CharactersController do
       )
     end
 
+    it "preserves infinity signs in size edits and their action history" do
+      character.update_size(Float::INFINITY, user)
+      previous_size = "Infinity"
+
+      %w[-Infinity Infinity -Infinity].each do |size|
+        put "/size/characters/#{character.id}.json", params: { base_size: size, current_size: size }
+
+        expect(response.status).to eq(200)
+        payload = response.parsed_body["character"]["discourse_size_character"]
+        expect(payload).to include(
+          "base_size" => size,
+          "current_size" => size,
+          "target_size" => size,
+        )
+        action = payload["actions"].max_by { |entry| entry["id"] }
+        expect(action).to include(
+          "start_size" => previous_size,
+          "end_size" => size,
+          "end_total_size" => size,
+        )
+        previous_size = size
+      end
+    end
+
     it "leaves the queue untouched when only other profile fields change" do
       character.add_queued_action(
         action_type: "set_size",
