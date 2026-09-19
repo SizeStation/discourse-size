@@ -66,10 +66,12 @@ class DiscourseSizeCharacter < ActiveRecord::Base
     return -Float::INFINITY if val == -Float::INFINITY
     if val.is_a?(String)
       match = val.strip.match(INFINITE_SIZE_REGEX)
-      if match
-        return match[1] == "-" ? -Float::INFINITY : Float::INFINITY
+      return match[1] == "-" ? -Float::INFINITY : Float::INFINITY if match
+      begin
+        Float(val)
+      rescue StandardError
+        0.0
       end
-      Float(val) rescue 0.0
     elsif val.is_a?(Numeric)
       val.to_f
     else
