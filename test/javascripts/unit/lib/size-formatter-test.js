@@ -128,8 +128,14 @@ module("Unit | discourse-size | size-formatter", function () {
     const negCharacter = { name: "Ant", current_size: -Infinity };
     assert.strictEqual(getComparison(negCharacter), "Ant is infinitely small.");
     const negCharString = { name: "Ant", current_size: "-Infinity" };
-    assert.strictEqual(getComparison(negCharString), "Ant is infinitely small.");
+    assert.strictEqual(
+      getComparison(negCharString),
+      "Ant is infinitely small."
+    );
     const negCharSymbol = { name: "Ant", current_size: "-∞" };
-    assert.strictEqual(getComparison(negCharSymbol), "Ant is infinitely small.");
+    assert.strictEqual(
+      getComparison(negCharSymbol),
+      "Ant is infinitely small."
+    );
   });
 });

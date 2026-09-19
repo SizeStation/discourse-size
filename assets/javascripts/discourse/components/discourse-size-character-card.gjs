@@ -762,7 +762,11 @@ export default class DiscourseSizeCharacterCard extends Component {
                       "-infinity"
                       "infinity"
                     }}
-                  >{{this.formattedSize}}</span>
+                  >{{if
+                      (eq this.formattedSize "-∞")
+                      "−∞"
+                      this.formattedSize
+                    }}</span>
                 {{else}}
                   {{this.formattedSize}}
                 {{/if}}

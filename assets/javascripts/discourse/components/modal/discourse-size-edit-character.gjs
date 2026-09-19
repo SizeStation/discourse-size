@@ -74,7 +74,9 @@ export default class DiscourseSizeEditCharacter extends Component {
     this.description = ov.description ?? char.description ?? "";
     const rawBase = ov.base_size != null ? ov.base_size : char.base_size;
     this.baseSize = isInfiniteSize(rawBase)
-      ? (isNegativeInfinity(rawBase) ? -Infinity : Infinity)
+      ? isNegativeInfinity(rawBase)
+        ? -Infinity
+        : Infinity
       : rawBase != null
         ? parseFloat(rawBase)
         : 170.0;
@@ -182,8 +184,7 @@ export default class DiscourseSizeEditCharacter extends Component {
           return true;
         }
         return (
-          isNegativeInfinity(original) !==
-          isNegativeInfinity(this.baseSizeInCm)
+          isNegativeInfinity(original) !== isNegativeInfinity(this.baseSizeInCm)
         );
       }
       const originalSize = parseFloat(original || 0);
@@ -690,7 +691,9 @@ export default class DiscourseSizeEditCharacter extends Component {
         const character = this.args.model.character;
         if (this.characterType === "normal") {
           data.base_size = isInfiniteSize(valCm)
-            ? (isNegativeInfinity(valCm) ? "-Infinity" : "Infinity")
+            ? isNegativeInfinity(valCm)
+              ? "-Infinity"
+              : "Infinity"
             : valCm;
           const curChanged =
             isInfiniteSize(valCm) !== isInfiniteSize(character.current_size) ||
@@ -1473,7 +1476,10 @@ export default class DiscourseSizeEditCharacter extends Component {
                 inputmode="decimal"
                 value={{this.displaySize}}
                 class="base-size-input
-                  {{if (or (eq this.displaySize '∞') (eq this.displaySize '-∞')) 'is-infinite'}}"
+                  {{if
+                    (or (eq this.displaySize '∞') (eq this.displaySize '-∞'))
+                    'is-infinite'
+                  }}"
                 {{on "input" this.onBaseSizeInput}}
                 {{on "blur" this.onBaseSizeBlur}}
               />
