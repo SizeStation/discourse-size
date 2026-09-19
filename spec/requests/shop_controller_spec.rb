@@ -85,7 +85,12 @@ describe DiscourseSize::ShopController do
     end
 
     it "keeps retired inventory usable and refundable through the existing endpoints" do
-      character = Fabricate(:discourse_size_character, user: user)
+      character =
+        Fabricate(
+          :discourse_size_character,
+          user: user,
+          character_type: DiscourseSizeCharacter::TYPE_GAME,
+        )
       inventory =
         DiscourseSizeInventory.create!(user: user, item_key: shop_item.key, uses_remaining: 2)
 

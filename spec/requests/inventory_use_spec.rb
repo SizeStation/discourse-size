@@ -5,7 +5,14 @@ require "rails_helper"
 RSpec.describe DiscourseSize::InventoryController do
   fab!(:user)
   fab!(:other_user, :user)
-  fab!(:character) { Fabricate(:discourse_size_character, user: other_user, base_size: 100.0) }
+  fab!(:character) do
+    Fabricate(
+      :discourse_size_character,
+      user: other_user,
+      base_size: 100.0,
+      character_type: DiscourseSizeCharacter::TYPE_GAME,
+    )
+  end
   fab!(:main_character) do
     Fabricate(
       :discourse_size_character,
@@ -39,6 +46,47 @@ RSpec.describe DiscourseSize::InventoryController do
       freeze_time Time.zone.now.change(usec: 0)
       SiteSetting.discourse_size_enabled = true
       sign_in(user)
+    end
+
+    it "rejects normal characters without consuming items or applying any effects, even with confirmation" do
+      character.update!(character_type: DiscourseSizeCharacter::TYPE_NORMAL)
+      quest =
+        DiscourseSizeUserQuest.create!(
+          user: user,
+          quest_id: "character_shrink",
+          target_count: 1,
+          current_count: 0,
+        )
+      request_params = params.merge(confirm_no_size_change: true)
+      original_inventory = inventory_item.reload.attributes
+      original_characters = [character, main_character].map { |record| record.reload.attributes }
+      original_notifications = Notification.count
+      original_actions = DiscourseSizeAction.count
+
+      post "/size/inventory/use.json", params: request_params, as: :json
+
+      expect(response.status).to eq(422)
+      expect(response.parsed_body).to eq(
+        "failed" => true,
+        "message" => "Items can only be used on game characters.",
+      )
+      expect(inventory_item.reload.attributes).to eq(original_inventory)
+      expect([character, main_character].map { |record| record.reload.attributes }).to eq(
+        original_characters,
+      )
+      expect(DiscourseSizeAction.count).to eq(original_actions)
+      expect(Notification.count).to eq(original_notifications)
+      expect(quest.reload.current_count).to eq(0)
+    end
+
+    it "rejects items used on the actor's own normal character" do
+      character.update!(user: user, character_type: DiscourseSizeCharacter::TYPE_NORMAL)
+
+      post "/size/inventory/use.json", params: params
+
+      expect(response.status).to eq(422)
+      expect(inventory_item.reload.uses_remaining).to eq(1)
+      expect(character.discourse_size_actions).to be_empty
     end
 
     it "leaves all effects untouched until explicitly confirmed, then consumes and applies self growth" do
@@ -168,8 +216,8 @@ RSpec.describe DiscourseSize::InventoryController do
       expect(DiscourseSizeInventory.exists?(inventory_item.id)).to eq(false)
     end
 
-    it "allows representable growth from a base size at the minimum" do
-      character.update!(base_size: DiscourseSizeCharacter::MIN_SIZE)
+    it "allows representable growth from the minimum size" do
+      character.update_size(DiscourseSizeCharacter::MIN_SIZE, other_user)
       item.update!(effect: "grow", amount: 100.0, duration_minutes: 0)
 
       post "/size/inventory/use.json", params: params
@@ -231,7 +279,7 @@ RSpec.describe DiscourseSize::InventoryController do
     end
 
     it "warns specifically about the maximum for capped growth" do
-      character.update!(base_size: DiscourseSizeCharacter::MAX_SIZE)
+      character.update_size(DiscourseSizeCharacter::MAX_SIZE, other_user)
       item.update!(effect: "grow", amount: 100.0)
 
       post "/size/inventory/use.json", params: params

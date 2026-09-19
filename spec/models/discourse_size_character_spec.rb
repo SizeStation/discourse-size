@@ -76,6 +76,7 @@ describe DiscourseSizeCharacter do
 
     before do
       freeze_time
+      character_1.update!(character_type: DiscourseSizeCharacter::TYPE_GAME)
       inventory_item =
         DiscourseSizeInventory.create!(
           user_id: actor.id,

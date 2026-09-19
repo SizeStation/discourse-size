@@ -5,7 +5,14 @@ require "rails_helper"
 describe DiscourseSize::CharactersController do
   fab!(:user)
   fab!(:other_user, :user)
-  fab!(:character) { Fabricate(:discourse_size_character, user: user, base_size: 100.0) }
+  fab!(:character) do
+    Fabricate(
+      :discourse_size_character,
+      user: user,
+      base_size: 100.0,
+      character_type: DiscourseSizeCharacter::TYPE_GAME,
+    )
+  end
 
   let(:item) do
     DiscourseSizeShopItem.create!(

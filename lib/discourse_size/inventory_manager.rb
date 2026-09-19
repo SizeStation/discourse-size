@@ -72,6 +72,7 @@ module ::DiscourseSize
 
         character = DiscourseSizeCharacter.find_by(id: target_character_id)
         return { error: "Character not found" } unless character
+        return { error: "Items can only be used on game characters." } unless character.game?
 
         item = inventory_item.item_details
         return { error: "Item configuration missing (it may have been deleted)" } unless item
@@ -321,6 +322,7 @@ module ::DiscourseSize
     def self.gift_item(sender, inventory_item_id, target_username)
       target_user = User.find_by_username(target_username)
       return { error: "User not found" } unless target_user
+      return { error: "You cannot gift items to yourself." } if target_user.id == sender.id
 
       inventory_item = DiscourseSizeInventory.find_by(id: inventory_item_id, user_id: sender.id)
       return { error: "Item not in inventory" } unless inventory_item

@@ -4,7 +4,14 @@ require "rails_helper"
 
 describe DiscourseSize::InventoryManager do
   fab!(:user)
-  fab!(:character) { Fabricate(:discourse_size_character, user: user, base_size: 100.0) }
+  fab!(:character) do
+    Fabricate(
+      :discourse_size_character,
+      user: user,
+      base_size: 100.0,
+      character_type: DiscourseSizeCharacter::TYPE_GAME,
+    )
+  end
 
   before do
     freeze_time
@@ -33,7 +40,12 @@ describe DiscourseSize::InventoryManager do
 
   describe ".use_item" do
     it "rolls back both effects and preserves inventory when the self-effect character is invalid" do
-      target = Fabricate(:discourse_size_character, base_size: 100.0)
+      target =
+        Fabricate(
+          :discourse_size_character,
+          base_size: 100.0,
+          character_type: DiscourseSizeCharacter::TYPE_GAME,
+        )
       character.update!(character_type: DiscourseSizeCharacter::TYPE_GAME, is_main: true)
       character.update_column(:name, "")
       item = create_item("invalid_paired_growth", self_effect: "grow", self_amount: 25.0)
@@ -136,7 +148,7 @@ describe DiscourseSize::InventoryManager do
       first = use_item(double)
       second = use_item(half)
 
-      expect(character.reload).to be_normal
+      expect(character.reload).to be_game
       expect(first.reload.end_offset).to eq(100.0)
       expect(second.reload.end_offset).to eq(200.0)
       expect(character.current_size).to eq(300.0)
@@ -245,7 +257,13 @@ describe DiscourseSize::InventoryManager do
 
     it "uses unequal same-direction paired snapshots and refunds each character from its own prefix" do
       other_user = Fabricate(:user)
-      target = Fabricate(:discourse_size_character, user: other_user, base_size: 100.0)
+      target =
+        Fabricate(
+          :discourse_size_character,
+          user: other_user,
+          base_size: 100.0,
+          character_type: DiscourseSizeCharacter::TYPE_GAME,
+        )
       character.update!(
         character_type: DiscourseSizeCharacter::TYPE_GAME,
         base_size: 200.0,
