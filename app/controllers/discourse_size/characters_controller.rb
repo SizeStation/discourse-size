@@ -88,11 +88,18 @@ module DiscourseSize
       p[:blocked_item_keys] ||= []
       p[:blocked_user_ids] ||= []
 
-      if character.update(p)
-        render json: { character: serialize_data(character, DiscourseSizeCharacterSerializer) }
-      else
-        render json: failed_json.merge(errors: character.errors.full_messages),
-               status: :unprocessable_content
+      if params.key?(:current_size) && !character.normal?
+        raise Discourse::InvalidParameters.new("Only normal characters can set their current size")
+      end
+
+      character.with_lock do
+        if character.update(p)
+          character.update_size(params[:current_size], current_user) if params.key?(:current_size)
+          render json: { character: serialize_data(character, DiscourseSizeCharacterSerializer) }
+        else
+          render json: failed_json.merge(errors: character.errors.full_messages),
+                 status: :unprocessable_content
+        end
       end
     end
 

@@ -137,16 +137,18 @@ after_initialize do
     character = DiscourseSizeCharacter.find_by(user_id: object.id, is_main: true)
     if character
       character.sync_offset!
+      current_size = character.current_size
+      target_size = character.target_size
       {
         id: character.id,
         name: character.name,
         picture: character.picture,
         info_post: character.info_post,
-        current_size: character.current_size,
-        target_size: character.base_size + character.target_offset,
+        current_size: current_size,
+        target_size: target_size,
         base_size: character.base_size,
-        is_growing: character.target_offset > character.current_offset,
-        is_shrinking: character.target_offset < character.current_offset,
+        is_growing: target_size > current_size,
+        is_shrinking: target_size < current_size,
         is_max_size: character.is_max_size?,
         is_min_size: character.is_min_size?,
         gender: character.gender,
@@ -167,14 +169,16 @@ after_initialize do
     character = DiscourseSizeCharacter.find_by(user_id: object.id, is_main: true)
     if character
       character.sync_offset!
+      current_size = character.current_size
+      target_size = character.target_size
       {
         id: character.id,
         name: character.name,
         picture: character.picture,
-        current_size: character.current_size,
-        target_size: character.base_size + character.target_offset,
-        is_growing: character.target_offset > character.current_offset,
-        is_shrinking: character.target_offset < character.current_offset,
+        current_size: current_size,
+        target_size: target_size,
+        is_growing: target_size > current_size,
+        is_shrinking: target_size < current_size,
         is_max_size: character.is_max_size?,
         is_min_size: character.is_min_size?,
       }

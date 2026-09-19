@@ -116,17 +116,12 @@ class DiscourseSizeCharacter < ActiveRecord::Base
   end
 
   def update_size_target(amount)
-    sync_offset!
-    self.start_offset = self.current_offset
-    self.offset_updated_at = Time.zone.now
-    new_target = self.target_offset + amount
-
-    new_target = MAX_SIZE - self.base_size if (self.base_size + new_target) > MAX_SIZE
-
-    new_target = MIN_SIZE - self.base_size if (self.base_size + new_target) < MIN_SIZE
-
-    self.target_offset = new_target
-    save!
+    add_queued_action(
+      action_type: amount.negative? ? "shrink" : "grow",
+      size_change: amount,
+      duration_minutes: 0,
+      user_id: user_id,
+    )
   end
 
   def update_size(new_total_cm, actor)
@@ -134,38 +129,45 @@ class DiscourseSizeCharacter < ActiveRecord::Base
     new_total_cm = MIN_SIZE if new_total_cm < MIN_SIZE
     new_total_cm = MAX_SIZE if new_total_cm > MAX_SIZE
 
-    # Stop all pending growth/shrinking/set_size
-    discourse_size_actions
-      .where(action_type: %w[grow shrink set_size])
-      .where("end_time > ?", Time.zone.now)
-      .destroy_all
+    self.class.transaction do
+      self.class.where(id: id).lock.load
+      old_target_size = target_size
+      discourse_size_actions
+        .where(action_type: %w[grow shrink set_size])
+        .where("end_time > ?", Time.zone.now)
+        .destroy_all
 
-    old_target_offset = target_offset
-    new_offset = new_total_cm - base_size
-    size_change = new_offset - old_target_offset
+      new_offset = new_total_cm - base_size
+      self.current_offset = new_offset
+      self.target_offset = new_offset
+      self.start_offset = new_offset
+      self.offset_updated_at = Time.zone.now
+      save!
 
-    self.current_offset = new_offset
-    self.target_offset = new_offset
-    self.start_offset = new_offset
-    self.offset_updated_at = Time.zone.now
-    save!
-
-    DiscourseSizeAction.create!(
-      character_id: id,
-      user_id: actor.id,
-      action_type: "set_size",
-      size_change: size_change,
-      points_spent: 0,
-      start_offset: old_target_offset,
-      end_offset: new_offset,
-      duration_minutes: 0,
-      start_time: Time.zone.now,
-      end_time: Time.zone.now,
-    )
+      DiscourseSizeAction.create!(
+        character_id: id,
+        user_id: actor.id,
+        action_type: "set_size",
+        size_change: new_total_cm - old_target_size,
+        points_spent: 0,
+        start_size: old_target_size,
+        end_size: new_total_cm,
+        start_offset: old_target_size - base_size,
+        end_offset: new_offset,
+        duration_minutes: 0,
+        start_time: Time.zone.now,
+        end_time: Time.zone.now,
+      )
+    end
   end
 
   def current_size
     DiscourseSize::SizeCalculator.calculate_size(self)
+  end
+
+  def target_size
+    ordered_size_actions.last&.end_total_size(base_size) ||
+      DiscourseSize::SizeCalculator.clamp_size(base_size)
   end
 
   def current_calculated_offset
@@ -227,7 +229,7 @@ class DiscourseSizeCharacter < ActiveRecord::Base
 
     effective_type = action_type
     if action_type == "static" && amount.present?
-      current_total = base_size + target_offset
+      current_total = target_size
       if amount.to_f > current_total
         effective_type = "grow"
       elsif amount.to_f < current_total
@@ -247,17 +249,15 @@ class DiscourseSizeCharacter < ActiveRecord::Base
   end
 
   def no_size_change_reason(effect_type:, effect_amount:)
-    # Match the queued action's stored endpoint, including base-relative float rounding.
-    start_offset = ordered_size_actions.last&.end_offset.to_f
-    start_total = base_size + start_offset
+    start_total = target_size
     action = DiscourseSizeAction.new(effect_type: effect_type, effect_amount: effect_amount)
     new_total = action.size_after_effect(start_total).clamp(MIN_SIZE, MAX_SIZE)
-    end_offset = new_total - base_size
-    stored_total = base_size + end_offset
-    return unless stored_total.clamp(MIN_SIZE, MAX_SIZE) == start_total.clamp(MIN_SIZE, MAX_SIZE)
+    return unless new_total == start_total
 
-    if start_total <= MIN_SIZE && new_total <= MIN_SIZE
+    if new_total == MIN_SIZE
       "minimum_size"
+    elsif new_total == MAX_SIZE
+      "maximum_size"
     else
       "unchanged_size"
     end
@@ -283,9 +283,11 @@ class DiscourseSizeCharacter < ActiveRecord::Base
     end
 
     self.class.transaction do
+      self.class.where(id: id).lock.load
       previous_action = ordered_size_actions.last
-      start_offset = previous_action&.end_offset.to_f
-      start_total = base_size + start_offset
+      start_total =
+        previous_action&.end_total_size(base_size) ||
+          DiscourseSize::SizeCalculator.clamp_size(base_size)
       action =
         discourse_size_actions.build(
           user_id: user_id,
@@ -304,7 +306,9 @@ class DiscourseSizeCharacter < ActiveRecord::Base
       new_total = new_total.clamp(MIN_SIZE, MAX_SIZE)
       start_time = [Time.zone.now, previous_action&.end_time].compact.max
       action.assign_attributes(
-        start_offset: start_offset,
+        start_size: start_total,
+        end_size: new_total,
+        start_offset: start_total - base_size,
         end_offset: new_total - base_size,
         size_change: new_total - start_total,
         start_time: start_time,
@@ -320,38 +324,44 @@ class DiscourseSizeCharacter < ActiveRecord::Base
   end
 
   def rebuild_offset_chain!(from_action: nil)
-    actions = ordered_size_actions
-    current_chain_offset = 0.0
-    if from_action
-      previous_action =
-        actions.where("(created_at, id) < (?, ?)", from_action.created_at, from_action.id).last
-      current_chain_offset = previous_action&.end_offset.to_f
-      actions = actions.where("(created_at, id) >= (?, ?)", from_action.created_at, from_action.id)
-    end
-
-    actions.each do |action|
-      current_total = base_size + current_chain_offset
-      new_total = action.size_after_effect(current_total)
-      if new_total.nil?
-        new_total =
-          if action.action_type == "set_size" && action.end_offset.present?
-            base_size + action.end_offset
-          else
-            current_total + action.size_change
-          end
+    self.class.transaction do
+      self.class.where(id: id).lock.load
+      actions = ordered_size_actions
+      current_total = DiscourseSize::SizeCalculator.clamp_size(base_size)
+      if from_action
+        previous_action =
+          actions.where("(created_at, id) < (?, ?)", from_action.created_at, from_action.id).last
+        current_total = previous_action&.end_total_size(base_size) || current_total
+        actions =
+          actions.where("(created_at, id) >= (?, ?)", from_action.created_at, from_action.id)
       end
-      new_total = new_total.clamp(MIN_SIZE, MAX_SIZE)
-      action.update!(
-        size_change: new_total - current_total,
-        start_offset: current_chain_offset,
-        end_offset: new_total - base_size,
-      )
-      current_chain_offset = action.end_offset
-    end
 
-    self.target_offset = current_chain_offset
-    save!
-    sync_offset!
+      actions.each do |action|
+        new_total = action.size_after_effect(current_total)
+        if new_total.nil?
+          new_total =
+            if action.action_type == "set_size" &&
+                 (action.end_size.present? || action.end_offset.present?)
+              action.end_total_size(base_size)
+            else
+              current_total + action.size_change
+            end
+        end
+        new_total = new_total.clamp(MIN_SIZE, MAX_SIZE)
+        action.update!(
+          size_change: new_total - current_total,
+          start_size: current_total,
+          end_size: new_total,
+          start_offset: current_total - base_size,
+          end_offset: new_total - base_size,
+        )
+        current_total = new_total
+      end
+
+      self.target_offset = current_total - base_size
+      save!
+      sync_offset!
+    end
   end
 
   def recalculate_pending_actions!(from_action: nil)
@@ -452,6 +462,16 @@ class DiscourseSizeCharacter < ActiveRecord::Base
     self.target_offset = target_offset.to_f - delta
     self.start_offset = start_offset.to_f - delta if respond_to?(:start_offset) &&
       start_offset.present?
+
+    self.class.where(id: id).lock.load
+    ordered_size_actions.find_each do |action|
+      if action.start_size.nil? || action.end_size.nil?
+        action.update_columns(
+          start_size: action.start_total_size(old_base),
+          end_size: action.end_total_size(old_base),
+        )
+      end
+    end
 
     discourse_size_actions.where(action_type: %w[grow shrink set_size]).update_all(
       ["start_offset = start_offset - ?, end_offset = end_offset - ?", delta, delta],

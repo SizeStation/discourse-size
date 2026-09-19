@@ -17,6 +17,10 @@ import formatSize0 from "../helpers/format-size";
 import {
   calculatePropertyValue,
   calculateSize,
+  calculateTargetSize,
+  getActionEndSize,
+  getActionStartSize,
+  getSizeActions,
   isAnimating,
 } from "../lib/size-calculator";
 import {
@@ -199,14 +203,9 @@ export default class DiscourseSizeCharacterCard extends Component {
 
   get targetSizeCm() {
     const active = this.activeAction;
-    const base = parseFloat(this.args?.character?.base_size) || 0;
-    if (active) {
-      return Math.max(1e-35, base + (parseFloat(active.end_offset) || 0));
-    }
-    return Math.max(
-      1e-35,
-      base + (parseFloat(this.args?.character?.target_offset) || 0)
-    );
+    return active
+      ? getActionEndSize(this.args.character, active)
+      : calculateTargetSize(this.args?.character);
   }
 
   get formattedTargetSize() {
@@ -215,13 +214,10 @@ export default class DiscourseSizeCharacterCard extends Component {
 
   get formattedStartSize() {
     const active = this.activeAction;
-    const base = parseFloat(this.args?.character?.base_size) || 0;
-    const startOffset = active
-      ? parseFloat(active.start_offset) || 0
-      : parseFloat(this.args?.character?.start_offset) || 0;
-
     return formatSize(
-      Math.max(1e-35, base + startOffset),
+      active
+        ? getActionStartSize(this.args.character, active)
+        : this.calculatedSizeCm,
       this.preferredSystem
     );
   }
@@ -299,13 +295,7 @@ export default class DiscourseSizeCharacterCard extends Component {
       return null;
     }
     const now = this._currentTime;
-    return (c.actions || []).find((a) => {
-      if (!a.start_time || !a.end_time) {
-        return false;
-      }
-      if (a.action_type === "property_change") {
-        return false;
-      }
+    return getSizeActions(c).find((a) => {
       const start = new Date(a.start_time);
       const end = new Date(a.end_time);
       return now >= start && now < end;
@@ -439,7 +429,10 @@ export default class DiscourseSizeCharacterCard extends Component {
       return null;
     }
     if (act.action_type === "set_size") {
-      return parseFloat(act.size_change) >= 0 ? "grow" : "shrink";
+      return getActionEndSize(this.args.character, act) >=
+        getActionStartSize(this.args.character, act)
+        ? "grow"
+        : "shrink";
     }
     return act.action_type;
   }
@@ -457,7 +450,12 @@ export default class DiscourseSizeCharacterCard extends Component {
       return 0;
     }
 
-    return Math.abs(active.end_offset - active.start_offset) / durationDays;
+    return (
+      Math.abs(
+        getActionEndSize(this.args.character, active) -
+          getActionStartSize(this.args.character, active)
+      ) / durationDays
+    );
   }
 
   get animationMultiplier() {

@@ -5,6 +5,17 @@ require "mini_racer"
 module ::DiscourseSize
   class TriggerExecutor
     def self.execute(character, trigger_name, actor)
+      result = nil
+      InventoryManager.with_character_locks([character.id]) do
+        character.with_lock do
+          result = execute_locked(character, trigger_name, actor)
+          raise ActiveRecord::Rollback unless result[:success]
+        end
+      end
+      result
+    end
+
+    def self.execute_locked(character, trigger_name, actor)
       trigger = character.discourse_size_character_triggers.find_by(name: trigger_name)
       return { success: false, error: "Trigger not found" } unless trigger
 
@@ -26,22 +37,21 @@ module ::DiscourseSize
       # Use a local Hash so concurrent executions don't share state.
       state = {
         new_size: nil, # absolute target cm (instant)
-        size_animations: [], # [{ action_type:, target_offset:|target_delta:, duration_minutes: }]
+        size_animations: [], # [{ action_type:, target_size:|target_delta:, duration_minutes: }]
         property_changes: {
         }, # { name => value } (instant)
         property_animations: [], # [{ name:, start_value:, end_value:, duration_seconds: }]
       }
 
-      context.attach("character.size", -> { character.current_size })
+      context.attach("character.size", -> { state[:new_size] || character.current_size })
 
       context.attach(
         "character.setSize",
         ->(new_size, duration_seconds = nil) do
           if duration_seconds && duration_seconds.to_f > 0
-            character.sync_offset!
             state[:size_animations] << {
               action_type: "set_size",
-              target_offset: new_size.to_f - character.base_size,
+              target_size: new_size.to_f,
               duration_minutes: duration_seconds.to_f / 60.0,
             }
           else
@@ -53,10 +63,9 @@ module ::DiscourseSize
       context.attach(
         "character.queueSizeAnimation",
         ->(target_cm, duration_seconds) do
-          character.sync_offset!
           state[:size_animations] << {
             action_type: "set_size",
-            target_offset: target_cm.to_f - character.base_size,
+            target_size: target_cm.to_f,
             duration_minutes: duration_seconds.to_f / 60.0,
           }
         end,
@@ -154,6 +163,8 @@ module ::DiscourseSize
       context.attach(
         "character.getSizeProgress",
         -> do
+          next { active: false } if state[:new_size]
+
           active =
             character
               .discourse_size_actions
@@ -165,8 +176,8 @@ module ::DiscourseSize
             remaining = [(active.end_time - Time.now).to_f, 0.0].max
             {
               active: true,
-              start_value: active.start_offset.to_f + character.base_size,
-              end_value: active.end_offset.to_f + character.base_size,
+              start_value: active.start_total_size,
+              end_value: active.end_total_size,
               time_remaining_seconds: remaining,
             }
           else
@@ -202,26 +213,9 @@ module ::DiscourseSize
       context.attach(
         "character.cancelSizeAnimation",
         -> do
-          size_actions =
-            character
-              .discourse_size_actions
-              .where(action_type: %w[grow shrink set_size])
-              .where("end_time > ?", Time.now)
-          active = size_actions.where("start_time <= ?", Time.now).first
-          if active
-            total = active.end_time - active.start_time
-            if total > 0
-              progress = (Time.now - active.start_time) / total
-              current_off =
-                active.start_offset + (active.end_offset - active.start_offset) * progress
-              character.current_offset = current_off
-              character.target_offset = current_off
-              character.start_offset = current_off
-              character.offset_updated_at = Time.now
-              character.save!
-            end
-          end
-          size_actions.destroy_all
+          # Persist the interpolated size as an absolute action after the script succeeds.
+          state[:new_size] ||= character.current_size
+          state[:size_animations].clear
         end,
       )
 
@@ -252,29 +246,25 @@ module ::DiscourseSize
         result = context.eval(trigger.js_code)
 
         # Apply instant size change (setSize, grow, shrink without duration)
-        old_target_offset = character.target_offset
-        size_change = 0
-        end_offset = old_target_offset
+        start_size = state[:new_size] ? character.current_size : character.target_size
+        end_size = start_size
 
         if state[:new_size]
-          character.sync_offset!
-          new_total_cm = state[:new_size].to_f
-          new_total_cm = DiscourseSizeCharacter::MIN_SIZE if new_total_cm <
-            DiscourseSizeCharacter::MIN_SIZE
-          new_total_cm = DiscourseSizeCharacter::MAX_SIZE if new_total_cm >
-            DiscourseSizeCharacter::MAX_SIZE
-
-          old_target_offset = character.target_offset
-          new_off = new_total_cm - character.base_size
-          size_change = new_off - old_target_offset
-          end_offset = new_off
-
-          character.current_offset = new_off
-          character.target_offset = new_off
-          character.start_offset = new_off
-          character.offset_updated_at = Time.now
-          character.save!
+          end_size =
+            state[:new_size].to_f.clamp(
+              DiscourseSizeCharacter::MIN_SIZE,
+              DiscourseSizeCharacter::MAX_SIZE,
+            )
+          character
+            .discourse_size_actions
+            .where(action_type: %w[grow shrink set_size])
+            .where("end_time > ?", Time.now)
+            .destroy_all
         end
+
+        size_change = end_size - start_size
+        start_offset = start_size - character.base_size
+        end_offset = end_size - character.base_size
 
         # Apply instant property changes
         state[:property_changes].each do |name, value|
@@ -291,7 +281,9 @@ module ::DiscourseSize
             user_id: actor.id,
             action_type: "trigger",
             size_change: size_change,
-            start_offset: old_target_offset,
+            start_size: state[:new_size] ? start_size : nil,
+            end_size: state[:new_size] ? end_size : nil,
+            start_offset: start_offset,
             end_offset: end_offset,
             item_key: trigger.name,
             start_time: Time.now,
@@ -304,7 +296,9 @@ module ::DiscourseSize
             user_id: actor.id,
             action_type: "set_size",
             size_change: size_change,
-            start_offset: old_target_offset,
+            start_size: start_size,
+            end_size: end_size,
+            start_offset: start_offset,
             end_offset: end_offset,
             duration_minutes: 0,
             start_time: Time.now,
@@ -324,27 +318,28 @@ module ::DiscourseSize
               .first
 
           start_time = existing ? existing.end_time : Time.now
-          base_off = existing ? existing.end_offset.to_f : character.current_calculated_offset
-
-          if anim.key?(:target_offset)
-            # setSize — use absolute target
-            end_off = anim[:target_offset]
-          else
-            # grow/shrink — use delta from baseline
-            end_off = base_off + anim[:target_delta]
-          end
-
-          min_off = DiscourseSizeCharacter::MIN_SIZE - character.base_size
-          max_off = DiscourseSizeCharacter::MAX_SIZE - character.base_size
-          end_off = end_off.clamp(min_off, max_off)
+          animation_start_size = existing ? existing.end_total_size : character.current_size
+          animation_end_size =
+            if anim.key?(:target_size)
+              anim[:target_size]
+            else
+              animation_start_size + anim[:target_delta]
+            end
+          animation_end_size =
+            animation_end_size.clamp(
+              DiscourseSizeCharacter::MIN_SIZE,
+              DiscourseSizeCharacter::MAX_SIZE,
+            )
 
           DiscourseSizeAction.create!(
             character_id: character.id,
             user_id: actor.id,
             action_type: anim[:action_type],
-            size_change: end_off - base_off,
-            start_offset: base_off,
-            end_offset: end_off,
+            size_change: animation_end_size - animation_start_size,
+            start_size: animation_start_size,
+            end_size: animation_end_size,
+            start_offset: animation_start_size - character.base_size,
+            end_offset: animation_end_size - character.base_size,
             duration_minutes: anim[:duration_minutes],
             start_time: start_time,
             end_time: start_time + anim[:duration_minutes].minutes,
@@ -390,14 +385,30 @@ module ::DiscourseSize
           )
         end
 
-        if state[:size_animations].any? || state[:property_animations].any?
-          character.recalculate_pending_actions!
+        if state[:size_animations].any?
+          first_action =
+            trigger_action
+              .child_actions
+              .where(action_type: %w[grow shrink set_size])
+              .order(:created_at, :id)
+              .first
+          character.recalculate_pending_actions!(from_action: first_action)
+        elsif state[:new_size]
+          character.update!(
+            current_offset: end_offset,
+            target_offset: end_offset,
+            start_offset: end_offset,
+            offset_updated_at: Time.now,
+          )
         end
+
+        character.recalculate_properties! if state[:property_animations].any?
 
         { success: true, result: result }
       rescue MiniRacer::Error => e
         { success: false, error: "JS Error: #{e.message}" }
       end
     end
+    private_class_method :execute_locked
   end
 end

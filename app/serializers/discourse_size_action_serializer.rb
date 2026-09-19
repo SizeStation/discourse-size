@@ -15,6 +15,8 @@ class DiscourseSizeActionSerializer < ApplicationSerializer
              :end_time,
              :start_offset,
              :end_offset,
+             :start_size,
+             :end_size,
              :parent_action_id,
              :target_character_name,
              :target_character_id,
@@ -120,9 +122,16 @@ class DiscourseSizeActionSerializer < ApplicationSerializer
     finite_number(object.end_offset)
   end
 
+  def start_size
+    object.start_total_size if %w[grow shrink set_size].include?(object.action_type)
+  end
+
+  def end_size
+    object.end_total_size if %w[grow shrink set_size].include?(object.action_type)
+  end
+
   def end_total_size
-    return nil unless object.character
-    finite_number(object.character.base_size + object.end_offset.to_f)
+    end_size
   end
 
   def item_name

@@ -14,6 +14,7 @@ import icon from "discourse/helpers/d-icon";
 import { ajax } from "discourse/lib/ajax";
 import { i18n } from "discourse-i18n";
 import EmailGroupUserChooser from "select-kit/components/email-group-user-chooser";
+import { calculateTargetSize } from "../../lib/size-calculator";
 import { formatSize, getBestUnit, UNITS } from "../../lib/size-formatter";
 import DiscourseSizeTriggerHelp from "./discourse-size-trigger-help";
 
@@ -95,7 +96,9 @@ export default class DiscourseSizeEditCharacter extends Component {
     }
 
     const initialSize =
-      this.characterType === "normal" && char.current_size != null
+      this.characterType === "normal" &&
+      !this.isRoleplayEdit &&
+      char.current_size != null
         ? char.current_size
         : this.baseSize;
     const preferredSystem =
@@ -441,7 +444,14 @@ export default class DiscourseSizeEditCharacter extends Component {
   @action
   async save() {
     // Final clamp before submitting
-    let valCm = this.baseSizeInCm;
+    const sizeEdited =
+      parseFloat(this.displaySize) !== parseFloat(this._initialDisplaySize) ||
+      this.sizeUnit !== this._initialSizeUnit;
+    let valCm = sizeEdited
+      ? this.baseSizeInCm
+      : this.characterType === "normal" && !this.isRoleplayEdit
+        ? (this.args.model.character?.current_size ?? this.baseSize)
+        : this.baseSize;
     if (this.characterType === "game") {
       if (isNaN(valCm) || valCm < this.min) {
         valCm = this.min;
@@ -456,15 +466,6 @@ export default class DiscourseSizeEditCharacter extends Component {
       }
     }
     this.sizeError = null;
-
-    // For non-game modes, the input shows total size.
-    // Convert so base_size + offset = desired total.
-    if (this.characterType !== "game" && !this.isRoleplayEdit) {
-      const initialTotal =
-        this.args?.model?.character?.current_size || this.baseSize;
-      const offset = initialTotal - this.baseSize;
-      valCm = valCm - offset;
-    }
 
     this.isSaving = true;
 
@@ -587,6 +588,13 @@ export default class DiscourseSizeEditCharacter extends Component {
       } else if (this.args?.model?.isNew) {
         result = await ajax("/size/characters", { type: "POST", data });
       } else {
+        const character = this.args.model.character;
+        if (this.characterType === "normal") {
+          data.base_size = character.base_size;
+          if (valCm !== character.current_size) {
+            data.current_size = valCm;
+          }
+        }
         result = await ajax(
           `/size/characters/${this.args?.model?.character?.id}`,
           {
@@ -613,10 +621,9 @@ export default class DiscourseSizeEditCharacter extends Component {
       return 0;
     }
 
-    const targetOffset = char.target_offset || 0;
     return char.character_type === "game"
       ? 0
-      : Math.floor(Math.abs(targetOffset) / 2);
+      : Math.floor(Math.abs(calculateTargetSize(char) - char.base_size) / 2);
   }
 
   @action

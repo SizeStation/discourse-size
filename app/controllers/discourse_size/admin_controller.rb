@@ -8,49 +8,51 @@ module DiscourseSize
 
     def update_character
       character = DiscourseSizeCharacter.find(params[:id])
-      character.sync_offset!
+      character.with_lock do
+        character.update!(base_size: params[:base_size].to_f) if params[:base_size]
 
-      old_target_size = character.base_size + character.target_offset
+        if params[:current_size]
+          start_size = character.current_size
+          end_size =
+            params[:current_size].to_f.clamp(
+              DiscourseSizeCharacter::MIN_SIZE,
+              DiscourseSizeCharacter::MAX_SIZE,
+            )
 
-      character.base_size = params[:base_size].to_f if params[:base_size]
+          character
+            .discourse_size_actions
+            .where(action_type: %w[grow shrink set_size])
+            .where("end_time > ?", Time.now)
+            .destroy_all
 
-      if params[:current_size]
-        new_size = params[:current_size].to_f
+          DiscourseSizeAction.create!(
+            character_id: character.id,
+            user_id: current_user.id,
+            action_type: end_size > start_size ? "grow" : "shrink",
+            effect_type: "static",
+            effect_amount: end_size,
+            size_change: end_size - start_size,
+            points_spent: 0,
+            start_size: start_size,
+            end_size: end_size,
+            start_offset: start_size - character.base_size,
+            end_offset: end_size - character.base_size,
+            start_time: Time.now,
+            end_time: Time.now,
+            duration_minutes: 0,
+          )
 
-        # Stop all pending growth/shrinking (anything ending in the future)
-        character
-          .discourse_size_actions
-          .where(action_type: %w[grow shrink])
-          .where("end_time > ?", Time.now)
-          .destroy_all
-
-        # Calculate teleport delta
-        new_offset = new_size - character.base_size
-
-        # Log the action before changing state so we can calculate delta correctly
-        action_type = new_size > old_target_size ? "grow" : "shrink"
-        size_change = new_size - old_target_size
-
-        character.current_offset = new_offset
-        character.target_offset = new_offset
-        character.start_offset = new_offset
-        character.offset_updated_at = Time.now
-
-        DiscourseSizeAction.create!(
-          character_id: character.id,
-          user_id: current_user.id,
-          action_type: action_type,
-          size_change: size_change,
-          points_spent: 0,
-          start_offset: new_offset - size_change,
-          end_offset: new_offset,
-          start_time: Time.now,
-          end_time: Time.now,
-          duration_minutes: 0,
-        )
+          new_offset = end_size - character.base_size
+          character.update!(
+            current_offset: new_offset,
+            target_offset: new_offset,
+            start_offset: new_offset,
+            offset_updated_at: Time.now,
+          )
+        else
+          character.sync_offset!
+        end
       end
-
-      character.save!
 
       render json: { character: serialize_data(character, ::DiscourseSizeCharacterSerializer) }
     end
@@ -58,26 +60,24 @@ module DiscourseSize
     def sync_character
       character = DiscourseSizeCharacter.find(params[:id])
 
-      # First, rebuild the absolute chain from the activity log to fix any desyncs
-      character.rebuild_offset_chain!
+      character.with_lock do
+        character.rebuild_offset_chain!
+        final_size = character.target_size
 
-      # Now mark all growth/shrink actions that haven't finished as "finished" now
-      # This will effectively "teleport" the character to the final target size
-      # derived from the corrected chain.
-      character
-        .discourse_size_actions
-        .where(action_type: %w[grow shrink])
-        .where("end_time > ?", Time.now)
-        .update_all(end_time: Time.now, start_time: Time.now - 1.second)
+        character
+          .discourse_size_actions
+          .where(action_type: %w[grow shrink set_size])
+          .where("end_time > ?", Time.now)
+          .update_all(end_time: Time.now, start_time: Time.now)
 
-      # Update character state to match the log
-      # We fetch the target_offset which was correctly set by rebuild_offset_chain!
-      final_offset = character.target_offset
-      character.current_offset = final_offset
-      character.target_offset = final_offset
-      character.start_offset = final_offset
-      character.offset_updated_at = Time.now
-      character.save!
+        final_offset = final_size - character.base_size
+        character.update!(
+          current_offset: final_offset,
+          target_offset: final_offset,
+          start_offset: final_offset,
+          offset_updated_at: Time.now,
+        )
+      end
 
       render json: { character: serialize_data(character, ::DiscourseSizeCharacterSerializer) }
     end

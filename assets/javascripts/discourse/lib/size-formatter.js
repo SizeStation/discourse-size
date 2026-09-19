@@ -1,3 +1,9 @@
+import {
+  calculateTargetSize,
+  getActionEndSize,
+  getSizeActions,
+} from "./size-calculator";
+
 export const COMPARISONS = [
   { size_cm: 1e-35, desc: "far below the Planck scale" },
   { size_cm: 1.616e-33, desc: "smaller than Planck length" },
@@ -629,18 +635,18 @@ export function getGrowthComparison(character, currentSize) {
   }
 
   const c = character;
-  const baseOrSize = Math.abs(currentSize || c.base_size || 1);
-  const isMoving =
-    Math.abs(c.target_offset - c.current_offset) >
-      Math.max(baseOrSize * 1e-9, 1e-40) ||
-    (Array.isArray(c.actions) &&
-      c.actions.some((a) => new Date(a.end_time) > Date.now()));
-
-  if (!isMoving) {
+  const now = new Date();
+  const active = getSizeActions(c).find(
+    (a) => new Date(a.start_time) <= now && new Date(a.end_time) > now
+  );
+  const targetSize = active
+    ? getActionEndSize(c, active)
+    : calculateTargetSize(c);
+  if (targetSize === currentSize) {
     return null;
   }
 
-  const isGrowing = c.target_offset > c.current_offset;
+  const isGrowing = targetSize > currentSize;
 
   // Growth rate in percentage per day
   const ratePercent =

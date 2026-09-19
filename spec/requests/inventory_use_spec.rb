@@ -180,21 +180,20 @@ RSpec.describe DiscourseSize::InventoryController do
       expect(DiscourseSizeInventory.exists?(inventory_item.id)).to eq(false)
     end
 
-    it "warns when growth from a raw zero total still reconstructs to the minimum" do
+    it "grows from a legacy raw zero endpoint using the actual minimum" do
       character.update_size(DiscourseSizeCharacter::MIN_SIZE, other_user)
+      character.discourse_size_actions.update_all(start_size: nil, end_size: nil)
       item.update!(effect: "grow", amount: 100.0)
 
       post "/size/inventory/use.json", params: params
 
       expect(response.status).to eq(200)
-      expect(response.parsed_body).to eq(
-        "confirmation_required" => true,
-        "no_size_effects" => [{ "character_name" => character.name, "reason" => "minimum_size" }],
-      )
-      expect(inventory_item.reload.uses_remaining).to eq(1)
+      expect(response.parsed_body["success"]).to eq(true)
+      expect(character.reload.target_size).to eq(2 * DiscourseSizeCharacter::MIN_SIZE)
+      expect(DiscourseSizeInventory.exists?(inventory_item.id)).to eq(false)
     end
 
-    it "warns about unchanged size when storing the offset loses a shrink above the minimum" do
+    it "shrinks past a legacy precision plateau without changing its recorded history" do
       character.discourse_size_actions.create!(
         user: other_user,
         action_type: "set_size",
@@ -205,19 +204,17 @@ RSpec.describe DiscourseSize::InventoryController do
         end_time: 1.minute.ago,
         duration_minutes: 0,
       )
-      expect(character.current_size).to be > DiscourseSizeCharacter::MIN_SIZE
-      request_params = params
+      original = character.discourse_size_actions.sole
+      original_attributes = original.attributes
+      start_size = character.current_size
 
-      expect do post "/size/inventory/use.json", params: request_params end.not_to change {
-        DiscourseSizeAction.count
-      }
+      post "/size/inventory/use.json", params: params
 
       expect(response.status).to eq(200)
-      expect(response.parsed_body).to eq(
-        "confirmation_required" => true,
-        "no_size_effects" => [{ "character_name" => character.name, "reason" => "unchanged_size" }],
-      )
-      expect(inventory_item.reload.uses_remaining).to eq(1)
+      expect(response.parsed_body["success"]).to eq(true)
+      expect(character.reload.target_size).to eq(start_size * 0.75)
+      expect(original.reload.attributes).to eq(original_attributes)
+      expect(DiscourseSizeInventory.exists?(inventory_item.id)).to eq(false)
     end
 
     it "warns when a static effect already matches the queued size" do
@@ -233,7 +230,7 @@ RSpec.describe DiscourseSize::InventoryController do
       expect(inventory_item.reload.uses_remaining).to eq(1)
     end
 
-    it "warns about unchanged size for growth capped at the maximum" do
+    it "warns specifically about the maximum for capped growth" do
       character.update!(base_size: DiscourseSizeCharacter::MAX_SIZE)
       item.update!(effect: "grow", amount: 100.0)
 
@@ -242,7 +239,7 @@ RSpec.describe DiscourseSize::InventoryController do
       expect(response.status).to eq(200)
       expect(response.parsed_body).to eq(
         "confirmation_required" => true,
-        "no_size_effects" => [{ "character_name" => character.name, "reason" => "unchanged_size" }],
+        "no_size_effects" => [{ "character_name" => character.name, "reason" => "maximum_size" }],
       )
       expect(inventory_item.reload.uses_remaining).to eq(1)
     end

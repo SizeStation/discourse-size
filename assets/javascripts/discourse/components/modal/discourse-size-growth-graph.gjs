@@ -20,6 +20,9 @@ import formatSize0 from "../../helpers/format-size";
 import {
   calculatePropertyValue,
   calculateSize,
+  getActionEndSize,
+  getActionStartSize,
+  getSizeActions,
 } from "../../lib/size-calculator";
 import { formatSize } from "../../lib/size-formatter";
 
@@ -242,26 +245,7 @@ export default class DiscourseSizeGrowthGraph extends Component {
     const startRange = this.startRange;
     const endRange = this.endRange;
 
-    // --- Size series ---
-    const sizeActions = allActions
-      .filter(
-        (a) =>
-          ["grow", "shrink", "set_size"].includes(a.action_type) &&
-          a.start_time &&
-          a.end_time
-      )
-      .sort((a, b) => {
-        const timeDiff = new Date(a.start_time) - new Date(b.start_time);
-        if (timeDiff !== 0) {
-          return timeDiff;
-        }
-        const createdDiff =
-          new Date(a.created_at || 0) - new Date(b.created_at || 0);
-        if (createdDiff !== 0) {
-          return createdDiff;
-        }
-        return (a.id || 0) - (b.id || 0);
-      });
+    const sizeActions = getSizeActions(char);
 
     if (sizeActions.length > 0) {
       const sizePoints = [];
@@ -288,11 +272,8 @@ export default class DiscourseSizeGrowthGraph extends Component {
         inWindow.forEach((a, idx) => {
           const aStart = new Date(a.start_time);
           const aEnd = new Date(a.end_time);
-          const startVal =
-            (parseFloat(char.base_size) || 0) +
-            (parseFloat(a.start_offset) || 0);
-          const endVal =
-            (parseFloat(char.base_size) || 0) + (parseFloat(a.end_offset) || 0);
+          const startVal = getActionStartSize(char, a);
+          const endVal = getActionEndSize(char, a);
 
           if (
             (!startRange || aStart >= startRange) &&
@@ -338,11 +319,8 @@ export default class DiscourseSizeGrowthGraph extends Component {
         sizeActions.forEach((a, idx) => {
           const aStart = new Date(a.start_time);
           const aEnd = new Date(a.end_time);
-          const startVal =
-            (parseFloat(char.base_size) || 0) +
-            (parseFloat(a.start_offset) || 0);
-          const endVal =
-            (parseFloat(char.base_size) || 0) + (parseFloat(a.end_offset) || 0);
+          const startVal = getActionStartSize(char, a);
+          const endVal = getActionEndSize(char, a);
 
           sizePoints.push({
             date: aStart,

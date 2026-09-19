@@ -12,6 +12,7 @@ import loadingSpinner from "discourse/helpers/loading-spinner";
 import { ajax } from "discourse/lib/ajax";
 import { popupAjaxError } from "discourse/lib/ajax-error";
 import { i18n } from "discourse-i18n";
+import { calculateTargetSize } from "../../lib/size-calculator";
 
 const isItemDisabled = (isUsing, disabledItemIds, itemId) => {
   return Boolean(isUsing || disabledItemIds?.has(itemId));
@@ -110,7 +111,7 @@ export default class DiscourseSizeUseItem extends Component {
       return true;
     }
     if (effect === "static") {
-      const currentSize = char.base_size + (char.target_offset || 0);
+      const currentSize = calculateTargetSize(char);
       const targetSize = item.details.amount;
       if (targetSize > currentSize && blockedKeys.includes("__all_growing__")) {
         return true;

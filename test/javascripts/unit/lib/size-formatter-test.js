@@ -2,6 +2,7 @@ import { module, test } from "qunit";
 import {
   formatSize,
   getBestUnit,
+  getGrowthComparison,
 } from "discourse/plugins/discourse-size/discourse/lib/size-formatter";
 
 module("Unit | discourse-size | size-formatter", function () {
@@ -29,6 +30,62 @@ module("Unit | discourse-size | size-formatter", function () {
     assert.strictEqual(formatSize(1e-16, "imperial"), "1.00 am");
     assert.strictEqual(formatSize(1e-13, "imperial"), "1.00 fm");
     assert.strictEqual(formatSize(1e-10, "imperial"), "1.00 pm");
+  });
+
+  test("growth direction follows the active absolute endpoint rather than collapsed offsets or later queued effects", function (assert) {
+    const now = Date.now();
+    const character = {
+      base_size: 170,
+      current_offset: -170,
+      target_offset: -170,
+      actions: [
+        {
+          id: 1,
+          action_type: "grow",
+          start_time: new Date(now - 1000).toISOString(),
+          end_time: new Date(now + 1000).toISOString(),
+          start_size: 1e-20,
+          end_size: 2e-20,
+        },
+        {
+          id: 2,
+          action_type: "shrink",
+          start_time: new Date(now + 1000).toISOString(),
+          end_time: new Date(now + 2000).toISOString(),
+          start_size: 2e-20,
+          end_size: 1e-21,
+        },
+      ],
+    };
+    assert.true(
+      getGrowthComparison(character, 1.5e-20).includes("growing"),
+      "the active growth wins over the later shrink"
+    );
+    character.actions[0].end_size = 1e-21;
+    assert.true(
+      getGrowthComparison(character, 1.5e-20).includes("shrinking"),
+      "tiny shrinking is visible despite identical legacy offsets"
+    );
+  });
+
+  test("property-only animation is not described as height movement", function (assert) {
+    const character = {
+      base_size: 170,
+      actions: [
+        {
+          action_type: "property_change",
+          start_time: new Date(Date.now() - 1000).toISOString(),
+          end_time: new Date(Date.now() + 1000).toISOString(),
+          start_offset: 10,
+          end_offset: 20,
+        },
+      ],
+    };
+    assert.strictEqual(
+      getGrowthComparison(character, 170),
+      null,
+      "custom property changes do not imply height movement"
+    );
   });
 
   test("getBestUnit selects appropriate subatomic unit", function (assert) {

@@ -149,6 +149,79 @@ module("Integration | Component | DiscourseSizeUseItem", function (hooks) {
       .doesNotExist("the modal closes after success");
   });
 
+  test("maximum-size warnings identify the limit before consuming an item", async function (assert) {
+    this.noSizeEffects = [
+      { character_name: this.character.name, reason: "maximum_size" },
+    ];
+    await render(<template><ModalContainer /></template>);
+    this.owner.lookup("service:modal").show(DiscourseSizeUseItem, {
+      model: { character: this.character, onAction: this.onAction },
+    });
+    await settled();
+    await click(".size-inventory-card");
+    assert.strictEqual(
+      this.confirm.secondCall.args[0],
+      [
+        i18n("discourse_size.inventory.maximum_size_warning", {
+          character_name: this.character.name,
+        }),
+        i18n("discourse_size.inventory.no_size_change_confirm"),
+      ].join("\n\n"),
+      "the maximum has its own explicit warning"
+    );
+    assert.strictEqual(
+      this.requests[1].confirm_no_size_change,
+      "true",
+      "consumption requires acknowledgement"
+    );
+  });
+
+  for (const [blockedKey, amount] of [
+    ["__all_growing__", 2e-20],
+    ["__all_shrinking__", 5e-21],
+  ]) {
+    test(`static items respect ${blockedKey} at tiny absolute queue targets`, async function (assert) {
+      this.currentUser.set("admin", false);
+      Object.assign(this.character, {
+        user_id: this.currentUser.id + 1,
+        base_size: 170,
+        current_size: 100,
+        target_size: 1e-20,
+        target_offset: -170,
+        blocked_item_keys: [blockedKey],
+      });
+      pretender.get("/size/inventory", () =>
+        response({
+          inventory: [
+            {
+              id: 12,
+              uses_remaining: 1,
+              details: {
+                key: "static_potion",
+                name: "Static potion",
+                effect: "static",
+                amount,
+              },
+            },
+          ],
+        })
+      );
+      await render(<template><ModalContainer /></template>);
+      this.owner.lookup("service:modal").show(DiscourseSizeUseItem, {
+        model: { character: this.character },
+      });
+      await settled();
+      assert
+        .dom(".size-inventory-card")
+        .doesNotExist(
+          "a static item moving in the blocked direction is excluded"
+        );
+      assert
+        .dom(".discourse-size-use-item-modal")
+        .includesText("Static potion", "the blocked item is explained");
+    });
+  }
+
   test("an effective use needs no additional confirmation", async function (assert) {
     this.noSizeEffects = [];
 

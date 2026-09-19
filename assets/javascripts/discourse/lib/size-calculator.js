@@ -1,96 +1,124 @@
-/**
- * Centralized logic for character size calculations and animations.
- * Ensures consistency between character card, details view, and other components.
- */
-export function calculateOffset(character, time = new Date()) {
-  if (!character || !character.actions || character.actions.length === 0) {
-    return (
-      parseFloat(character?.target_offset) ||
-      parseFloat(character?.current_offset) ||
-      0
+export const MIN_SIZE = 1e-35;
+export const MAX_SIZE = 1e120;
+
+export function clampSize(value) {
+  const size = parseFloat(value);
+  return Number.isFinite(size)
+    ? Math.min(MAX_SIZE, Math.max(MIN_SIZE, size))
+    : MIN_SIZE;
+}
+
+export function getActionStartSize(character, action) {
+  return clampSize(
+    action.start_size ??
+      parseFloat(character?.base_size ?? 0) +
+        parseFloat(action.start_offset ?? 0)
+  );
+}
+
+export function getActionEndSize(character, action) {
+  return clampSize(
+    action.end_size ??
+      parseFloat(character?.base_size ?? 0) + parseFloat(action.end_offset ?? 0)
+  );
+}
+
+export function getSizeActions(character) {
+  return (character?.actions || [])
+    .filter(
+      (a) =>
+        ["grow", "shrink", "set_size"].includes(a.action_type) &&
+        a.start_time &&
+        a.end_time
+    )
+    .sort(
+      (a, b) =>
+        new Date(a.start_time) - new Date(b.start_time) ||
+        (a.id || 0) - (b.id || 0)
+    );
+}
+
+export function calculateTargetSize(character) {
+  if (!Array.isArray(character?.actions)) {
+    return clampSize(
+      character?.target_size ??
+        character?.current_size ??
+        parseFloat(character?.base_size ?? 0) +
+          parseFloat(character?.target_offset ?? character?.current_offset ?? 0)
     );
   }
 
   const actions = character.actions
-    .filter((a) => ["grow", "shrink", "set_size"].includes(a.action_type))
-    .sort((a, b) => {
-      const timeDiff = new Date(a.start_time) - new Date(b.start_time);
-      if (timeDiff !== 0) {
-        return timeDiff;
-      }
-      const createdDiff =
-        new Date(a.created_at || 0) - new Date(b.created_at || 0);
-      if (createdDiff !== 0) {
-        return createdDiff;
-      }
-      return (a.id || 0) - (b.id || 0);
-    });
-
-  if (actions.length === 0) {
-    return (
-      parseFloat(character?.target_offset) ||
-      parseFloat(character?.current_offset) ||
-      0
+    .filter((action) =>
+      ["grow", "shrink", "set_size"].includes(action.action_type)
+    )
+    .sort(
+      (a, b) =>
+        new Date(a.created_at || a.start_time || 0) -
+          new Date(b.created_at || b.start_time || 0) ||
+        (a.id || 0) - (b.id || 0)
     );
-  }
-
-  // Find the active action at this specific time
-  const activeAction = actions.find((a) => {
-    if (!a.start_time || !a.end_time) {
-      return false;
-    }
-    const start = new Date(a.start_time);
-    const end = new Date(a.end_time);
-    return time >= start && time < end;
-  });
-
-  if (activeAction) {
-    const startT = new Date(activeAction.start_time);
-    const endT = new Date(activeAction.end_time);
-    const totalDuration = endT.getTime() - startT.getTime();
-
-    if (totalDuration > 0) {
-      const elapsed = time.getTime() - startT.getTime();
-      const progress = elapsed / totalDuration;
-
-      const startOff = parseFloat(activeAction.start_offset) || 0;
-      const endOff = parseFloat(activeAction.end_offset) || 0;
-
-      return startOff + (endOff - startOff) * progress;
-    } else {
-      return parseFloat(activeAction.end_offset) || 0;
-    }
-  }
-
-  // Check if we are BEFORE the first action
-  if (new Date(actions[0].start_time) > time) {
-    return parseFloat(actions[0].start_offset) || 0;
-  }
-
-  // Check if we are AFTER the last action
-  if (new Date(actions[actions.length - 1].end_time) <= time) {
-    return parseFloat(actions[actions.length - 1].end_offset) || 0;
-  }
-
-  // We are in a gap between actions. The size should be the end_offset of the most recent past action.
-  const lastPastAction = actions
-    .slice()
-    .reverse()
-    .find((a) => new Date(a.end_time) <= time);
-  if (lastPastAction) {
-    return parseFloat(lastPastAction.end_offset) || 0;
-  }
-
-  return parseFloat(character.current_offset) || 0;
+  return actions.length
+    ? getActionEndSize(character, actions[actions.length - 1])
+    : clampSize(character.base_size);
 }
 
 export function calculateSize(character, time = new Date()) {
   if (!character) {
     return 0;
   }
-  const rawSize =
-    (parseFloat(character.base_size) || 0) + calculateOffset(character, time);
-  return Math.max(rawSize, 1e-35);
+
+  // Omitted actions mean a summary payload, not an empty history.
+  if (!Array.isArray(character.actions)) {
+    return clampSize(
+      character.current_size ??
+        character.target_size ??
+        parseFloat(character.base_size ?? 0) +
+          parseFloat(character.current_offset ?? character.target_offset ?? 0)
+    );
+  }
+
+  const actions = getSizeActions(character);
+  if (!actions.length) {
+    return clampSize(character.base_size);
+  }
+
+  const active = actions.find(
+    (a) => time >= new Date(a.start_time) && time < new Date(a.end_time)
+  );
+  if (active) {
+    const start = new Date(active.start_time);
+    const end = new Date(active.end_time);
+    const progress = (time - start) / (end - start);
+    const startSize = getActionStartSize(character, active);
+    const endSize = getActionEndSize(character, active);
+    if (progress <= 0) {
+      return startSize;
+    }
+    if (progress >= 1) {
+      return endSize;
+    }
+    // Subtracting endpoints first loses a tiny destination when shrinking.
+    return clampSize((1 - progress) * startSize + progress * endSize);
+  }
+
+  if (time < new Date(actions[0].start_time)) {
+    return getActionStartSize(character, actions[0]);
+  }
+
+  const past = actions
+    .slice()
+    .reverse()
+    .find((a) => new Date(a.end_time) <= time);
+  return past
+    ? getActionEndSize(character, past)
+    : clampSize(character.base_size);
+}
+
+/** Compatibility only: adding this offset back to a large base can lose precision. */
+export function calculateOffset(character, time = new Date()) {
+  const base = parseFloat(character?.base_size);
+  return calculateSize(character, time) - (Number.isFinite(base) ? base : 0);
 }
 
 export function calculatePropertyValue(

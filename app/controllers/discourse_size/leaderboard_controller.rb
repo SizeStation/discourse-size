@@ -81,6 +81,7 @@ module DiscourseSize
       end
 
       cur_size = c.current_size
+      target_size = c.target_size
       effective_size = [cur_size.abs, c.base_size.abs, 1.0].min
       is_max =
         cur_size >= DiscourseSizeCharacter::MAX_SIZE ||
@@ -100,8 +101,8 @@ module DiscourseSize
         is_min_size: is_min,
         prefers_growing: prefers_growing,
         prefers_shrinking: prefers_shrinking,
-        is_animating: (c.current_offset - c.target_offset).abs > [effective_size * 1e-6, 1e-40].max,
-        is_growing: c.target_offset > c.current_offset,
+        is_animating: (cur_size - target_size).abs > [effective_size * 1e-6, 1e-40].max,
+        is_growing: target_size > cur_size,
         time_remaining: (seconds_left && seconds_left > 0) ? format_duration(seconds_left) : nil,
         user: {
           id: c.user&.id,

@@ -13,6 +13,7 @@ class DiscourseSizeCharacterSerializer < ApplicationSerializer
              :start_offset,
              :offset_updated_at,
              :current_size,
+             :target_size,
              :is_max_size,
              :is_min_size,
              :blocked_item_keys,

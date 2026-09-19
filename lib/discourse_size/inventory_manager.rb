@@ -106,6 +106,7 @@ module ::DiscourseSize
         affected_character_ids = [character.id, main_char&.id].compact.uniq.sort
         with_character_locks(affected_character_ids) do
           ActiveRecord::Base.transaction do
+            DiscourseSizeCharacter.where(id: affected_character_ids).order(:id).lock.load
             character.reload
             main_char&.reload
             inventory_item.reload(lock: true)
@@ -121,10 +122,7 @@ module ::DiscourseSize
               end
             end
 
-            # Apply effect
-            # Sequential stacking logic
-            start_offset = character.target_offset
-            current_target_total = character.base_size + start_offset
+            current_target_total = character.target_size
             if item.effect == "static"
               new_target_total = item.amount.to_f
             elsif item.effect == "shrink"
@@ -178,8 +176,7 @@ module ::DiscourseSize
 
             # Apply self-effect if configured and applicable (only for game type main characters)
             if main_char&.game?
-              self_start_offset = main_char.target_offset
-              self_current_total = main_char.base_size + self_start_offset
+              self_current_total = main_char.target_size
               if item.self_effect == "static"
                 self_new_total = item.self_amount.to_f
               elsif item.self_effect == "shrink"
@@ -241,6 +238,7 @@ module ::DiscourseSize
           next if (removed_actions.map(&:character_id) - character_ids).any?
 
           ActiveRecord::Base.transaction do
+            DiscourseSizeCharacter.where(id: character_ids).order(:id).lock.load
             character = action.character
             if action.notification_id
               NotificationManager.delete_notification(action.notification_id)

@@ -31,6 +31,14 @@ class DiscourseSizeAction < ActiveRecord::Base
   validates :effect_type, inclusion: { in: %w[grow shrink static] }, allow_nil: true
   validates :effect_amount, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
 
+  def start_total_size(base_size = character.base_size)
+    DiscourseSize::SizeCalculator.clamp_size(start_size || (base_size + start_offset.to_f))
+  end
+
+  def end_total_size(base_size = character.base_size)
+    DiscourseSize::SizeCalculator.clamp_size(end_size || (base_size + end_offset.to_f))
+  end
+
   def size_after_effect(start_size)
     return if effect_amount.nil?
 
@@ -112,12 +120,14 @@ end
 #  effect_amount    :float
 #  effect_type      :string
 #  end_offset       :float
+#  end_size         :float
 #  end_time         :datetime
 #  item_key         :string
 #  points_spent     :float            default(0.0), not null
 #  size_change      :float            not null
 #  speed            :float            default(1.0), not null
 #  start_offset     :float
+#  start_size       :float
 #  start_time       :datetime
 #  created_at       :datetime         not null
 #  updated_at       :datetime         not null
