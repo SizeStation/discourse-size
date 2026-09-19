@@ -34,7 +34,7 @@ class DiscourseSizeAction < ActiveRecord::Base
   def start_total_size(base_size = character.base_size)
     raw = start_size || (base_size + start_offset.to_f)
     if raw&.infinite?
-      Float::INFINITY
+      raw.negative? ? -Float::INFINITY : Float::INFINITY
     elsif character&.normal?
       if !raw.to_f.finite? || raw.to_f <= 0
         DiscourseSizeCharacter::MIN_SIZE
@@ -49,7 +49,7 @@ class DiscourseSizeAction < ActiveRecord::Base
   def end_total_size(base_size = character.base_size)
     raw = end_size || (base_size + end_offset.to_f)
     if raw&.infinite?
-      Float::INFINITY
+      raw.negative? ? -Float::INFINITY : Float::INFINITY
     elsif character&.normal?
       if !raw.to_f.finite? || raw.to_f <= 0
         DiscourseSizeCharacter::MIN_SIZE

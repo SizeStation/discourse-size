@@ -13,6 +13,7 @@ module DiscourseSize
           .to_a
 
       if actions.empty?
+        return character.base_size if character.normal? && character.base_size&.infinite?
         return character.base_size.to_f if character.normal?
         return clamp_size(character.base_size)
       end
@@ -23,7 +24,9 @@ module DiscourseSize
           (time - active_action.start_time) / (active_action.end_time - active_action.start_time)
         start_size = active_action.start_total_size(character.base_size)
         end_size = active_action.end_total_size(character.base_size)
-        return Float::INFINITY if start_size.infinite? || end_size.infinite?
+        if start_size.infinite? || end_size.infinite?
+          return end_size.infinite? ? end_size : start_size
+        end
         # Subtracting endpoints first can erase a tiny destination when shrinking.
         interpolated = (1 - progress) * start_size + progress * end_size
         return character.normal? ? interpolated : clamp_size(interpolated)
@@ -34,7 +37,11 @@ module DiscourseSize
       last_past_action = actions.reverse_each.find { |action| action.end_time <= time }
       return last_past_action.end_total_size(character.base_size) if last_past_action
 
-      character.normal? ? character.base_size.to_f : clamp_size(character.base_size)
+      if character.normal?
+        return character.base_size if character.base_size&.infinite?
+        return character.base_size.to_f
+      end
+      clamp_size(character.base_size)
     end
 
     def self.clamp_size(value)

@@ -87,15 +87,27 @@ class DiscourseSizeCharacterSerializer < ApplicationSerializer
   end
 
   def base_size
-    object.base_size&.infinite? ? "Infinity" : object.base_size
+    if object.base_size&.infinite?
+      object.base_size.negative? ? "-Infinity" : "Infinity"
+    else
+      object.base_size
+    end
   end
 
   def current_size
-    object.current_size&.infinite? ? "Infinity" : object.current_size
+    if object.current_size&.infinite?
+      object.current_size.negative? ? "-Infinity" : "Infinity"
+    else
+      object.current_size
+    end
   end
 
   def target_size
-    object.target_size&.infinite? ? "Infinity" : object.target_size
+    if object.target_size&.infinite?
+      object.target_size.negative? ? "-Infinity" : "Infinity"
+    else
+      object.target_size
+    end
   end
 
   def is_max_size

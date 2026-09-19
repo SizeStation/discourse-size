@@ -48,14 +48,15 @@ module ::DiscourseSize
       context.attach(
         "character.setSize",
         ->(new_size, duration_seconds = nil) do
+          parsed = DiscourseSizeCharacter.parse_size(new_size)
           if duration_seconds && duration_seconds.to_f > 0
             state[:size_animations] << {
               action_type: "set_size",
-              target_size: new_size.to_f,
+              target_size: parsed,
               duration_minutes: duration_seconds.to_f / 60.0,
             }
           else
-            state[:new_size] = new_size.to_f
+            state[:new_size] = parsed
           end
         end,
       )
@@ -65,7 +66,7 @@ module ::DiscourseSize
         ->(target_cm, duration_seconds) do
           state[:size_animations] << {
             action_type: "set_size",
-            target_size: target_cm.to_f,
+            target_size: DiscourseSizeCharacter.parse_size(target_cm),
             duration_minutes: duration_seconds.to_f / 60.0,
           }
         end,
@@ -250,7 +251,12 @@ module ::DiscourseSize
         end_size = start_size
 
         if state[:new_size]
-          end_size = state[:new_size].to_f
+          end_size =
+            if state[:new_size].is_a?(Numeric)
+              state[:new_size]
+            else
+              DiscourseSizeCharacter.parse_size(state[:new_size])
+            end
           character
             .discourse_size_actions
             .where(action_type: %w[grow shrink set_size])

@@ -59,10 +59,29 @@ class DiscourseSizeCharacter < ActiveRecord::Base
   def self.move_to_folder(user, character_ids, folder_id)
     where(id: character_ids, user_id: user.id).update_all(folder_id: folder_id)
   end
+  INFINITE_SIZE_REGEX = /\A([+-])?(?:infinity|infinite|inf|∞)(?:\s*[a-z]+)?\z/i
+
+  def self.parse_size(val)
+    return Float::INFINITY if val == Float::INFINITY
+    return -Float::INFINITY if val == -Float::INFINITY
+    if val.is_a?(String)
+      match = val.strip.match(INFINITE_SIZE_REGEX)
+      if match
+        return match[1] == "-" ? -Float::INFINITY : Float::INFINITY
+      end
+      Float(val) rescue 0.0
+    elsif val.is_a?(Numeric)
+      val.to_f
+    else
+      0.0
+    end
+  end
+
   def base_size=(val)
-    if val.is_a?(String) &&
-         (val.strip == "∞" || val.strip.casecmp?("infinity") || val.strip.casecmp?("inf"))
-      super(Float::INFINITY)
+    if val == Float::INFINITY || val == -Float::INFINITY
+      super(val)
+    elsif val.is_a?(String) && (match = val.strip.match(INFINITE_SIZE_REGEX))
+      super(match[1] == "-" ? -Float::INFINITY : Float::INFINITY)
     else
       super
     end
@@ -83,7 +102,7 @@ class DiscourseSizeCharacter < ActiveRecord::Base
       return
     end
 
-    return if base_size == Float::INFINITY || (base_size.is_a?(Numeric) && base_size.positive?)
+    return if base_size&.infinite? || (base_size.is_a?(Numeric) && base_size.positive?)
 
     errors.add(:base_size, :greater_than, count: 0)
   end
@@ -140,15 +159,7 @@ class DiscourseSizeCharacter < ActiveRecord::Base
   end
 
   def update_size(new_total_cm, actor)
-    if new_total_cm.is_a?(String) &&
-         (
-           new_total_cm.strip == "∞" || new_total_cm.strip.casecmp?("infinity") ||
-             new_total_cm.strip.casecmp?("inf")
-         )
-      new_total_cm = Float::INFINITY
-    else
-      new_total_cm = new_total_cm.to_f
-    end
+    new_total_cm = self.class.parse_size(new_total_cm)
 
     if game?
       new_total_cm = MIN_SIZE if new_total_cm < MIN_SIZE
@@ -210,7 +221,7 @@ class DiscourseSizeCharacter < ActiveRecord::Base
   def target_size
     action_size = ordered_size_actions.last&.end_total_size(base_size)
     if normal?
-      action_size || (base_size&.infinite? ? Float::INFINITY : base_size.to_f)
+      action_size || (base_size&.infinite? ? base_size : base_size.to_f)
     else
       action_size || DiscourseSize::SizeCalculator.clamp_size(base_size)
     end

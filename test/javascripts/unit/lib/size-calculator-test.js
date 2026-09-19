@@ -318,11 +318,17 @@ module("Unit | Lib | size-calculator", function () {
     assert.true(isInfiniteSize("Infinity"));
     assert.true(isInfiniteSize("+infinity"));
     assert.true(isInfiniteSize("-infinity"));
+    assert.true(isInfiniteSize("infinite"));
+    assert.true(isInfiniteSize("-infinite"));
     assert.true(isInfiniteSize("∞"));
     assert.true(isInfiniteSize("-∞"));
     assert.true(isInfiniteSize("inf"));
     assert.true(isInfiniteSize("+inf"));
     assert.true(isInfiniteSize("-inf"));
+    assert.true(isInfiniteSize("inf cm"));
+    assert.true(isInfiniteSize("-inf cm"));
+    assert.true(isInfiniteSize("infinity cm"));
+    assert.true(isInfiniteSize("-infinity cm"));
 
     assert.false(isInfiniteSize(100));
     assert.false(isInfiniteSize("100"));
@@ -391,6 +397,41 @@ module("Unit | Lib | size-calculator", function () {
       calculateSize(infiniteStringNormal),
       Infinity,
       "normal character base_size '∞' calculates to Infinity"
+    );
+
+    const negInfiniteNormal = {
+      character_type: "normal",
+      base_size: -Infinity,
+    };
+    assert.strictEqual(
+      calculateSize(negInfiniteNormal),
+      -Infinity,
+      "normal character can have negative infinite size"
+    );
+    assert.strictEqual(
+      calculateTargetSize(negInfiniteNormal),
+      -Infinity,
+      "normal character target size can be -Infinity"
+    );
+
+    const negInfiniteStringNormal = {
+      character_type: "normal",
+      base_size: "-∞",
+    };
+    assert.strictEqual(
+      calculateSize(negInfiniteStringNormal),
+      -Infinity,
+      "normal character base_size '-∞' calculates to -Infinity"
+    );
+
+    const negInfWordNormal = {
+      character_type: "normal",
+      base_size: "-inf",
+    };
+    assert.strictEqual(
+      calculateSize(negInfWordNormal),
+      -Infinity,
+      "normal character base_size '-inf' calculates to -Infinity"
     );
   });
 });

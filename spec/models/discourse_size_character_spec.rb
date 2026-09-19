@@ -395,6 +395,36 @@ describe DiscourseSizeCharacter do
             base_size: "inf",
           )
         expect(char_inf3.base_size).to eq(Float::INFINITY)
+
+        char_neg_inf1 =
+          Fabricate(
+            :discourse_size_character,
+            user: user,
+            character_type: DiscourseSizeCharacter::TYPE_NORMAL,
+            base_size: "-∞",
+          )
+        expect(char_neg_inf1.base_size).to eq(-Float::INFINITY)
+        expect(char_neg_inf1.current_size).to eq(-Float::INFINITY)
+        expect(char_neg_inf1.target_size).to eq(-Float::INFINITY)
+        expect(char_neg_inf1.valid?).to be true
+
+        char_neg_inf2 =
+          Fabricate(
+            :discourse_size_character,
+            user: user,
+            character_type: DiscourseSizeCharacter::TYPE_NORMAL,
+            base_size: "-infinity",
+          )
+        expect(char_neg_inf2.base_size).to eq(-Float::INFINITY)
+
+        char_neg_inf3 =
+          Fabricate(
+            :discourse_size_character,
+            user: user,
+            character_type: DiscourseSizeCharacter::TYPE_NORMAL,
+            base_size: "-inf",
+          )
+        expect(char_neg_inf3.base_size).to eq(-Float::INFINITY)
       end
 
       it "does not clamp sizes in update_size" do
@@ -412,6 +442,16 @@ describe DiscourseSizeCharacter do
         character_1.update_size("∞", user)
         character_1.reload
         expect(character_1.current_size).to eq(Float::INFINITY)
+        expect(character_1.current_offset).to eq(0.0)
+
+        character_1.update_size("-∞", user)
+        character_1.reload
+        expect(character_1.current_size).to eq(-Float::INFINITY)
+        expect(character_1.current_offset).to eq(0.0)
+
+        character_1.update_size("-inf", user)
+        character_1.reload
+        expect(character_1.current_size).to eq(-Float::INFINITY)
         expect(character_1.current_offset).to eq(0.0)
       end
 

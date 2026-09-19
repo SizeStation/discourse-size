@@ -17,6 +17,8 @@ class RoleplayMemberSerializer < ApplicationSerializer
   def character_base_size
     if object.override_data&.key?("base_size")
       object.override_data["base_size"]
+    elsif object.character&.base_size&.infinite?
+      object.character.base_size.negative? ? "-Infinity" : "Infinity"
     else
       object.character&.base_size
     end

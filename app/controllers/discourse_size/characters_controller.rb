@@ -166,7 +166,7 @@ module DiscourseSize
         raise Discourse::InvalidAccess
       end
 
-      new_total_cm = params[:size].to_f
+      new_total_cm = DiscourseSizeCharacter.parse_size(params[:size])
       character.update_size(new_total_cm, current_user)
 
       render json: {

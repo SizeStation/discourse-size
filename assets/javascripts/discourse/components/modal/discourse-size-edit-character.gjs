@@ -14,7 +14,11 @@ import icon from "discourse/helpers/d-icon";
 import { ajax } from "discourse/lib/ajax";
 import { i18n } from "discourse-i18n";
 import EmailGroupUserChooser from "select-kit/components/email-group-user-chooser";
-import { calculateTargetSize, isInfiniteSize } from "../../lib/size-calculator";
+import {
+  calculateTargetSize,
+  isInfiniteSize,
+  isNegativeInfinity,
+} from "../../lib/size-calculator";
 import { formatSize, getBestUnit, UNITS } from "../../lib/size-formatter";
 import DiscourseSizeTriggerHelp from "./discourse-size-trigger-help";
 
@@ -70,7 +74,7 @@ export default class DiscourseSizeEditCharacter extends Component {
     this.description = ov.description ?? char.description ?? "";
     const rawBase = ov.base_size != null ? ov.base_size : char.base_size;
     this.baseSize = isInfiniteSize(rawBase)
-      ? Infinity
+      ? (isNegativeInfinity(rawBase) ? -Infinity : Infinity)
       : rawBase != null
         ? parseFloat(rawBase)
         : 170.0;
@@ -107,7 +111,7 @@ export default class DiscourseSizeEditCharacter extends Component {
         : this.baseSize;
     if (isInfiniteSize(initialSize)) {
       this.sizeUnit = "cm";
-      this.displaySize = "∞";
+      this.displaySize = isNegativeInfinity(initialSize) ? "-∞" : "∞";
     } else {
       const preferredSystem =
         this.currentUser?.discourse_size_settings?.measurement_system ||
@@ -174,7 +178,13 @@ export default class DiscourseSizeEditCharacter extends Component {
       const origInfinite = isInfiniteSize(original);
       const curInfinite = isInfiniteSize(this.baseSizeInCm);
       if (origInfinite || curInfinite) {
-        return origInfinite !== curInfinite;
+        if (origInfinite !== curInfinite) {
+          return true;
+        }
+        return (
+          isNegativeInfinity(original) !==
+          isNegativeInfinity(this.baseSizeInCm)
+        );
       }
       const originalSize = parseFloat(original || 0);
       return (
@@ -211,8 +221,8 @@ export default class DiscourseSizeEditCharacter extends Component {
     if (field === "base_size") {
       const orig = char.base_size;
       if (isInfiniteSize(orig)) {
-        this.baseSize = Infinity;
-        this.displaySize = "∞";
+        this.baseSize = isNegativeInfinity(orig) ? -Infinity : Infinity;
+        this.displaySize = isNegativeInfinity(orig) ? "-∞" : "∞";
         this.sizeUnit = "cm";
       } else {
         const originalSize = parseFloat(orig || 170.0);
@@ -378,8 +388,22 @@ export default class DiscourseSizeEditCharacter extends Component {
   onBaseSizeInput(event) {
     const raw = (event.target.value ?? "").trim();
     if (this.characterType === "normal" && isInfiniteSize(raw)) {
-      this.displaySize = "∞";
+      const sym = isNegativeInfinity(raw) ? "-∞" : "∞";
+      this.displaySize = sym;
+      event.target.value = sym;
       this.sizeError = null;
+      return;
+    }
+    if (this.characterType === "game" && isInfiniteSize(raw)) {
+      if (this.args?.model?.isNew) {
+        const sym = isNegativeInfinity(raw) ? "-∞" : "∞";
+        this.characterType = "normal";
+        this.displaySize = sym;
+        event.target.value = sym;
+        this.sizeError = null;
+        return;
+      }
+      this.sizeError = i18n("discourse_size.fields.invalid_number");
       return;
     }
     const val = parseFloat(event.target.value);
@@ -409,7 +433,7 @@ export default class DiscourseSizeEditCharacter extends Component {
 
   get baseSizeInCm() {
     if (isInfiniteSize(this.displaySize)) {
-      return Infinity;
+      return isNegativeInfinity(this.displaySize) ? -Infinity : Infinity;
     }
     const unit = UNITS.find((u) => u.id === this.sizeUnit) || { factor: 1 };
     return parseFloat(this.displaySize) * unit.factor;
@@ -419,7 +443,9 @@ export default class DiscourseSizeEditCharacter extends Component {
   onBaseSizeBlur(event) {
     const raw = (event.target.value ?? "").trim();
     if (this.characterType === "normal" && isInfiniteSize(raw)) {
-      this.displaySize = "∞";
+      const sym = isNegativeInfinity(raw) ? "-∞" : "∞";
+      this.displaySize = sym;
+      event.target.value = sym;
       this.sizeError = null;
       this.isClampedNotice = false;
       return;
@@ -498,6 +524,9 @@ export default class DiscourseSizeEditCharacter extends Component {
     const sizeEdited =
       isInfiniteSize(this.displaySize) !==
         isInfiniteSize(this._initialDisplaySize) ||
+      (isInfiniteSize(this.displaySize) &&
+        isNegativeInfinity(this.displaySize) !==
+          isNegativeInfinity(this._initialDisplaySize)) ||
       (!isInfiniteSize(this.displaySize) &&
         parseFloat(this.displaySize) !==
           parseFloat(this._initialDisplaySize)) ||
@@ -515,7 +544,7 @@ export default class DiscourseSizeEditCharacter extends Component {
       }
     } else {
       if (isInfiniteSize(valCm)) {
-        valCm = "Infinity";
+        valCm = isNegativeInfinity(valCm) ? "-Infinity" : "Infinity";
       } else if (isNaN(valCm) || valCm <= 0) {
         valCm = 1.0;
       }
@@ -582,7 +611,10 @@ export default class DiscourseSizeEditCharacter extends Component {
             const curInf = isInfiniteSize(cur);
             const origInf = isInfiniteSize(orig);
             if (curInf || origInf) {
-              if (curInf !== origInf) {
+              if (
+                curInf !== origInf ||
+                isNegativeInfinity(cur) !== isNegativeInfinity(orig)
+              ) {
                 overrideData[k] = cur;
               } else if (priorOv[k] !== undefined) {
                 overrideData[k] = null;
@@ -657,15 +689,18 @@ export default class DiscourseSizeEditCharacter extends Component {
       } else {
         const character = this.args.model.character;
         if (this.characterType === "normal") {
-          data.base_size = isInfiniteSize(character.base_size)
-            ? "Infinity"
-            : character.base_size;
+          data.base_size = isInfiniteSize(valCm)
+            ? (isNegativeInfinity(valCm) ? "-Infinity" : "Infinity")
+            : valCm;
           const curChanged =
             isInfiniteSize(valCm) !== isInfiniteSize(character.current_size) ||
+            (isInfiniteSize(valCm) &&
+              isNegativeInfinity(valCm) !==
+                isNegativeInfinity(character.current_size)) ||
             (!isInfiniteSize(valCm) &&
               parseFloat(valCm) !== parseFloat(character.current_size));
           if (curChanged) {
-            data.current_size = isInfiniteSize(valCm) ? "Infinity" : valCm;
+            data.current_size = data.base_size;
           }
         }
         result = await ajax(
@@ -1122,8 +1157,8 @@ export default class DiscourseSizeEditCharacter extends Component {
     this.species = char.species || "";
     this.description = char.description || "";
     if (isInfiniteSize(char.base_size)) {
-      this.baseSize = Infinity;
-      this.displaySize = "∞";
+      this.baseSize = isNegativeInfinity(char.base_size) ? -Infinity : Infinity;
+      this.displaySize = isNegativeInfinity(char.base_size) ? "-∞" : "∞";
       this.sizeUnit = "cm";
     } else {
       this.baseSize = parseFloat(char.base_size || 170.0);
@@ -1434,18 +1469,20 @@ export default class DiscourseSizeEditCharacter extends Component {
               }}</span>
             <div class="size-input-wrapper">
               <input
-                type={{if (eq this.characterType "normal") "text" "number"}}
-                inputmode={{if (eq this.characterType "normal") "decimal"}}
+                type="text"
+                inputmode="decimal"
                 value={{this.displaySize}}
-                step={{if (eq this.characterType "game") "any"}}
                 class="base-size-input
-                  {{if (eq this.displaySize '∞') 'is-infinite'}}"
+                  {{if (or (eq this.displaySize '∞') (eq this.displaySize '-∞')) 'is-infinite'}}"
                 {{on "input" this.onBaseSizeInput}}
                 {{on "blur" this.onBaseSizeBlur}}
               />
               <select
                 class="size-unit-selector"
-                disabled={{eq this.displaySize "∞"}}
+                disabled={{or
+                  (eq this.displaySize "∞")
+                  (eq this.displaySize "-∞")
+                }}
                 {{on "change" this.onUnitChange}}
               >
                 {{#each this.units as |unit|}}

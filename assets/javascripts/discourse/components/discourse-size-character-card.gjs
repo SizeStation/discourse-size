@@ -757,8 +757,12 @@ export default class DiscourseSizeCharacterCard extends Component {
                 {{#if this.isInfiniteSize}}
                   <span
                     class="ds-infinity-symbol"
-                    aria-label="infinity"
-                  >∞</span>
+                    aria-label={{if
+                      (eq this.formattedSize "-∞")
+                      "-infinity"
+                      "infinity"
+                    }}
+                  >{{this.formattedSize}}</span>
                 {{else}}
                   {{this.formattedSize}}
                 {{/if}}

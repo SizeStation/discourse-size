@@ -3,6 +3,7 @@ import {
   getActionEndSize,
   getSizeActions,
   isInfiniteSize,
+  isNegativeInfinity,
 } from "./size-calculator";
 
 export const COMPARISONS = [
@@ -727,7 +728,9 @@ export function getComparison(character) {
   const name = character.name || "this character";
 
   if (isInfiniteSize(sizeCm)) {
-    return `${name} is infinitely large.`;
+    return isNegativeInfinity(sizeCm)
+      ? `${name} is infinitely small.`
+      : `${name} is infinitely large.`;
   }
 
   let rankText = `${name} is `;
@@ -795,7 +798,7 @@ function smartFixed(val, system = "metric") {
 
 export function formatSize(sizeCm, system = "metric") {
   if (isInfiniteSize(sizeCm)) {
-    return String(sizeCm).startsWith("-") ? "-∞" : "∞";
+    return isNegativeInfinity(sizeCm) ? "-∞" : "∞";
   }
 
   // We'll handle the default in the helper or component

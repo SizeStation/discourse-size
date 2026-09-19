@@ -100,13 +100,21 @@ module("Unit | discourse-size | size-formatter", function () {
     assert.strictEqual(getBestUnit(1e-10).id, "pm");
   });
 
-  test("formatSize formats infinite sizes as ∞", function (assert) {
+  test("formatSize formats infinite sizes as ∞ and -∞", function (assert) {
     assert.strictEqual(formatSize(Infinity), "∞");
     assert.strictEqual(formatSize("Infinity"), "∞");
     assert.strictEqual(formatSize("∞"), "∞");
     assert.strictEqual(formatSize(Infinity, "imperial"), "∞");
     assert.strictEqual(formatSize("Infinity", "imperial"), "∞");
     assert.strictEqual(formatSize("∞", "imperial"), "∞");
+
+    assert.strictEqual(formatSize(-Infinity), "-∞");
+    assert.strictEqual(formatSize("-Infinity"), "-∞");
+    assert.strictEqual(formatSize("-∞"), "-∞");
+    assert.strictEqual(formatSize("-inf"), "-∞");
+    assert.strictEqual(formatSize(-Infinity, "imperial"), "-∞");
+    assert.strictEqual(formatSize("-Infinity", "imperial"), "-∞");
+    assert.strictEqual(formatSize("-∞", "imperial"), "-∞");
   });
 
   test("getComparison handles infinite sizes", function (assert) {
@@ -116,5 +124,12 @@ module("Unit | discourse-size | size-formatter", function () {
     assert.strictEqual(getComparison(charString), "Titan is infinitely large.");
     const charSymbol = { name: "Titan", current_size: "∞" };
     assert.strictEqual(getComparison(charSymbol), "Titan is infinitely large.");
+
+    const negCharacter = { name: "Ant", current_size: -Infinity };
+    assert.strictEqual(getComparison(negCharacter), "Ant is infinitely small.");
+    const negCharString = { name: "Ant", current_size: "-Infinity" };
+    assert.strictEqual(getComparison(negCharString), "Ant is infinitely small.");
+    const negCharSymbol = { name: "Ant", current_size: "-∞" };
+    assert.strictEqual(getComparison(negCharSymbol), "Ant is infinitely small.");
   });
 });
